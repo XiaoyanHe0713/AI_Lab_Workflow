@@ -1,0 +1,59 @@
+# Verification targets for the convergence-order certifier: the order a classical scheme is known to have on
+# the certifier's manufactured problems. These are tests of the machinery (Tier 1), not open classes: the
+# `best_known` order is the order of the named classical scheme, and the known order barriers are the sources.
+class: convergence-order-verification
+measure: measured order of convergence from a refinement study (higher is better)
+beat_margin: none (verification only)
+certifier: convergence_order
+certifier_version: 1.0.0
+frozen_at: 2026-11-04
+
+entries:
+  - id: order-ode-p1
+    family: ode_ivp
+    order: 1
+    best_known: 1
+    status: solved
+    method: forward Euler
+    source: Hairer, Norsett & Wanner (1993), Sec. II.1
+    entered: 2026-11-04
+  - id: order-ode-p2
+    family: ode_ivp
+    order: 2
+    best_known: 2
+    status: solved
+    method: Heun's method or the explicit midpoint rule
+    source: Hairer, Norsett & Wanner (1993), Sec. II.1
+    entered: 2026-11-04
+  - id: order-ode-p4
+    family: ode_ivp
+    order: 4
+    best_known: 4
+    status: solved
+    method: classical Runge-Kutta (Kutta 1901); order 4 is the most an explicit four-stage method can have (Butcher 1963)
+    source: Hairer, Norsett & Wanner (1993), Sec. II.1 and II.5
+    entered: 2026-11-04
+  - id: order-poisson-p2
+    family: poisson1d
+    order: 2
+    best_known: 2
+    status: solved
+    method: three-point central differences with exact Dirichlet values
+    source: LeVeque, Finite Difference Methods for Ordinary and Partial Differential Equations (2007), Ch. 2
+    entered: 2026-11-04
+  - id: order-quad-p2
+    family: quadrature
+    order: 2
+    best_known: 2
+    status: solved
+    method: composite midpoint or trapezoid rule
+    source: Davis & Rabinowitz (1984), Sec. 2.1
+    entered: 2026-11-04
+  - id: order-quad-p4
+    family: quadrature
+    order: 4
+    best_known: 4
+    status: solved
+    method: composite Simpson rule
+    source: Davis & Rabinowitz (1984), Sec. 2.1
+    entered: 2026-11-04

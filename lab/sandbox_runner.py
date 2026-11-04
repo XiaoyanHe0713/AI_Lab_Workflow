@@ -5,6 +5,10 @@ prefixes such as numpy.polynomial and scipy.integrate), disables sockets, execut
 file in a fresh namespace, calls its entry point, and writes a JSON result with the import log,
 captured output, CPU time and any error. The parent (lab/judge.py) enforces the wall-clock
 timeout, polls memory and kills the process tree.
+
+With `instrument` in the spec ({"module": path of lab/certifiers/counted.py, "wrap_args": [...]}) the
+listed arguments are wrapped as Counted scalars before the call and the result is replaced by
+{"counts": ..., "outputs": ...}: the operation count is read off the outputs, never trusted.
 """
 from __future__ import annotations
 
@@ -153,7 +157,18 @@ def main(spec_path: str) -> int:
         fn = ns.get(spec["entry_point"])
         if fn is None or not callable(fn):
             raise RuntimeError(f"candidate defines no callable {spec['entry_point']!r}")
-        result = fn(*spec.get("args", []), **spec.get("kwargs", {}))
+        args = list(spec.get("args", []))
+        instrument = spec.get("instrument")
+        counted = None
+        if instrument:
+            counted = {"__name__": "counted"}
+            with open(instrument["module"], "r", encoding="utf-8") as f:
+                exec(compile(f.read(), "counted.py", "exec"), counted)
+            wrap = set(instrument.get("wrap_args", range(len(args))))
+            args = [counted["wrap_inputs"](a) if i in wrap else a for i, a in enumerate(args)]
+        result = fn(*args, **spec.get("kwargs", {}))
+        if counted is not None:
+            result = {"counts": counted["count_ops"](result), "outputs": counted["values"](result)}
         out["result"] = _to_jsonable(result)
         out["ok"] = True
     except BaseException as e:  # noqa: BLE001  (MemoryError and SystemExit must be reported too)

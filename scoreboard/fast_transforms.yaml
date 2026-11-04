@@ -1,0 +1,54 @@
+# Scoreboard: real-arithmetic operation counts of the discrete Fourier transform of length N under the lab's
+# counting convention (lab/certifiers/counted.py: one count per distinct multiplication, addition or division
+# that reaches an output; a multiplication by a precomputed constant counts; negation is free). The certifier
+# `operation_count` verifies the count by instrumented runs and the outputs against numpy.fft on seeded inputs.
+# The published split-radix and later counts remove trivial twiddles and count differently; they are recorded as
+# the literature's best known values but not yet as certified values under this convention, hence `open` and
+# `provenance: provisional`.
+class: dft-operation-count-real-arithmetic
+measure: total counted operations at length N (lower is better)
+beat_margin: at least 1% fewer operations at the same N under the same convention
+certifier: operation_count
+certifier_version: 1.0.0
+frozen_at: 2026-11-04
+
+entries:
+  - id: opcount-dft-n8
+    n: 8
+    best_known: 120
+    certified_reference: "radix-2 Cooley-Tukey, 5 N log2 N = 120 (certified by the lab's own reference)"
+    literature: "split radix 4 N log2 N - 6 N + 8 = 56 flops (Yavne 1968; Duhamel & Hollmann 1984), different convention"
+    status: open
+    source: >
+      Cooley & Tukey, "An algorithm for the machine calculation of complex Fourier series", Math. Comp. 19 (1965);
+      Yavne (1968); Duhamel & Hollmann, "Split radix FFT algorithm", Electron. Lett. 20 (1984); Johnson & Frigo,
+      "A modified split-radix FFT with fewer arithmetic operations", IEEE Trans. Signal Process. 55 (2007).
+    provenance: provisional
+    entered: 2026-11-04
+  - id: opcount-dft-n16
+    n: 16
+    best_known: 320
+    certified_reference: "radix-2, 5 N log2 N = 320"
+    literature: "split radix 4 N log2 N - 6 N + 8 = 168 flops, different convention"
+    status: open
+    source: as above
+    provenance: provisional
+    entered: 2026-11-04
+  - id: opcount-dft-n32
+    n: 32
+    best_known: 800
+    certified_reference: "radix-2, 5 N log2 N = 800"
+    literature: "split radix 4 N log2 N - 6 N + 8 = 456 flops, different convention"
+    status: open
+    source: as above
+    provenance: provisional
+    entered: 2026-11-04
+  - id: opcount-dft-n64
+    n: 64
+    best_known: 1920
+    certified_reference: "radix-2, 5 N log2 N = 1920"
+    literature: "split radix 4 N log2 N - 6 N + 8 = 1160 flops, different convention"
+    status: open
+    source: as above
+    provenance: provisional
+    entered: 2026-11-04

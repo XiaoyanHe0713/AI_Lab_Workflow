@@ -4,11 +4,17 @@ from .base import Certificate, Certifier, CertifierTimeout, run_with_cap  # noqa
 from .quadrature import QuadratureExactnessCertifier  # noqa: F401
 from .witness import WitnessCertifier  # noqa: F401
 from .pep import PEPRateCertifier, METHODS as PEP_METHODS  # noqa: F401
+from .order import ConvergenceOrderCertifier  # noqa: F401
+from .opcount import OperationCountCertifier  # noqa: F401
+from .stability import StabilityCertifier  # noqa: F401
 
 REGISTRY = {
     QuadratureExactnessCertifier.name: QuadratureExactnessCertifier,
     WitnessCertifier.name: WitnessCertifier,
     PEPRateCertifier.name: PEPRateCertifier,
+    ConvergenceOrderCertifier.name: ConvergenceOrderCertifier,
+    OperationCountCertifier.name: OperationCountCertifier,
+    StabilityCertifier.name: StabilityCertifier,
 }
 
 

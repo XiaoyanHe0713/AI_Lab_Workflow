@@ -129,7 +129,7 @@ class Judge:
         return "python-level"
 
     def run_sandbox(self, source: str, entry_point: str, args: list | None = None, kwargs: dict | None = None,
-                    timeout_s: float | None = None) -> SandboxResult:
+                    timeout_s: float | None = None, instrument: dict | None = None) -> SandboxResult:
         violations = static_check(source)
         if violations:
             return SandboxResult(ok=False, error={"type": "ForbiddenImport", "message": "; ".join(violations)},
@@ -142,6 +142,8 @@ class Judge:
             spec = {"candidate_path": str(cand), "entry_point": entry_point, "args": args or [],
                     "kwargs": kwargs or {}, "output_path": str(tmp_path / "out.json"),
                     "memory_mb": self.memory_mb, "cpu_s": int(timeout) + 1}
+            if instrument:
+                spec["instrument"] = instrument
             spec_path = tmp_path / "spec.json"
             spec_path.write_text(json.dumps(spec), encoding="utf-8")
             cmd = [self.python, "-I", "-u", str(RUNNER), str(spec_path)]
@@ -232,7 +234,9 @@ class Judge:
             return cert, None
         certifier = target.make_certifier(cache_dir=self.cache_dir, sdp_cap_s=self.sdp_cap_s,
                                           sdp_solver=self.sdp_solver)
-        sb = self.run_sandbox(source, target.entry_point, args=target.entry_args, timeout_s=self.timeout_s)
+        args = target.entry_args_for(seed) if hasattr(target, "entry_args_for") else target.entry_args
+        sb = self.run_sandbox(source, target.entry_point, args=args, timeout_s=self.timeout_s,
+                              instrument=getattr(target, "instrument", None))
         if not sb.ok:
             cert = Certificate(certifier.name, certifier.version, target.id, False, seed=seed,
                                error=f"{sb.error['type']}: {sb.error['message']}" if sb.error else "sandbox failed",
