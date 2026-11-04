@@ -248,9 +248,35 @@ def start_server(adapters, max_len, eager=False, mem=0.92):
     return proc, None
 
 
-def log_tail(n=80):
+def log_excerpt(max_lines=70):
+    \"\"\"The failed start's own evidence: the engine core's ERROR lines (they carry the real exception), then the end of the log.
+    The API server's long traceback that follows them only says 'engine core initialization failed'.\"\"\"
     with open(LOG, "r", errors="replace") as f:
-        return "".join(f.readlines()[-n:])
+        lines = f.readlines()
+    starts = [i for i, l in enumerate(lines) if l.startswith("===== ")]
+    seg = lines[starts[-1]:] if starts else lines
+    core = [l for l in seg if "ERROR" in l and "Engine core initialization failed" not in l]
+    keep = core[-max_lines:]
+    return ("".join(keep) if keep else "(no ERROR lines from the engine core)\\n") + "... end of log:\\n" + "".join(seg[-10:])
+
+
+def free_gpu(proc=None):
+    \"\"\"Kill a failed server and its engine process, then wait until the GPU memory is back.\"\"\"
+    if proc is not None and proc.poll() is None:
+        proc.kill()
+    subprocess.run("pkill -9 -f 'vllm serve'; pkill -9 -f 'EngineCore'; pkill -9 -f 'sglang.launch_server'", shell=True)
+    used = None
+    for _ in range(45):
+        r = subprocess.run(["nvidia-smi", "--query-gpu=memory.used", "--format=csv,noheader,nounits"], capture_output=True, text=True)
+        try:
+            used = int(r.stdout.strip().splitlines()[0])
+        except Exception:
+            return None
+        if used < 2000:
+            break
+        time.sleep(2)
+    print(f"GPU memory in use after cleanup: {used} MiB")
+    return used
 
 
 # A short ladder, one change at a time, chosen from the log of the failed start: without LoRA if the build
@@ -269,12 +295,14 @@ while queue and server is None:
     tried.add(key)
     print(f"starting the server ({why}; adapters {list(cfg_try['adapters'])}; max_model_len {cfg_try['max_len']}; "
           f"eager {cfg_try['eager']}; gpu memory {cfg_try['mem']})")
+    free_gpu()
     proc, READY_S = start_server(**cfg_try)
     if READY_S is not None:
         server, SERVED = proc, (cfg_try, why)
         break
-    tail = log_tail(120)
-    print(f"the server exited with code {proc.returncode}; last lines of {LOG}:\\n{tail[-5000:]}")
+    tail = log_excerpt()
+    print(f"the server exited with code {proc.returncode}; the engine core's errors from {LOG}:\\n{tail[-6000:]}")
+    free_gpu(proc)
     low = tail.lower()
     lora_refused = cfg_try["adapters"] and "lora" in low and any(s in low for s in ("not support", "unsupported", "does not implement"))
     compile_failed = any(s in low for s in ("cuda graph", "cudagraph", "torch.compile", "inductor", "triton", "dynamo"))
