@@ -1,0 +1,415 @@
+# The librarian's reading list: quadrature and cubature. One document per entry with the date the knowledge
+# became available (year precision unless a day is given), a summary written by the lab, and the results the
+# document establishes. The librarian never shows a document dated on or after a target's cutoff.
+family: quadrature
+documents:
+  - id: newton-1711
+    title: "Methodus differentialis"
+    authors: [I. Newton]
+    year: 1711
+    kind: book
+    venue: London (in Analysis per quantitatum series, fluxiones, ac differentias)
+    families: [quadrature]
+    topics: [interpolatory quadrature, equally spaced nodes, newton-cotes, finite differences]
+    summary: >
+      Interpolation through equally spaced nodes and the quadrature rules it yields: integrate the interpolating
+      polynomial through n equally spaced nodes to get the Newton-Cotes rules. A rule through n equally spaced
+      nodes is exact to degree n-1 (n even) or n (n odd); the nodes are fixed, only the weights are chosen.
+    results:
+      - "interpolatory rules on equally spaced nodes (Newton-Cotes); exactness degree about the node count"
+  - id: cotes-1722
+    title: "Harmonia mensurarum"
+    authors: [R. Cotes]
+    year: 1722
+    kind: book
+    venue: Cambridge (posthumous, edited by R. Smith)
+    families: [quadrature]
+    topics: [newton-cotes weights, equally spaced nodes, interpolatory quadrature]
+    summary: >
+      Tables of the weights of the Newton-Cotes rules with up to eleven equally spaced nodes on an interval, and
+      the observation that high-order rules of this kind have weights of both signs.
+    results:
+      - "Newton-Cotes weights for up to 11 nodes; weights of mixed sign for larger node counts"
+  - id: simpson-1743
+    title: "Mathematical Dissertations on a Variety of Physical and Analytical Subjects"
+    authors: [T. Simpson]
+    year: 1743
+    kind: book
+    venue: London
+    families: [quadrature]
+    topics: [simpson rule, parabolic rule, three nodes, exact for cubics]
+    summary: >
+      The parabolic rule with three equally spaced nodes and weights 1/3, 4/3, 1/3 on [-1, 1], exact for all
+      polynomials of degree three because of the symmetry of the nodes about the midpoint.
+    results:
+      - "Simpson's three-node rule is exact to degree 3"
+  - id: legendre-1785
+    title: "Recherches sur l'attraction des sphéroïdes homogènes"
+    authors: [A.-M. Legendre]
+    year: 1785
+    kind: paper
+    venue: Mémoires de Mathématiques et de Physique présentés à l'Académie Royale des Sciences 10
+    families: [quadrature, first_order]
+    topics: [legendre polynomials, orthogonal polynomials, zeros of orthogonal polynomials, recurrence]
+    summary: >
+      Introduces the polynomials P_n(x) in the expansion of the potential of a spheroid: P_n is orthogonal on
+      [-1, 1] to every polynomial of lower degree, satisfies a three-term recurrence, and has n distinct real
+      zeros inside the interval. The zeros and the orthogonality are exactly what an optimal interpolatory
+      quadrature rule needs, although the paper does not discuss quadrature.
+    results:
+      - "P_n is orthogonal on [-1, 1] to all polynomials of degree below n"
+      - "P_n has n distinct real zeros in (-1, 1)"
+  - id: lagrange-1795
+    title: "Leçons élémentaires sur les mathématiques données à l'École Normale"
+    authors: [J.-L. Lagrange]
+    year: 1795
+    kind: lecture notes
+    venue: École Normale, Paris
+    families: [quadrature]
+    topics: [lagrange interpolation, interpolating polynomial, basis polynomials, weights from interpolation]
+    summary: >
+      The interpolation formula that writes the polynomial through n nodes as a combination of n basis
+      polynomials, each one at its node and zero at the others. Integrating the basis polynomials gives the
+      weights of any interpolatory quadrature rule once the nodes are chosen.
+    results:
+      - "the interpolating polynomial through n nodes in the Lagrange basis; weights of an interpolatory rule are integrals of the basis"
+  - id: gauss-1814
+    title: "Methodus nova integralium valores per approximationem inveniendi"
+    authors: [C. F. Gauss]
+    year: 1814
+    date: 1814-09-16
+    date_precision: day
+    kind: paper
+    venue: Commentationes Societatis Regiae Scientiarum Gottingensis Recentiores 3 (presented 1814, printed 1816)
+    families: [quadrature]
+    topics: [gauss quadrature, gauss-legendre, optimal nodes, exactness degree 2n-1, zeros of legendre polynomial, fewest nodes]
+    summary: >
+      Chooses the n nodes as well as the n weights: with the nodes at the zeros of the n-th Legendre polynomial
+      the rule integrates every polynomial of degree up to 2n-1 exactly, twice the degree that fixed nodes allow,
+      and no n-node rule can do better. Tables of nodes and weights up to n = 7.
+    results:
+      - "an n-node rule with nodes at the zeros of P_n is exact to degree 2n-1"
+      - "degree 2n-1 is the most any n-node rule on an interval can reach"
+    scoreboard_ids: [interval-d7, interval-d9, interval-d11]
+  - id: jacobi-1826
+    title: "Ueber Gauss' neue Methode, die Werthe der Integrale näherungsweise zu finden"
+    authors: [C. G. J. Jacobi]
+    year: 1826
+    kind: paper
+    venue: Journal für die reine und angewandte Mathematik 1
+    families: [quadrature]
+    topics: [gauss quadrature, orthogonality, legendre polynomial, optimality proof, node polynomial]
+    summary: >
+      Rederives Gauss's rule from orthogonality: a rule with n nodes is exact to degree 2n-1 if and only if its
+      node polynomial is orthogonal to all polynomials of degree below n, which makes the nodes the zeros of the
+      Legendre polynomial, and shows that degree 2n is unreachable because the square of the node polynomial has
+      a positive integral but is annihilated by the rule.
+    results:
+      - "exactness to degree 2n-1 is equivalent to orthogonality of the node polynomial"
+      - "no n-node rule integrates the square of its node polynomial, so degree 2n is impossible"
+    scoreboard_ids: [interval-d7]
+  - id: christoffel-1858
+    title: "Ueber die Gaussische Quadratur und eine Verallgemeinerung derselben"
+    authors: [E. B. Christoffel]
+    year: 1858
+    kind: paper
+    venue: Journal für die reine und angewandte Mathematik 55
+    families: [quadrature]
+    topics: [gauss quadrature with weight function, christoffel numbers, orthogonal polynomials, generalization]
+    summary: >
+      Extends Gauss's construction to integrals with a weight function: the nodes are the zeros of the
+      polynomial orthogonal with respect to the weight and the weights are the Christoffel numbers.
+    results:
+      - "Gauss rules exist for any positive weight function; weights are the Christoffel numbers"
+  - id: maxwell-1877
+    title: "On approximate multiple integration between limits by summation"
+    authors: [J. C. Maxwell]
+    year: 1877
+    kind: paper
+    venue: Proceedings of the Cambridge Philosophical Society 3
+    families: [quadrature]
+    topics: [cubature, multiple integration, square, cube, symmetric nodes, few nodes, degree of exactness]
+    summary: >
+      The first cubature rules: symmetric sets of nodes in the square and the cube whose weighted sums integrate
+      all polynomials up to a stated degree exactly, found by imposing the moment equations on symmetric
+      configurations, with a count of how many nodes the moment equations need.
+    results:
+      - "symmetric cubature rules on the square and the cube from moment equations"
+  - id: radon-1948
+    title: "Zur mechanischen Kubatur"
+    authors: [J. Radon]
+    year: 1948
+    kind: paper
+    venue: Monatshefte für Mathematik 52
+    families: [quadrature]
+    topics: [cubature, degree 5, seven points, triangle, square, minimal number of nodes, orthogonal polynomials in two variables]
+    summary: >
+      Constructs cubature rules of degree 5 with seven nodes for the triangle and for the square, and shows
+      that seven is the fewest nodes a degree-5 rule can have on these regions, using common zeros of
+      orthogonal polynomials in two variables.
+    results:
+      - "a 7-point degree-5 rule exists on the triangle and on the square"
+      - "no degree-5 rule on these regions has fewer than 7 nodes"
+    scoreboard_ids: [square-d5, triangle-d5]
+  - id: hammer-marlowe-stroud-1956
+    title: "Numerical integration over simplexes and cones"
+    authors: [P. C. Hammer, O. J. Marlowe, A. H. Stroud]
+    year: 1956
+    kind: paper
+    venue: Mathematical Tables and Other Aids to Computation 10
+    families: [quadrature]
+    topics: [triangle, tetrahedron, simplex, symmetric rules, three points degree 2, few nodes]
+    summary: >
+      Symmetric integration rules over triangles, tetrahedra and cones with few nodes, including the
+      three-point rules of degree 2 on the triangle (interior points, or the edge midpoints) and rules of
+      degree 3 with a negative centroid weight.
+    results:
+      - "3-point degree-2 rules on the triangle; 4-point degree-3 rule with a negative centroid weight"
+    scoreboard_ids: [triangle-d2, triangle-d3]
+  - id: clenshaw-curtis-1960
+    title: "A method for numerical integration on an automatic computer"
+    authors: [C. W. Clenshaw, A. R. Curtis]
+    year: 1960
+    kind: paper
+    venue: Numerische Mathematik 2
+    families: [quadrature]
+    topics: [clenshaw-curtis, chebyshev points, nested nodes, cosine transform]
+    summary: >
+      Quadrature at the Chebyshev extreme points by integrating the Chebyshev expansion of the integrand; the
+      n-node rule is exact to degree n-1 (n even) or n (n odd), with nested nodes that let the rule be doubled.
+    results:
+      - "n-node Clenshaw-Curtis rule exact to degree n-1 or n; nodes are nested"
+  - id: stroud-secrest-1966
+    title: "Gaussian Quadrature Formulas"
+    authors: [A. H. Stroud, D. Secrest]
+    year: 1966
+    kind: book
+    venue: Prentice-Hall
+    families: [quadrature]
+    topics: [gauss quadrature tables, nodes and weights, high precision, weight functions]
+    summary: >
+      Tables of Gauss quadrature nodes and weights to high precision for the classical weight functions, with
+      the theory needed to compute them.
+    results:
+      - "tabulated Gauss-Legendre nodes and weights to many digits"
+  - id: golub-welsch-1969
+    title: "Calculation of Gauss quadrature rules"
+    authors: [G. H. Golub, J. H. Welsch]
+    year: 1969
+    kind: paper
+    venue: Mathematics of Computation 23
+    families: [quadrature]
+    topics: [gauss quadrature, jacobi matrix, eigenvalues, three-term recurrence, computing nodes and weights]
+    summary: >
+      The nodes of an n-point Gauss rule are the eigenvalues of the n x n symmetric tridiagonal Jacobi matrix of
+      the recurrence coefficients, and the weights come from the first components of the eigenvectors, so a
+      rule is computed by one symmetric eigenproblem.
+    results:
+      - "Gauss nodes are the eigenvalues of the Jacobi matrix; weights from the eigenvectors' first components"
+  - id: stroud-1971
+    title: "Approximate Calculation of Multiple Integrals"
+    authors: [A. H. Stroud]
+    year: 1971
+    kind: book
+    venue: Prentice-Hall
+    families: [quadrature]
+    topics: [cubature compendium, square, cube, triangle, lower bounds, symmetric rules, C2:3-1, C2:7-1, T2:3-1]
+    summary: >
+      The compendium of cubature rules for standard regions with their degrees and node counts, the lower bound
+      dim P_k on the number of nodes of a rule of degree 2k, and constructions by symmetry. Includes the
+      four-point degree-3 rule on the square with nodes on the axes (C2:3-1), twelve-point degree-7 rules on the
+      square (C2:7-1) and the four-point degree-3 triangle rule (T2:3-1).
+    results:
+      - "a rule exact to degree 2k needs at least dim P_k nodes"
+      - "catalogue of rules on the square, cube and triangle with degrees and node counts"
+    scoreboard_ids: [square-d3, square-d7, triangle-d3]
+  - id: strang-fix-1973
+    title: "An Analysis of the Finite Element Method"
+    authors: [G. Strang, G. J. Fix]
+    year: 1973
+    kind: book
+    venue: Prentice-Hall
+    families: [quadrature]
+    topics: [triangle quadrature table, finite elements, three-point degree 2, four-point degree 3, negative weight]
+    summary: >
+      Table 8.1 lists quadrature rules on the triangle used in finite element assembly: the three interior
+      points of degree 2, the four-point degree-3 rule with centroid weight -27/48 and three points weighted
+      25/48, and higher rules.
+    results:
+      - "triangle rules of degree 2 (3 points) and degree 3 (4 points, one negative weight)"
+    scoreboard_ids: [triangle-d2, triangle-d3]
+  - id: lyness-jespersen-1975
+    title: "Moderate degree symmetric quadrature rules for the triangle"
+    authors: [J. N. Lyness, D. Jespersen]
+    year: 1975
+    kind: paper
+    venue: Journal of the Institute of Mathematics and its Applications 15
+    families: [quadrature]
+    topics: [triangle, symmetric rules, orbits, moment equations, degree up to 11, positive weights, interior points]
+    summary: >
+      Fully symmetric rules on the triangle built from orbits of points under the symmetry group, with the
+      moment equations reduced by symmetry; rules of degrees up to 11, with attention to positive weights and
+      interior nodes.
+    results:
+      - "symmetric triangle rules by orbit structure; degrees to 11"
+    scoreboard_ids: [triangle-d6]
+  - id: moller-1976
+    title: "Kubaturformeln mit minimaler Knotenzahl"
+    authors: [H. M. Möller]
+    year: 1976
+    kind: paper
+    venue: Numerische Mathematik 25
+    families: [quadrature]
+    topics: [lower bound, minimal number of nodes, odd degree, centrally symmetric region, moller bound, square]
+    summary: >
+      A lower bound on the number of nodes of a cubature rule of odd degree 2k+1 on a centrally symmetric
+      region that improves the dim P_k bound: for the square it gives 4 for degree 3, 7 for degree 5 and 12 for
+      degree 7, and the bounds for degrees 3, 5 and 7 are attained.
+    results:
+      - "Möller's lower bound for odd degree on centrally symmetric regions"
+      - "square: at least 4, 7 and 12 nodes for degrees 3, 5 and 7"
+    scoreboard_ids: [square-d3, square-d5, square-d7, triangle-d5]
+  - id: davis-rabinowitz-1984
+    title: "Methods of Numerical Integration"
+    authors: [P. J. Davis, P. Rabinowitz]
+    year: 1984
+    kind: book
+    venue: Academic Press, 2nd edition
+    families: [quadrature, order]
+    topics: [numerical integration textbook, gauss quadrature, newton-cotes, composite rules, error estimates, optimality of gauss]
+    summary: >
+      The standard reference: interpolatory rules, Gauss rules and the proof that n nodes cannot exceed degree
+      2n-1, composite rules and their error expansions (midpoint and trapezoid of order 2, Simpson of order 4),
+      Clenshaw-Curtis, and multiple integration.
+    results:
+      - "composite midpoint and trapezoid are second order, composite Simpson fourth order"
+      - "Gauss rules are optimal in degree for their node count"
+    scoreboard_ids: [interval-d7]
+  - id: dunavant-1985
+    title: "High degree efficient symmetrical Gaussian quadrature rules for the triangle"
+    authors: [D. A. Dunavant]
+    year: 1985
+    kind: paper
+    venue: International Journal for Numerical Methods in Engineering 21
+    families: [quadrature]
+    topics: [triangle, symmetric rules, degree 1 to 20, six points degree 4, seven points degree 5, twelve points degree 6, positive weights]
+    summary: >
+      Symmetric rules on the triangle for degrees 1 to 20 with few nodes, computed by solving the symmetric
+      moment equations: 6 points for degree 4 (positive, interior), 7 points for degree 5, 12 points for
+      degree 6, 13 points for degree 7 (one negative weight), and so on.
+    results:
+      - "triangle rules: 6 points degree 4, 7 points degree 5, 12 points degree 6"
+    scoreboard_ids: [triangle-d4, triangle-d5, triangle-d6]
+  - id: gatermann-1988
+    title: "The construction of symmetric cubature formulas for the square and the triangle"
+    authors: [K. Gatermann]
+    year: 1988
+    kind: paper
+    venue: Computing 40
+    families: [quadrature]
+    topics: [triangle, square, symmetric cubature, degree 7, twelve points, positive weights, interior points, invariant theory]
+    summary: >
+      Uses invariant theory to reduce the moment equations of symmetric cubature and finds a 12-point degree-7
+      rule on the triangle with positive weights and interior nodes, one point fewer than Dunavant's degree-7
+      rule and without a negative weight.
+    results:
+      - "a 12-point degree-7 rule on the triangle with positive weights and interior points"
+    scoreboard_ids: [triangle-d7]
+  - id: cools-rabinowitz-1993
+    title: "Monomial cubature rules since 'Stroud': a compilation"
+    authors: [R. Cools, P. Rabinowitz]
+    year: 1993
+    kind: paper
+    venue: Journal of Computational and Applied Mathematics 48
+    families: [quadrature]
+    topics: [cubature compilation, square, triangle, cube, minimal node counts, lower bounds, since stroud]
+    summary: >
+      Compiles the cubature rules published after Stroud's book for the standard regions, with for each region
+      and degree the fewest nodes known, whether the known lower bound is attained, and the properties of the
+      rules (positive weights, interior nodes).
+    results:
+      - "tables of minimal known node counts by region and degree, with lower bounds"
+    scoreboard_ids: [square-d5, square-d7, triangle-d3, triangle-d7]
+  - id: cools-1997
+    title: "Constructing cubature formulae: the science behind the art"
+    authors: [R. Cools]
+    year: 1997
+    kind: paper
+    venue: Acta Numerica 6
+    families: [quadrature]
+    topics: [cubature theory, lower bounds, moller bound, mysovskikh, orthogonal polynomials, common zeros, construction methods]
+    summary: >
+      A survey of the theory of cubature: lower bounds on the number of nodes (dim P_k, Möller's bound), the
+      connection with common zeros of orthogonal polynomials, and the methods used to construct rules.
+    results:
+      - "survey of lower bounds and construction methods for cubature"
+    scoreboard_ids: [square-d3, triangle-d5]
+  - id: cools-2003
+    title: "An encyclopaedia of cubature formulas"
+    authors: [R. Cools]
+    year: 2003
+    kind: paper
+    venue: Journal of Complexity 19
+    families: [quadrature]
+    topics: [cubature encyclopaedia, online tables, square, triangle, degree 7, twelve points, best known rules]
+    summary: >
+      The online encyclopaedia of cubature formulas with, for each region and degree, the best known rules and
+      their node counts, including the 12-point degree-7 rules on the square that attain Möller's bound.
+    results:
+      - "best known cubature rules by region and degree; 12-point degree-7 rules on the square"
+    scoreboard_ids: [square-d7]
+  - id: trefethen-2008
+    title: "Is Gauss quadrature better than Clenshaw-Curtis?"
+    authors: [L. N. Trefethen]
+    year: 2008
+    kind: paper
+    venue: SIAM Review 50
+    families: [quadrature]
+    topics: [gauss versus clenshaw-curtis, convergence rates, analytic integrands, kernel of the error]
+    summary: >
+      Compares Gauss and Clenshaw-Curtis rules: for most integrands both converge at a similar rate despite
+      Gauss's higher polynomial degree, explained through the error kernel in the complex plane.
+    results:
+      - "Clenshaw-Curtis converges about as fast as Gauss for non-analytic integrands"
+  - id: xiao-gimbutas-2010
+    title: "A numerical algorithm for the construction of efficient quadrature rules in two and higher dimensions"
+    authors: [H. Xiao, Z. Gimbutas]
+    year: 2010
+    kind: paper
+    venue: Computers and Mathematics with Applications 59
+    families: [quadrature]
+    topics: [numerical construction of cubature, node elimination, triangle, square, positive weights, interior nodes, high degree]
+    summary: >
+      A numerical procedure (node elimination with Gauss-Newton refinement) that constructs efficient rules on
+      triangles, squares and other regions with positive weights and interior nodes up to high degree, matching
+      or improving the best tabulated node counts.
+    results:
+      - "node elimination constructs efficient positive interior rules on the triangle and square"
+  - id: trefethen-2013
+    title: "Approximation Theory and Approximation Practice"
+    authors: [L. N. Trefethen]
+    year: 2013
+    kind: book
+    venue: SIAM
+    families: [quadrature]
+    topics: [gauss quadrature, clenshaw-curtis, chebfun, optimality of gauss, chapter 19]
+    summary: >
+      Chapter 19 treats Gauss and Clenshaw-Curtis quadrature, including the proof that an n-point rule cannot be
+      exact for the square of its node polynomial and so cannot reach degree 2n.
+    results:
+      - "n-point rules cannot reach degree 2n; Gauss attains 2n-1"
+    scoreboard_ids: [interval-d7]
+  - id: witherden-vincent-2015
+    title: "On the identification of symmetric quadrature rules for finite element methods"
+    authors: [F. D. Witherden, P. E. Vincent]
+    year: 2015
+    kind: paper
+    venue: Computers and Mathematics with Applications 69
+    families: [quadrature]
+    topics: [symmetric quadrature, triangle, quadrilateral, tetrahedron, positive weights, interior points, rules to degree 20]
+    summary: >
+      A systematic search for symmetric rules with positive weights and interior points on triangles,
+      quadrilaterals, tetrahedra, prisms, pyramids and hexahedra up to high degree, with tables of the rules
+      found and their node counts.
+    results:
+      - "tables of positive interior symmetric rules on simplices and tensor regions"

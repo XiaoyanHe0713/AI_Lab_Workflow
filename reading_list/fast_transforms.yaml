@@ -1,0 +1,181 @@
+# The librarian's reading list: fast transforms and operation counts.
+family: fast_transform
+documents:
+  - id: gauss-1866
+    title: "Theoria interpolationis methodo nova tractata"
+    authors: [C. F. Gauss]
+    year: 1866
+    kind: manuscript
+    venue: Werke, Band 3 (Göttingen, 1866); manuscript of about 1805
+    families: [fast_transform]
+    topics: [interpolation, trigonometric interpolation, fast fourier transform precursor, splitting a sum]
+    summary: >
+      A manuscript on trigonometric interpolation, written around 1805 and published in the collected works in
+      1866, that computes the coefficients by splitting the sum over N = N1 N2 samples into shorter sums, the
+      idea later rediscovered as the fast Fourier transform.
+    results:
+      - "trigonometric interpolation coefficients by splitting the sum (an FFT before its time)"
+  - id: danielson-lanczos-1942
+    title: "Some improvements in practical Fourier analysis and their application to X-ray scattering from liquids"
+    authors: [G. C. Danielson, C. Lanczos]
+    year: 1942
+    kind: paper
+    venue: Journal of the Franklin Institute 233
+    families: [fast_transform]
+    topics: [doubling lemma, even and odd terms, discrete fourier transform, halving the work, recursive]
+    summary: >
+      The doubling lemma: a discrete Fourier transform of length N is the combination of two transforms of
+      length N/2, one over the even-indexed samples and one over the odd-indexed samples, so the work can be
+      halved repeatedly; applied by hand to X-ray scattering data.
+    results:
+      - "a length-N DFT splits into two length-N/2 DFTs over even and odd samples"
+  - id: good-1958
+    title: "The interaction algorithm and practical Fourier analysis"
+    authors: [I. J. Good]
+    year: 1958
+    kind: paper
+    venue: Journal of the Royal Statistical Society B 20
+    families: [fast_transform]
+    topics: [prime factor algorithm, good-thomas, fourier analysis, factorization of N, fewer operations]
+    summary: >
+      Computes Fourier coefficients for N with coprime factors by a multidimensional decomposition, reducing
+      the number of operations below N^2; the prime-factor algorithm.
+    results:
+      - "a factorization of the transform for N with coprime factors (prime-factor algorithm)"
+  - id: cooley-tukey-1965
+    title: "An algorithm for the machine calculation of complex Fourier series"
+    authors: [J. W. Cooley, J. W. Tukey]
+    year: 1965
+    kind: paper
+    venue: Mathematics of Computation 19
+    families: [fast_transform]
+    topics: [fast fourier transform, FFT, N log N, radix 2, decimation, complex fourier series, operation count]
+    summary: >
+      The fast Fourier transform: for N = r1 r2 ... rm the transform costs about N (r1 + ... + rm) operations,
+      N log2 N for N a power of two, against N^2 for the direct sum, with the algorithm stated for general radix.
+    results:
+      - "the DFT of length N costs O(N log N) operations when N is highly composite"
+    scoreboard_ids: [opcount-dft-n8, opcount-dft-n16, opcount-dft-n32, opcount-dft-n64]
+  - id: gentleman-sande-1966
+    title: "Fast Fourier transforms: for fun and profit"
+    authors: [W. M. Gentleman, G. Sande]
+    year: 1966
+    kind: paper
+    venue: AFIPS Fall Joint Computer Conference 29
+    families: [fast_transform]
+    topics: [decimation in frequency, FFT variants, operation counts, numerical stability of the FFT, applications]
+    summary: >
+      The decimation-in-frequency form of the FFT, detailed operation counts for radix-2 and radix-4 variants,
+      and the rounding-error analysis showing the FFT is also more accurate than the direct sum.
+    results:
+      - "decimation-in-frequency FFT; operation counts by radix; favorable rounding errors"
+  - id: yavne-1968
+    title: "An economical method for calculating the discrete Fourier transform"
+    authors: [R. Yavne]
+    year: 1968
+    kind: paper
+    venue: AFIPS Fall Joint Computer Conference 33
+    families: [fast_transform]
+    topics: [split radix, fewest multiplications, 4 N log2 N - 6 N + 8, operation count, power of two]
+    summary: >
+      An algorithm for N a power of two with the lowest operation count known for over thirty years,
+      4 N log2 N - 6 N + 8 real additions and multiplications together, later recognized as the split-radix FFT.
+    results:
+      - "a power-of-two DFT in 4 N log2 N - 6 N + 8 real operations"
+    scoreboard_ids: [opcount-dft-n8, opcount-dft-n16, opcount-dft-n32, opcount-dft-n64]
+  - id: winograd-1978
+    title: "On computing the discrete Fourier transform"
+    authors: [S. Winograd]
+    year: 1978
+    kind: paper
+    venue: Mathematics of Computation 32
+    families: [fast_transform]
+    topics: [minimal multiplications, winograd FFT, polynomial algebra, multiplicative complexity, small prime lengths]
+    summary: >
+      Algorithms that minimize the number of multiplications of the DFT for small prime lengths and their
+      products, trading multiplications for additions, by polynomial algebra over the cyclotomic factors.
+    results:
+      - "minimal-multiplication DFT algorithms for small lengths"
+  - id: duhamel-hollmann-1984
+    title: "Split radix FFT algorithm"
+    authors: [P. Duhamel, H. Hollmann]
+    year: 1984
+    kind: paper
+    venue: Electronics Letters 20
+    families: [fast_transform]
+    topics: [split radix, radix 2 and 4 combined, operation count, 4 N log2 N - 6 N + 8, fewest flops]
+    summary: >
+      The split-radix FFT combines a radix-2 split of the even samples with a radix-4 split of the odd samples
+      and reaches the operation count 4 N log2 N - 6 N + 8, matching Yavne's count with a clear structure.
+    results:
+      - "split-radix FFT with 4 N log2 N - 6 N + 8 real operations"
+    scoreboard_ids: [opcount-dft-n8, opcount-dft-n16, opcount-dft-n32, opcount-dft-n64]
+  - id: van-loan-1992
+    title: "Computational Frameworks for the Fast Fourier Transform"
+    authors: [C. Van Loan]
+    year: 1992
+    kind: book
+    venue: SIAM
+    families: [fast_transform]
+    topics: [FFT as matrix factorization, radix 2, radix 4, split radix, flop counts, 5 N log2 N, butterflies, twiddle factors]
+    summary: >
+      The FFT algorithms as factorizations of the DFT matrix into sparse butterfly and permutation factors,
+      with flop counts: radix-2 costs 5 N log2 N flops with precomputed twiddle factors, radix-4 and split radix
+      fewer.
+    results:
+      - "radix-2 FFT costs 5 N log2 N flops; the DFT matrix factors into butterflies"
+    scoreboard_ids: [opcount-dft-n8, opcount-dft-n16, opcount-dft-n32, opcount-dft-n64]
+  - id: strassen-1969
+    title: "Gaussian elimination is not optimal"
+    authors: [V. Strassen]
+    year: 1969
+    kind: paper
+    venue: Numerische Mathematik 13
+    families: [fast_transform]
+    topics: [fast matrix multiplication, seven multiplications, operation count, exponent below 3, structured algorithms]
+    summary: >
+      Multiplies two 2 x 2 block matrices with seven block multiplications instead of eight, so n x n matrices
+      multiply in O(n^2.81) operations; the first proof that the obvious operation count is not optimal.
+    results:
+      - "matrix multiplication in O(n^log2 7) operations"
+  - id: frigo-johnson-2005
+    title: "The design and implementation of FFTW3"
+    authors: [M. Frigo, S. G. Johnson]
+    year: 2005
+    kind: paper
+    venue: Proceedings of the IEEE 93
+    families: [fast_transform]
+    topics: [FFTW, adaptive FFT library, codelets, planning, performance, memory hierarchy]
+    summary: >
+      The FFTW library generates and times many FFT algorithms (codelets) and chooses the fastest plan on the
+      machine at hand; operation count is only one factor in speed.
+    results:
+      - "an adaptive FFT library that plans at run time"
+  - id: johnson-frigo-2007
+    title: "A modified split-radix FFT with fewer arithmetic operations"
+    authors: [S. G. Johnson, M. Frigo]
+    year: 2007
+    kind: paper
+    venue: IEEE Transactions on Signal Processing 55
+    families: [fast_transform]
+    topics: [modified split radix, 34/9 N log2 N, fewest known flops, power of two, rescaled twiddles]
+    summary: >
+      Reduces the flop count of the split-radix FFT for the first time since 1968 to about (34/9) N log2 N by
+      rescaling sub-transforms so that some twiddle multiplications become free.
+    results:
+      - "a power-of-two FFT with about (34/9) N log2 N flops, the fewest known"
+    scoreboard_ids: [opcount-dft-n8, opcount-dft-n16, opcount-dft-n32, opcount-dft-n64]
+  - id: dao-etal-2019
+    title: "Learning fast algorithms for linear transforms using butterfly factorizations"
+    authors: [T. Dao, A. Gu, M. Eichhorn, A. Rudra, C. Ré]
+    year: 2019
+    kind: paper
+    venue: International Conference on Machine Learning 36
+    families: [fast_transform]
+    topics: [butterfly factorization, learning fast transforms, template fitting, recovering FFT from data, structured matrices]
+    summary: >
+      Parameterizes fast transforms as products of butterfly factors and fits them to a target matrix or to
+      input-output pairs by gradient descent, recovering the FFT, the DCT and other fast transforms from their
+      action; a template-fitting baseline that only recovers butterfly-shaped structure.
+    results:
+      - "butterfly factorizations learned from matrix-vector data recover classical fast transforms"

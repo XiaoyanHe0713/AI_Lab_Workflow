@@ -1,0 +1,44 @@
+# The librarian's retrieval test set (Work package 3 acceptance): each case names a query, the target whose
+# cutoff applies (or an explicit cutoff; null means none), documents at least one of which must be returned,
+# and documents that must never be returned because they are dated on or after the cutoff.
+tests:
+  - id: gauss-before-1814
+    query: "fewest nodes for a rule exact to degree 7 on the interval; orthogonal polynomials and their zeros"
+    target: quad-d7
+    expect_any: [legendre-1785, lagrange-1795, cotes-1722, newton-1711]
+    forbid: [gauss-1814, jacobi-1826, golub-welsch-1969, stroud-1971, davis-rabinowitz-1984, trefethen-2013]
+  - id: gauss-no-cutoff
+    query: "n-point quadrature rule exact to degree 2n-1 with nodes at the zeros of the Legendre polynomial"
+    cutoff: null
+    expect_any: [gauss-1814, jacobi-1826]
+    forbid: []
+  - id: radon-before-1948
+    query: "minimal number of nodes for a cubature rule of degree 5 on the square; symmetric nodes and moment equations"
+    target: quad-square-d5
+    expect_any: [maxwell-1877]
+    forbid: [radon-1948, stroud-1971, moller-1976, dunavant-1985, cools-rabinowitz-1993, cools-1997, cools-2003]
+  - id: triangle-degree-7
+    query: "symmetric cubature rules for the triangle of degree 7 with positive weights and interior points"
+    cutoff: null
+    expect_any: [gatermann-1988, dunavant-1985, lyness-jespersen-1975]
+    forbid: []
+  - id: three-operator-before-davis-yin
+    query: "splitting method for the sum of three operators with a cocoercive gradient and two proximal maps; contraction factor"
+    target: pep-davis-yin-contraction-calibration
+    expect_any: [lions-mercier-1979, douglas-rachford-1956, condat-2013, vu-2013, giselsson-boyd-2014, combettes-pesquet-2011]
+    forbid: [davis-yin-2015, ryu-taylor-bergeling-giselsson-2020, goujaud-etal-2022, lee-yi-ryu-2022, yi-ryu-2022, ryu-yin-2022]
+  - id: ssp-before-shu-osher
+    query: "Runge-Kutta time stepping that keeps the total variation diminishing property of forward Euler; CFL coefficient"
+    target: ssp-s3-p3
+    expect_any: [harten-1983, kutta-1901, heun-1900, euler-1768]
+    forbid: [shu-osher-1988, shu-1988, gottlieb-shu-1998, gottlieb-shu-tadmor-2001, spiteri-ruuth-2002, ketcheson-2008, kraaijevanger-1991]
+  - id: fft-before-cooley-tukey
+    query: "fast computation of the discrete Fourier transform by splitting the sum into even and odd samples; fewer than N squared operations"
+    target: opcount-dft-n16
+    expect_any: [danielson-lanczos-1942, good-1958]
+    forbid: [cooley-tukey-1965, gentleman-sande-1966, yavne-1968, duhamel-hollmann-1984, van-loan-1992, johnson-frigo-2007]
+  - id: manufactured-solutions
+    query: "code verification by manufactured solutions and grid refinement studies; observed order of accuracy"
+    cutoff: null
+    expect_any: [roache-1998, salari-knupp-2000, roache-1994]
+    forbid: []

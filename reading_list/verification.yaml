@@ -1,0 +1,112 @@
+# The librarian's reading list: convergence order, refinement studies and code verification.
+family: order
+documents:
+  - id: richardson-1911
+    title: "The approximate arithmetical solution by finite differences of physical problems involving differential equations, with an application to the stresses in a masonry dam"
+    authors: [L. F. Richardson]
+    year: 1911
+    kind: paper
+    venue: Philosophical Transactions of the Royal Society A 210
+    families: [order]
+    topics: [richardson extrapolation, finite differences, h squared error, refinement, deferred approach to the limit]
+    summary: >
+      Finite-difference solutions of boundary value problems whose error is proportional to h^2, and the
+      extrapolation that combines two grids to cancel the leading error term: the first refinement study used
+      to estimate and remove discretization error.
+    results:
+      - "finite-difference errors scale as h^2; two grids extrapolate to the limit"
+  - id: courant-friedrichs-lewy-1928
+    title: "Über die partiellen Differenzengleichungen der mathematischen Physik"
+    authors: [R. Courant, K. Friedrichs, H. Lewy]
+    year: 1928
+    kind: paper
+    venue: Mathematische Annalen 100
+    families: [order, time_integrator]
+    topics: [CFL condition, difference equations, convergence, hyperbolic equations, stability of time stepping]
+    summary: >
+      Convergence of finite-difference approximations to partial differential equations requires the
+      numerical domain of dependence to contain the true one: the step-size restriction later named the CFL
+      condition.
+    results:
+      - "the CFL condition on the time step for convergence of explicit schemes"
+  - id: lax-richtmyer-1956
+    title: "Survey of the stability of linear finite difference equations"
+    authors: [P. D. Lax, R. D. Richtmyer]
+    year: 1956
+    kind: paper
+    venue: Communications on Pure and Applied Mathematics 9
+    families: [order]
+    topics: [lax equivalence theorem, consistency plus stability equals convergence, linear difference schemes]
+    summary: >
+      For a consistent finite-difference scheme for a well-posed linear problem, stability is necessary and
+      sufficient for convergence; the order of convergence is the order of consistency.
+    results:
+      - "consistency and stability imply convergence (and the order carries over)"
+  - id: roache-1994
+    title: "Perspective: a method for uniform reporting of grid refinement studies"
+    authors: [P. J. Roache]
+    year: 1994
+    kind: paper
+    venue: Journal of Fluids Engineering 116
+    families: [order]
+    topics: [grid convergence index, refinement study, observed order of accuracy, reporting, richardson extrapolation]
+    summary: >
+      Proposes the grid convergence index to report refinement studies uniformly: compute the observed order
+      from three grids, extrapolate, and report an error band with a safety factor.
+    results:
+      - "the grid convergence index; observed order from three grids"
+  - id: roache-1998
+    title: "Verification and Validation in Computational Science and Engineering"
+    authors: [P. J. Roache]
+    year: 1998
+    kind: book
+    venue: Hermosa Publishers
+    families: [order]
+    topics: [method of manufactured solutions, code verification, observed order of accuracy, refinement study, boundary conditions]
+    summary: >
+      Code verification by manufactured solutions: choose an analytic solution, derive the source term that
+      makes it satisfy the equations, run a refinement study and confirm that the observed order of accuracy
+      matches the formal order; a mistake in a boundary term shows up as a lower observed order.
+    results:
+      - "manufactured solutions verify a code by its observed order of accuracy"
+      - "a wrong boundary treatment lowers the observed order"
+  - id: salari-knupp-2000
+    title: "Code verification by the method of manufactured solutions"
+    authors: [K. Salari, P. Knupp]
+    year: 2000
+    kind: report
+    venue: Sandia National Laboratories, SAND2000-1444
+    families: [order]
+    topics: [manufactured solutions, code verification, order verification, blind tests, coding mistakes found]
+    summary: >
+      A detailed procedure for manufactured-solution verification with blind tests in which planted coding
+      mistakes are found by the drop in the observed order of accuracy.
+    results:
+      - "order-of-accuracy tests detect planted coding mistakes"
+  - id: leveque-2007
+    title: "Finite Difference Methods for Ordinary and Partial Differential Equations"
+    authors: [R. J. LeVeque]
+    year: 2007
+    kind: book
+    venue: SIAM
+    families: [order, time_integrator]
+    topics: [finite differences textbook, boundary value problems, second-order central differences, local truncation error, stability, convergence order, runge-kutta]
+    summary: >
+      A textbook on finite differences: the three-point scheme for u'' with Dirichlet boundary values is
+      second order; stability plus consistency gives convergence; the same analysis for time-stepping methods.
+    results:
+      - "central differences for the Poisson problem converge at second order"
+    scoreboard_ids: [order-poisson-p2]
+  - id: oberkampf-roy-2010
+    title: "Verification and Validation in Scientific Computing"
+    authors: [W. L. Oberkampf, C. J. Roy]
+    year: 2010
+    kind: book
+    venue: Cambridge University Press
+    families: [order]
+    topics: [verification and validation, solution verification, code verification, order verification, uncertainty]
+    summary: >
+      The monograph on verification and validation: code verification by manufactured solutions and
+      order-of-accuracy tests, solution verification by refinement, and validation against experiments.
+    results:
+      - "a complete framework for verification and validation in scientific computing"

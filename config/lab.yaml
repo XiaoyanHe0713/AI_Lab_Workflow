@@ -35,7 +35,7 @@ providers:
   anthropic:                              # Claude: the second frontier provider, same interface
     kind: anthropic
     api_key_env: ANTHROPIC_API_KEY
-    model: ${LAB_ANTHROPIC_MODEL:-claude-sonnet-4-5}
+    model: ${LAB_ANTHROPIC_MODEL:-claude-opus-5-5}   # the current Opus (Claude API, 2026-11); sonnet-5-5 and haiku-5-5 are priced too
     mode: ${LAB_FRONTIER_MODE:-offline}
 
 harness:                                  # language parts of the harnesses (week 3 on); never a reward

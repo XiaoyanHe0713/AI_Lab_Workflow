@@ -1,0 +1,255 @@
+# The librarian's reading list: Runge-Kutta methods, stability regions and strong-stability preservation.
+family: time_integrator
+documents:
+  - id: euler-1768
+    title: "Institutionum calculi integralis"
+    authors: [L. Euler]
+    year: 1768
+    kind: book
+    venue: St. Petersburg
+    families: [time_integrator, order]
+    topics: [euler method, forward euler, one step, first order, initial value problem]
+    summary: >
+      The forward step u_{n+1} = u_n + h f(t_n, u_n) for an initial value problem, the first numerical method
+      for differential equations; its error per step is of second order and its global error of first order.
+    results:
+      - "forward Euler is a first-order method"
+  - id: runge-1895
+    title: "Ueber die numerische Auflösung von Differentialgleichungen"
+    authors: [C. Runge]
+    year: 1895
+    kind: paper
+    venue: Mathematische Annalen 46
+    families: [time_integrator, order]
+    topics: [runge-kutta origin, midpoint method, second order, stages, quadrature analogy]
+    summary: >
+      Extends the midpoint and Simpson quadrature ideas to differential equations by evaluating the right-hand
+      side at intermediate points within a step: the explicit midpoint method and other second-order schemes.
+    results:
+      - "second-order one-step methods with intermediate evaluations"
+  - id: heun-1900
+    title: "Neue Methoden zur approximativen Integration der Differentialgleichungen einer unabhängigen Veränderlichen"
+    authors: [K. Heun]
+    year: 1900
+    kind: paper
+    venue: Zeitschrift für Mathematik und Physik 45
+    families: [time_integrator, order]
+    topics: [heun method, two stages, second order, three stages third order, order conditions]
+    summary: >
+      Two- and three-stage explicit methods of second and third order, including Heun's method
+      u_{n+1} = u_n + h/2 (f(u_n) + f(u_n + h f(u_n))), which is an average of two Euler steps.
+    results:
+      - "Heun's two-stage second-order method; a three-stage third-order method"
+  - id: kutta-1901
+    title: "Beitrag zur näherungsweisen Integration totaler Differentialgleichungen"
+    authors: [W. Kutta]
+    year: 1901
+    kind: paper
+    venue: Zeitschrift für Mathematik und Physik 46
+    families: [time_integrator, order]
+    topics: [classical runge-kutta, four stages fourth order, 3/8 rule, order conditions, kutta third order]
+    summary: >
+      The classical four-stage fourth-order method with weights 1/6, 1/3, 1/3, 1/6, the 3/8 rule, and a
+      three-stage third-order rule, obtained by matching the Taylor expansion of the step up to the stated order.
+    results:
+      - "the classical fourth-order Runge-Kutta method and the 3/8 rule"
+      - "Kutta's third-order three-stage method"
+    scoreboard_ids: [stab-real-s4-p4, order-ode-p4]
+  - id: dahlquist-1963
+    title: "A special stability problem for linear multistep methods"
+    authors: [G. Dahlquist]
+    year: 1963
+    kind: paper
+    venue: BIT 3
+    families: [time_integrator]
+    topics: [A-stability, test equation, stability region, absolute stability, stiff equations, dahlquist barrier]
+    summary: >
+      Defines absolute stability through the test equation u' = lambda u: a method is A-stable when its
+      numerical solution decays for every lambda in the left half-plane, and no explicit method and no linear
+      multistep method of order above two can be A-stable.
+    results:
+      - "absolute stability on the test equation; A-stability and the second Dahlquist barrier"
+  - id: butcher-1963
+    title: "Coefficients for the study of Runge-Kutta integration processes"
+    authors: [J. C. Butcher]
+    year: 1963
+    kind: paper
+    venue: Journal of the Australian Mathematical Society 3
+    families: [time_integrator, order]
+    topics: [order conditions, rooted trees, butcher tableau, order barrier, stages versus order]
+    summary: >
+      The order conditions of a Runge-Kutta method as one equation per rooted tree in the coefficients of the
+      Butcher tableau; the count of conditions grows fast with the order, and an explicit method with s stages
+      has order at most s, with order 5 needing six stages.
+    results:
+      - "order conditions indexed by rooted trees"
+      - "explicit s-stage methods have order at most s; order 5 needs 6 stages"
+    scoreboard_ids: [order-ode-p4]
+  - id: harten-1983
+    title: "High resolution schemes for hyperbolic conservation laws"
+    authors: [A. Harten]
+    year: 1983
+    kind: paper
+    venue: Journal of Computational Physics 49
+    families: [time_integrator]
+    topics: [total variation diminishing, TVD, hyperbolic conservation laws, monotone schemes, forward euler, CFL condition]
+    summary: >
+      Introduces total variation diminishing schemes for conservation laws: a spatial discretization combined
+      with forward Euler time stepping that does not increase the total variation under a CFL restriction on
+      the time step.
+    results:
+      - "TVD schemes with forward Euler under a CFL condition"
+  - id: shu-osher-1988
+    title: "Efficient implementation of essentially non-oscillatory shock-capturing schemes"
+    authors: [C.-W. Shu, S. Osher]
+    year: 1988
+    kind: paper
+    venue: Journal of Computational Physics 77
+    families: [time_integrator]
+    topics: [TVD runge-kutta, SSP, shu-osher form, convex combination of euler steps, CFL coefficient 1, two-stage second order, three-stage third order]
+    summary: >
+      Writes Runge-Kutta methods as convex combinations of forward Euler steps so that any property forward
+      Euler has under a CFL restriction (such as being TVD) carries over with the time step multiplied by the
+      smallest ratio of the combination coefficients. Gives the two-stage second-order and three-stage
+      third-order methods with coefficient one, now called SSPRK(2,2) and SSPRK(3,3).
+    results:
+      - "the Shu-Osher form: convex combinations of Euler steps; the CFL coefficient as the minimum ratio alpha/beta"
+      - "SSPRK(2,2) and SSPRK(3,3) with coefficient 1"
+    scoreboard_ids: [ssp-s2-p2, ssp-s3-p3]
+  - id: shu-1988
+    title: "Total-variation-diminishing time discretizations"
+    authors: [C.-W. Shu]
+    year: 1988
+    kind: paper
+    venue: SIAM Journal on Scientific and Statistical Computing 9
+    families: [time_integrator]
+    topics: [TVD time discretization, runge-kutta, multistep, CFL coefficient, high order]
+    summary: >
+      TVD Runge-Kutta and multistep time discretizations of higher order, with the CFL coefficients they
+      achieve and the observation that higher order costs a smaller coefficient or more stages.
+    results:
+      - "TVD time discretizations of higher order with their CFL coefficients"
+  - id: kraaijevanger-1991
+    title: "Contractivity of Runge-Kutta methods"
+    authors: [J. F. B. M. Kraaijevanger]
+    year: 1991
+    kind: paper
+    venue: BIT 31
+    families: [time_integrator]
+    topics: [contractivity, radius of absolute monotonicity, optimal contractive methods, bound s - p + 1, butcher array, nonnegativity]
+    summary: >
+      Characterizes the step-size restriction under which a Runge-Kutta method is contractive through the
+      radius of absolute monotonicity R(K) of its Butcher array K, the largest r such that (I + rK)^{-1} exists
+      and is nonnegative together with rK(I + rK)^{-1}. Proves that an explicit method of order p with s stages
+      has R(K) at most s - p + 1, and constructs optimal methods for small s and p.
+    results:
+      - "the radius of absolute monotonicity R(K) gives the contractivity step-size restriction"
+      - "explicit s-stage order-p methods have R(K) <= s - p + 1"
+    scoreboard_ids: [ssp-s4-p3, ssp-s4-p2]
+  - id: hairer-norsett-wanner-1993
+    title: "Solving Ordinary Differential Equations I: Nonstiff Problems"
+    authors: [E. Hairer, S. P. Nørsett, G. Wanner]
+    year: 1993
+    kind: book
+    venue: Springer, 2nd edition
+    families: [time_integrator, order]
+    topics: [runge-kutta textbook, order conditions, stability function, stability regions, real axis interval, 2.785, tables, order of classical methods]
+    summary: >
+      The reference for nonstiff methods: order conditions by trees, the stability function R(z) of a
+      Runge-Kutta method, and tables of stability intervals on the negative real axis, 2 for the one- and
+      two-stage methods, 2.5127 for three stages of order 3, 2.7853 for the classical fourth-order method.
+    results:
+      - "real-axis stability intervals: 2, 2, 2.5127, 2.7853 for the explicit methods with s = p = 1..4"
+      - "orders of Euler, Heun and classical Runge-Kutta"
+    scoreboard_ids: [stab-real-s2-p2, stab-real-s3-p3, stab-real-s4-p4, stab-imag-s4-p4, order-ode-p1, order-ode-p2, order-ode-p4]
+  - id: gottlieb-shu-1998
+    title: "Total variation diminishing Runge-Kutta schemes"
+    authors: [S. Gottlieb, C.-W. Shu]
+    year: 1998
+    kind: paper
+    venue: Mathematics of Computation 67
+    families: [time_integrator]
+    topics: [optimal TVD runge-kutta, SSPRK(2,2), SSPRK(3,3), optimality proof, four-stage fourth order negative coefficients, CFL coefficient]
+    summary: >
+      Proves that among two-stage second-order and three-stage third-order methods the Shu-Osher methods have
+      the largest CFL coefficient (one), and that every four-stage fourth-order method needs a negative
+      coefficient in its Shu-Osher form, so classical RK4 is not SSP without a downwind operator.
+    results:
+      - "SSPRK(2,2) and SSPRK(3,3) are optimal with coefficient 1"
+      - "no four-stage fourth-order explicit method has nonnegative Shu-Osher coefficients"
+    scoreboard_ids: [ssp-s2-p2, ssp-s3-p3]
+  - id: gottlieb-shu-tadmor-2001
+    title: "Strong stability-preserving high-order time discretization methods"
+    authors: [S. Gottlieb, C.-W. Shu, E. Tadmor]
+    year: 2001
+    kind: paper
+    venue: SIAM Review 43
+    families: [time_integrator]
+    topics: [SSP survey, strong stability preserving, runge-kutta, multistep, optimal second order s stages coefficient s-1, downwind]
+    summary: >
+      The survey that names strong stability preservation: SSP Runge-Kutta and multistep methods, the optimal
+      s-stage second-order family with coefficient s - 1, and the use of downwind operators for methods that
+      need negative coefficients.
+    results:
+      - "the s-stage second-order SSP family has coefficient s - 1"
+    scoreboard_ids: [ssp-s4-p2]
+  - id: spiteri-ruuth-2002
+    title: "A new class of optimal high-order strong-stability-preserving time discretization methods"
+    authors: [R. J. Spiteri, S. J. Ruuth]
+    year: 2002
+    kind: paper
+    venue: SIAM Journal on Numerical Analysis 40
+    families: [time_integrator]
+    topics: [SSPRK(s,p) with more stages than order, SSPRK(4,3) coefficient 2, SSPRK(5,4) coefficient 1.508, optimal SSP, effective coefficient]
+    summary: >
+      SSP Runge-Kutta methods with more stages than their order have larger coefficients: the four-stage
+      third-order method has coefficient 2 and the five-stage fourth-order method coefficient 1.508, both found
+      by numerical optimization and both better per stage than the classical SSP methods.
+    results:
+      - "SSPRK(4,3) with coefficient 2; SSPRK(5,4) with coefficient 1.508"
+    scoreboard_ids: [ssp-s4-p3, ssp-s5-p4]
+  - id: ruuth-2006
+    title: "Global optimization of explicit strong-stability-preserving Runge-Kutta methods"
+    authors: [S. J. Ruuth]
+    year: 2006
+    kind: paper
+    venue: Mathematics of Computation 75
+    families: [time_integrator]
+    topics: [global optimization, SSP coefficients, optimal methods, numerical search, fourth order, fifth order]
+    summary: >
+      A global optimization search for the largest SSP coefficients of explicit methods with given stages and
+      order; confirms the earlier optimal methods and finds new ones for higher order, with the values treated
+      as numerically optimal rather than proved.
+    results:
+      - "numerically optimal SSP coefficients for explicit methods; 1.508 confirmed for SSPRK(5,4)"
+    scoreboard_ids: [ssp-s5-p4]
+  - id: ketcheson-2008
+    title: "Highly efficient strong stability-preserving Runge-Kutta methods with low-storage implementations"
+    authors: [D. I. Ketcheson]
+    year: 2008
+    kind: paper
+    venue: SIAM Journal on Scientific and Computing 30
+    families: [time_integrator]
+    topics: [SSPRK(10,4) coefficient 6, n^2-stage third order coefficient n^2-n, low storage, optimal SSP, many stages]
+    summary: >
+      SSP methods with many stages and low storage: the ten-stage fourth-order method with coefficient 6, and
+      the family with n^2 stages of order 3 and coefficient n^2 - n built from Euler steps of size dt/(n^2 - n)
+      and one convex combination, shown optimal among methods with that many stages.
+    results:
+      - "SSPRK(10,4) with coefficient 6"
+      - "SSPRK(n^2,3) with coefficient n^2 - n"
+    scoreboard_ids: [ssp-s9-p3, ssp-s10-p4]
+  - id: gottlieb-ketcheson-shu-2011
+    title: "Strong Stability Preserving Runge-Kutta and Multistep Time Discretizations"
+    authors: [S. Gottlieb, D. I. Ketcheson, C.-W. Shu]
+    year: 2011
+    kind: book
+    venue: World Scientific
+    families: [time_integrator]
+    topics: [SSP monograph, radius of absolute monotonicity, optimal methods tables, shu-osher form, canonical form, multistep]
+    summary: >
+      The monograph on SSP methods: the theory through the radius of absolute monotonicity, the canonical
+      Shu-Osher form, tables of optimal explicit and implicit methods and their coefficients.
+    results:
+      - "tables of optimal SSP coefficients by stages and order"
+    scoreboard_ids: [ssp-s4-p3, ssp-s5-p4, ssp-s9-p3, ssp-s10-p4]

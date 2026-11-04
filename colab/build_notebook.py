@@ -30,7 +30,8 @@ Week 1 of the build plan. This notebook
 2. downloads the bf16 weights of `Qwen/Qwen3.6-27B` once to Drive and **pins the checkpoint hash** as the frozen base in `config/model.yaml`,
 3. builds (or reuses) the 4-bit development copy on an A100, or serves bf16 on an H100 / G4,
 4. starts an OpenAI-compatible server (vLLM by default, SGLang as the alternative) with LoRA serving enabled, so that a role can later be an adapter name,
-5. runs the serving smoke test at the session's precision and the week-2 demo (16 attempts on `quad-d7`), both written to the ledger on Drive.
+5. runs the serving smoke test at the session's precision and the week-2 demo (16 attempts on `quad-d7`, as parallel requests), both written to the ledger on Drive,
+6. optionally (week 3) runs the training gate on the training-family candidates and the ablation harness with GPT for the lessons.
 
 Rules that never bend: every score comes from a program; quantized runs are marked in the ledger's precision column and never enter a reported cell; weights and the ledger stay on Drive, never in the repository; API keys live in Colab secrets.
 
@@ -54,11 +55,22 @@ DEMO_ATTEMPTS = 16                              #@param {type:"integer"}
 MAKE_ZERO_ADAPTER = True                        #@param {type:"boolean"}
 VERIFY_LOCAL_HASH = False                       #@param {type:"boolean"}
 OPEN_TUNNEL = False                             #@param {type:"boolean"}
+CONCURRENCY = 16                                #@param {type:"integer"}
+RUN_GATE = False                                #@param {type:"boolean"}
+GATE_TARGETS = "quad-square-d5 quad-triangle-d4"  #@param {type:"string"}
+GATE_ATTEMPTS = 64                              #@param {type:"integer"}
+GATE_THINKING = "0 512"                         #@param {type:"string"}
+RUN_ABLATION = False                            #@param {type:"boolean"}
+ABLATION_TARGET = "quad-d7"                     #@param {type:"string"}
+ABLATION_ATTEMPTS = 16                          #@param {type:"integer"}
 
 # REPO_BRANCH: empty clones the repository's default branch; set it to track another branch.
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
 #               "bnb" quantizes in flight with bitsandbytes NF4 at load time (nothing to build, slower serving).
 # UNITS_PER_HOUR: the rate shown in Colab's Resources panel for this GPU; 0 means use config/prices.yaml.
+# CONCURRENCY: attempts of a group sent as parallel requests (the server runs up to --max-num-seqs sequences).
+# RUN_GATE / RUN_ABLATION (week 3): the training gate on GATE_TARGETS and the ablation harness; the ablation needs
+#   the Colab secret OPENAI_API_KEY for the lesson harness (spend capped by config/budget.yaml).
 UNITS_PER_HOUR = UNITS_PER_HOUR or None
 """)
 
@@ -354,14 +366,46 @@ code("""
 from lab.demo import main as demo_main
 
 if RUN_DEMO:
-    argv = ["--target", "quad-d7", "--attempts", str(DEMO_ATTEMPTS), "--gpu", GPU, "--precision", PRECISION]
+    argv = ["--target", "quad-d7", "--attempts", str(DEMO_ATTEMPTS), "--gpu", GPU, "--precision", PRECISION,
+            "--concurrency", str(CONCURRENCY)]
     if UNITS_PER_HOUR:
         argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
     demo_main(argv)
 """)
 
 code("""
-#@title 10. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
+#@title 10. Week 3: the training gate (64 attempts per target as parallel requests, a memo per target)
+from lab.gate import main as gate_main
+
+if RUN_GATE:
+    argv = ["--targets", *GATE_TARGETS.split(), "--attempts", str(GATE_ATTEMPTS), "--thinking", *GATE_THINKING.split(),
+            "--gpu", GPU, "--precision", PRECISION, "--concurrency", str(CONCURRENCY)]
+    if UNITS_PER_HOUR:
+        argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
+    gate_main(argv)
+""")
+
+code("""
+#@title 11. Week 3: the ablation harness online (no notebook, notebook, notebook with gate) with GPT for the lessons
+# The lesson extraction and the gate are language parts: GPT through the OpenAI API (key from the Colab secret
+# OPENAI_API_KEY; capped by config/budget.yaml). Every attempt of the three arms is in the ledger on Drive.
+from lab.harness.ablation import main as ablation_main
+
+if RUN_ABLATION:
+    key = secret("OPENAI_API_KEY")
+    if key:
+        os.environ["OPENAI_API_KEY"] = key
+        argv = ["--target", ABLATION_TARGET, "--attempts", str(ABLATION_ATTEMPTS), "--gpu", GPU, "--precision", PRECISION,
+                "--concurrency", str(CONCURRENCY), "--harness-provider", "openai", "--harness-mode", "online"]
+        if UNITS_PER_HOUR:
+            argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
+        ablation_main(argv)
+    else:
+        print("no OPENAI_API_KEY secret: the ablation needs a frontier provider for its lessons; add the secret and rerun this cell")
+""")
+
+code("""
+#@title 12. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
 # The in-notebook path above is the primary one. This exposes the server through a temporary public URL
 # protected only by LAB_ENDPOINT_KEY; close the tunnel when done. The binary is Cloudflare's official release.
 if OPEN_TUNNEL:
@@ -380,7 +424,7 @@ if OPEN_TUNNEL:
 """)
 
 code("""
-#@title 11. Session cost so far
+#@title 13. Session cost so far
 hours = (time.time() - SESSION_T0) / 3600
 units = hours * RATE
 print(f"{hours:.2f} h on {GPU} at {RATE} units/h ({RATE_SOURCE}): about {units:.2f} units = ${meter.units_to_dollars(units):.2f}")

@@ -109,3 +109,55 @@ when the base's pass@64 lies between 5 and 80 percent), as a rediscovery target 
 Precision used so far: bf16 on the G4. Units spent so far: about 7.4 in that session (0.63 h at 11.77 units/h;
 the rate is still the table's estimate). No run on the 4-bit build has happened; when one does, it is marked
 `int4` in the ledger and never enters a reported cell.
+
+# Results: week 3
+
+Date: 2026-11-04, the same CPU-only Windows laptop (Python 3.12, NumPy 2.5, SciPy 1.18). Nothing in this section ran
+on a GPU: the week-3 code is exercised offline under pytest and once by hand against the local fixtures. The online
+runs (the gate on the training-family candidates and the ablation against the served model) wait for the next Colab
+session (cells 10 and 11 of `colab/serve.ipynb`).
+
+## Tests
+
+`pytest`: 364 tests; 352 pass and 12 are skipped (the two live-API smoke tests without keys,
+and the harness tests that replay recorded frontier fixtures, per provider, until those are recorded). Known-answer cases:
+convergence order 27, operation count 34, stability and SSP 42 (plus 5 through the judge's sandbox); concurrency and the
+gate 14; the harness base 11; the librarian 4 offline (the retrieval test set of 8 cases, the cutoff, the citations); the
+archive 2; the lesson bank 16; the checker 7.
+
+## The three new certifiers
+
+| Certifier | Calibration points (all reproduced) |
+|---|---|
+| `convergence_order` | Euler 1.00, Heun 2.00, RK4 4.0 to 4.1 (pre-asymptotic, inside the interval) on seeded ODE problems; central differences 2.00 on the Poisson problem, 1.0 with a boundary value off by O(h); composite left 1, midpoint 2, trapezoid 2, Simpson 4. |
+| `operation_count` | radix-2 FFT: 2 N log2 N multiplications and 3 N log2 N additions exactly for N = 2..64 (320 operations at N = 16); naive DFT: 4 N^2 of each (2048 at N = 16); the cost model `5*n*log2(n)` verified at N = 8, 16, 32. |
+| `stability_region_ssp` | real-axis extents 2, 2, 2.5127453, 2.7852936 and imaginary extents 0, 0, 1.7320508, 2.8284271 for Euler, Heun, Kutta 3 and RK4 (Hairer, Norsett & Wanner); SSP coefficients 1, 1, 2, 1.508 for SSPRK(2,2), (3,3), (4,3), (5,4), s - 1 for SSPRK(s,2) with s = 2..8, n^2 - n for SSPRK(n^2,3) with n = 2, 3; 0 for RK4, Kutta 3 and the 3/8 rule. |
+
+## The librarian's retrieval test set (lexical ranking, no model)
+
+89 documents in the reading list. All 8 cases of `reading_list/retrieval_tests.yaml` pass: the expected document is in the
+top five and no document dated on or after the cutoff appears among the candidates (for example 83 of 89 documents are
+hidden from the Gauss rediscovery at cutoff 1814, 12 from the Davis-Yin target at cutoff 2015). Every returned document is
+a citation row with the target, the cutoff and the document's date.
+
+## The gate runner, offline (machinery check)
+
+`python -m lab.gate --targets quad-d7 --attempts 16 --mode offline` on the synthetic fixtures: pass@16 valid 1.000,
+pass@1 valid 0.438, pass@1 optimal 0.250; verdict "above the band" (as the real quad-d7 record is: a verification
+target, not a training family). The memo records provider `local` in mode `offline` and precision `replay`, so it can
+never enter a reported cell. The training-family candidates (`quad-square-d5`, `quad-triangle-d4`) are the notebook's
+default `GATE_TARGETS`.
+
+## What the ablation harness measured
+
+Offline, under pytest, once the GPT fixtures are recorded: three arms of 16 attempts on quad-d7, the local attempts
+replayed from the synthetic fixtures and the lessons and the gate replayed from the recorded GPT fixtures. Because the
+three arms replay the same 16 synthetic responses, their certified rates are identical by construction (7 of 16 valid,
+4 optimal): the offline run measures that the machinery works end to end (extraction, consolidation under the token
+budget, the gate's lesson and check, the check's outcome logged in every notebook-gate row and never scored, every
+attempt in the ledger with its arm and lesson ids, matched dollars), not the notebook's effect. The ablation against the
+served model, which is the measurement, has not run yet: it is cell 11 of the notebook (needs the Colab secret
+`OPENAI_API_KEY`).
+
+Frontier spend this month: nothing yet from this machine (no key set during the build; the recording of the harness
+fixtures is the first live spend and goes into the repository's own ledger).

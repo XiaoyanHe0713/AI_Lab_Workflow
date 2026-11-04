@@ -1,0 +1,346 @@
+# The librarian's reading list: first-order and splitting methods with worst-case rates. Dates are the year the
+# knowledge became available (the arXiv date for preprints that preceded their journal version).
+family: first_order
+documents:
+  - id: cauchy-1847
+    title: "Méthode générale pour la résolution des systèmes d'équations simultanées"
+    authors: [A.-L. Cauchy]
+    year: 1847
+    kind: paper
+    venue: Comptes Rendus de l'Académie des Sciences 25
+    families: [first_order]
+    topics: [gradient descent, steepest descent, method of gradients]
+    summary: >
+      The gradient method: move from the current point against the gradient of the function with a step chosen
+      to decrease it; the origin of steepest descent.
+    results:
+      - "gradient descent as a general method for systems of equations"
+  - id: douglas-rachford-1956
+    title: "On the numerical solution of heat conduction problems in two and three space variables"
+    authors: [J. Douglas, H. H. Rachford]
+    year: 1956
+    kind: paper
+    venue: Transactions of the American Mathematical Society 82
+    families: [first_order]
+    topics: [douglas-rachford splitting, alternating direction, two operators, heat equation, operator splitting]
+    summary: >
+      An alternating-direction scheme for the heat equation that splits the operator into two parts treated in
+      turn; the iteration later named Douglas-Rachford splitting for the sum of two operators.
+    results:
+      - "a splitting iteration for the sum of two operators (alternating direction)"
+  - id: polyak-1964
+    title: "Some methods of speeding up the convergence of iteration methods"
+    authors: [B. T. Polyak]
+    year: 1964
+    kind: paper
+    venue: USSR Computational Mathematics and Mathematical Physics 4
+    families: [first_order]
+    topics: [heavy ball, momentum, acceleration, strongly convex quadratics, linear convergence rate]
+    summary: >
+      The heavy-ball method adds a momentum term to gradient descent and achieves the rate
+      ((sqrt(L) - sqrt(mu)) / (sqrt(L) + sqrt(mu)))^k on strongly convex quadratics, the first accelerated rate.
+    results:
+      - "momentum accelerates gradient descent on quadratics to a rate depending on sqrt(L/mu)"
+  - id: lions-mercier-1979
+    title: "Splitting algorithms for the sum of two nonlinear operators"
+    authors: [P.-L. Lions, B. Mercier]
+    year: 1979
+    kind: paper
+    venue: SIAM Journal on Numerical Analysis 16
+    families: [first_order]
+    topics: [operator splitting, two maximal monotone operators, douglas-rachford, peaceman-rachford, resolvents, proximal maps]
+    summary: >
+      Splitting algorithms for the sum of two maximal monotone operators using their resolvents (proximal
+      maps): the Douglas-Rachford and Peaceman-Rachford iterations are shown to converge for monotone operators,
+      with contraction when one operator is strongly monotone and Lipschitz.
+    results:
+      - "Douglas-Rachford converges for the sum of two maximal monotone operators"
+      - "contraction factors under strong monotonicity and Lipschitz continuity"
+  - id: nesterov-1983
+    title: "A method of solving a convex programming problem with convergence rate O(1/k^2)"
+    authors: [Y. Nesterov]
+    year: 1983
+    kind: paper
+    venue: Soviet Mathematics Doklady 27
+    families: [first_order]
+    topics: [accelerated gradient, nesterov momentum, optimal rate, smooth convex, 1/k^2]
+    summary: >
+      An accelerated gradient method for smooth convex functions with the optimal rate O(1/k^2) in function
+      value, using an extrapolation step between gradient steps.
+    results:
+      - "accelerated gradient method with rate O(1/k^2) for smooth convex minimization"
+  - id: eckstein-bertsekas-1992
+    title: "On the Douglas-Rachford splitting method and the proximal point algorithm for maximal monotone operators"
+    authors: [J. Eckstein, D. P. Bertsekas]
+    year: 1992
+    kind: paper
+    venue: Mathematical Programming 55
+    families: [first_order]
+    topics: [douglas-rachford, proximal point, relaxation parameter, ADMM, maximal monotone operators]
+    summary: >
+      Douglas-Rachford splitting is a special case of the proximal point algorithm applied to a splitting
+      operator; relaxed and inexact versions converge, and ADMM is Douglas-Rachford on the dual.
+    results:
+      - "Douglas-Rachford is proximal point on a splitting operator; relaxed versions converge"
+  - id: nesterov-2004
+    title: "Introductory Lectures on Convex Optimization: A Basic Course"
+    authors: [Y. Nesterov]
+    year: 2004
+    kind: book
+    venue: Kluwer
+    families: [first_order]
+    topics: [gradient descent rate, strongly convex, condition number, accelerated method, 1 - sqrt(mu/L), lower bounds, textbook]
+    summary: >
+      The textbook on first-order methods: for L-smooth mu-strongly convex functions gradient descent with step
+      2/(L+mu) contracts the distance by ((L-mu)/(L+mu)) per step, the accelerated method reaches
+      (1 - sqrt(mu/L)) per step in a Lyapunov function, and lower complexity bounds show these dependences on
+      the condition number cannot be improved among black-box methods.
+    results:
+      - "gradient descent: distance contraction max(|1 - gamma mu|, |1 - gamma L|) per step"
+      - "accelerated method: rate (1 - sqrt(mu/L))^k for strongly convex functions"
+    scoreboard_ids: [gd-strongly-convex-distance, nesterov-strongly-convex-function-value]
+  - id: beck-teboulle-2009
+    title: "A fast iterative shrinkage-thresholding algorithm for linear inverse problems"
+    authors: [A. Beck, M. Teboulle]
+    year: 2009
+    kind: paper
+    venue: SIAM Journal on Imaging Sciences 2
+    families: [first_order]
+    topics: [FISTA, proximal gradient, accelerated proximal gradient, composite minimization, 1/k^2]
+    summary: >
+      The accelerated proximal gradient method (FISTA) for composite problems, smooth plus proximable, with the
+      O(1/k^2) rate of Nesterov's method carried over to the proximal setting.
+    results:
+      - "accelerated proximal gradient with rate O(1/k^2) for composite problems"
+  - id: combettes-pesquet-2011
+    title: "Proximal splitting methods in signal processing"
+    authors: [P. L. Combettes, J.-C. Pesquet]
+    year: 2011
+    kind: paper
+    venue: Fixed-Point Algorithms for Inverse Problems in Science and Engineering (Springer)
+    families: [first_order]
+    topics: [proximal splitting survey, forward-backward, douglas-rachford, proximal maps, cocoercive, monotone operators]
+    summary: >
+      A survey of proximal splitting: forward-backward for a smooth plus a proximable term, Douglas-Rachford
+      for two proximable terms, and their convergence theory in terms of monotone operators and cocoercivity.
+    results:
+      - "survey of forward-backward and Douglas-Rachford splitting with convergence conditions"
+  - id: condat-2013
+    title: "A primal-dual splitting method for convex optimization involving Lipschitzian, proximable and linear composite terms"
+    authors: [L. Condat]
+    year: 2013
+    kind: paper
+    venue: Journal of Optimization Theory and Applications 158
+    families: [first_order]
+    topics: [primal-dual splitting, three terms, smooth plus proximable plus linear composite, cocoercive gradient, forward-backward]
+    summary: >
+      A primal-dual algorithm for the sum of a smooth term with Lipschitz gradient, a proximable term and a
+      linear composite term, using one gradient, one proximal map and one dual proximal map per iteration;
+      with the linear term absent it treats a smooth plus a proximable function by a forward-backward step.
+    results:
+      - "primal-dual splitting for smooth + proximable + linear composite terms"
+  - id: vu-2013
+    title: "A splitting algorithm for dual monotone inclusions involving cocoercive operators"
+    authors: [B. C. Vũ]
+    year: 2013
+    kind: paper
+    venue: Advances in Computational Mathematics 38
+    families: [first_order]
+    topics: [primal-dual splitting, cocoercive operators, monotone inclusions, forward-backward, three operators]
+    summary: >
+      A primal-dual forward-backward algorithm for monotone inclusions that combine a cocoercive operator, a
+      maximally monotone operator and linearly composed operators, with a convergence proof in the product
+      space.
+    results:
+      - "forward-backward primal-dual splitting with a cocoercive operator"
+  - id: drori-teboulle-2014
+    title: "Performance of first-order methods for smooth convex minimization: a novel approach"
+    authors: [Y. Drori, M. Teboulle]
+    year: 2014
+    kind: paper
+    venue: Mathematical Programming 145
+    families: [first_order]
+    topics: [performance estimation problem, PEP, worst-case rate, semidefinite program, smooth convex, gradient method]
+    summary: >
+      Casts the worst-case performance of a first-order method on a function class as an optimization problem
+      over functions, relaxes it to a semidefinite program, and computes tight bounds for gradient and fast
+      gradient methods on smooth convex functions.
+    results:
+      - "worst-case rates by a semidefinite relaxation (the performance estimation problem)"
+  - id: giselsson-boyd-2014
+    title: "Linear convergence and metric selection for Douglas-Rachford splitting and ADMM"
+    authors: [P. Giselsson, S. Boyd]
+    year: 2014
+    date: 2014-10-30
+    date_precision: day
+    kind: paper
+    venue: arXiv:1410.8479; IEEE Transactions on Automatic Control 62 (2017)
+    families: [first_order]
+    topics: [douglas-rachford, linear convergence, contraction factor, strongly convex smooth, tight rate, metric selection, ADMM]
+    summary: >
+      For Douglas-Rachford splitting with one function L-smooth and mu-strongly convex, the contraction factor
+      of the iteration is max(1/(1 + mu alpha), alpha L/(1 + alpha L)) per step, which is tight, and the best
+      step alpha = 1/sqrt(mu L) gives the factor (sqrt(L/mu) - 1)/(sqrt(L/mu) + 1).
+    results:
+      - "tight contraction factor max(1/(1+mu alpha), alpha L/(1+alpha L)) for Douglas-Rachford"
+    scoreboard_ids: [douglas-rachford-contraction]
+  - id: davis-yin-2015
+    title: "A three-operator splitting scheme and its optimization applications"
+    authors: [D. Davis, W. Yin]
+    year: 2015
+    date: 2015-04-04
+    date_precision: day
+    kind: paper
+    venue: arXiv:1504.01032; Set-Valued and Variational Analysis 25 (2017)
+    families: [first_order]
+    topics: [three-operator splitting, davis-yin, two proximal maps plus a gradient, cocoercive, convergence rates, forward-backward, douglas-rachford]
+    summary: >
+      A splitting method for the sum of three operators, two with proximal maps and one cocoercive (a smooth
+      gradient), that reduces to Douglas-Rachford when the smooth term is absent and to forward-backward when
+      one proximal term is absent; convergence of the iterates, and linear rates under strong convexity and
+      smoothness assumptions that are sufficient rather than tight.
+    results:
+      - "a three-operator splitting with two proximal maps and one gradient step"
+      - "linear convergence under additional assumptions (not tight)"
+    scoreboard_ids: [davis-yin-contraction-calibration]
+  - id: taylor-hendrickx-glineur-2017
+    title: "Smooth strongly convex interpolation and exact worst-case performance of first-order methods"
+    authors: [A. B. Taylor, J. M. Hendrickx, F. Glineur]
+    year: 2015
+    date: 2015-02-20
+    date_precision: day
+    kind: paper
+    venue: arXiv:1502.05666; Mathematical Programming 161 (2017)
+    families: [first_order]
+    topics: [interpolation conditions, smooth strongly convex, exact worst-case, performance estimation, tight rates, gradient descent]
+    summary: >
+      Necessary and sufficient interpolation conditions for smooth strongly convex functions make the
+      performance estimation semidefinite program exact: its value is the true worst case, attained by a
+      function in the class. Tight rates for gradient descent in distance and function value follow, with the
+      distance contraction max(|1 - gamma mu|, |1 - gamma L|)^2 per step attained on quadratics.
+    results:
+      - "interpolation conditions make the PEP exact for smooth strongly convex functions"
+      - "gradient descent distance rate max(|1 - gamma mu|, |1 - gamma L|)^(2n) is tight"
+    scoreboard_ids: [gd-strongly-convex-distance]
+  - id: taylor-hendrickx-glineur-2017b
+    title: "Exact worst-case performance of first-order methods for composite convex optimization"
+    authors: [A. B. Taylor, J. M. Hendrickx, F. Glineur]
+    year: 2017
+    kind: paper
+    venue: SIAM Journal on Optimization 27
+    families: [first_order]
+    topics: [composite optimization, proximal gradient, exact worst-case, performance estimation, interpolation of convex functions]
+    summary: >
+      Extends exact performance estimation to composite problems with proximal operators, giving tight
+      worst-case guarantees for proximal gradient and related methods.
+    results:
+      - "exact PEP for proximal methods on composite problems"
+  - id: ryu-taylor-bergeling-giselsson-2020
+    title: "Operator splitting performance estimation: tight contraction factors and optimal parameter selection"
+    authors: [E. K. Ryu, A. B. Taylor, C. Bergeling, P. Giselsson]
+    year: 2018
+    date: 2018-12-01
+    date_precision: month
+    kind: paper
+    venue: arXiv:1812.00146; SIAM Journal on Optimization 30 (2020)
+    families: [first_order]
+    topics: [operator splitting, performance estimation, tight contraction factors, douglas-rachford, davis-yin, three-operator, optimal parameters]
+    summary: >
+      Performance estimation for operator splitting methods, including Douglas-Rachford and three-operator
+      splitting: the contraction factor of one iteration on a stated operator class is computed exactly by a
+      semidefinite program, tightness is proved by constructing the worst operators, and parameters are
+      optimized against the computed factors.
+    results:
+      - "tight contraction factors for Douglas-Rachford and three-operator splitting by SDP"
+    scoreboard_ids: [douglas-rachford-contraction, davis-yin-contraction-calibration]
+  - id: nesterov-2018
+    title: "Lectures on Convex Optimization"
+    authors: [Y. Nesterov]
+    year: 2018
+    kind: book
+    venue: Springer, 2nd edition
+    families: [first_order]
+    topics: [convex optimization textbook, gradient descent rates, accelerated methods, strongly convex, theorem 2.1.15]
+    summary: >
+      The second edition of the lectures: Theorem 2.1.15 gives the rate of gradient descent on smooth strongly
+      convex functions with step 2/(mu + L), and the estimate sequence construction gives the accelerated rate.
+    results:
+      - "gradient descent and accelerated rates for strongly convex functions"
+    scoreboard_ids: [gd-strongly-convex-distance]
+  - id: daspremont-scieur-taylor-2021
+    title: "Acceleration Methods"
+    authors: [A. d'Aspremont, D. Scieur, A. B. Taylor]
+    year: 2021
+    kind: paper
+    venue: Foundations and Trends in Optimization 5
+    families: [first_order]
+    topics: [acceleration survey, nesterov method, strongly convex, (1 - sqrt(mu/L))^k, corollary 4.15, potential functions]
+    summary: >
+      A monograph on acceleration with potential-function proofs: Corollary 4.15 bounds Nesterov's method for
+      smooth strongly convex functions by (1 - sqrt(mu/L))^k in a combined function-value and distance
+      potential, an upper bound that is not tight.
+    results:
+      - "Nesterov's method: (f(x_k) - f*) bounded by (1 - sqrt(mu/L))^k times the initial potential"
+    scoreboard_ids: [nesterov-strongly-convex-function-value]
+  - id: goujaud-etal-2022
+    title: "PEPit: computer-assisted worst-case analyses of first-order optimization methods in Python"
+    authors: [B. Goujaud, C. Moucer, F. Glineur, J. M. Hendrickx, A. B. Taylor, A. Dieuleveut]
+    year: 2022
+    date: 2022-01-11
+    date_precision: day
+    kind: software paper
+    venue: arXiv:2201.04040; Mathematical Programming Computation 16 (2024)
+    families: [first_order]
+    topics: [PEPit, performance estimation software, python, worst-case analysis, examples with reference values, three-operator splitting example]
+    summary: >
+      A Python package that builds and solves performance estimation problems from a description of the method;
+      its example gallery documents reference worst-case values, including Douglas-Rachford contraction and
+      three-operator splitting contraction solved with MOSEK.
+    results:
+      - "reference worst-case values for Douglas-Rachford and three-operator splitting examples"
+    scoreboard_ids: [davis-yin-contraction-calibration, douglas-rachford-contraction, nesterov-strongly-convex-function-value]
+  - id: lee-yi-ryu-2022
+    title: "Convergence analyses of Davis-Yin splitting via scaled relative graphs"
+    authors: [J. Lee, S. Yi, E. K. Ryu]
+    year: 2022
+    date: 2022-07-08
+    date_precision: day
+    kind: paper
+    venue: arXiv:2207.04015
+    families: [first_order]
+    topics: [davis-yin splitting, scaled relative graphs, contraction factors, tight rates, operator classes]
+    summary: >
+      Uses scaled relative graphs to analyze Davis-Yin splitting on classes of monotone operators and derives
+      contraction factors that are tight for those classes.
+    results:
+      - "tight contraction factors for Davis-Yin on operator classes via scaled relative graphs"
+    scoreboard_ids: [davis-yin-contraction-calibration]
+  - id: yi-ryu-2022
+    title: "Convergence analyses of Davis-Yin splitting via scaled relative graphs II: convex optimization problems"
+    authors: [S. Yi, E. K. Ryu]
+    year: 2022
+    date: 2022-11-28
+    date_precision: day
+    kind: paper
+    venue: arXiv:2211.15604
+    families: [first_order]
+    topics: [davis-yin splitting, scaled relative graphs, convex optimization, strongly convex, smooth, rates]
+    summary: >
+      The sequel for convex optimization problems: contraction factors of Davis-Yin splitting when the terms are
+      strongly convex or smooth, again by scaled relative graphs.
+    results:
+      - "Davis-Yin rates for convex optimization problem classes"
+    scoreboard_ids: [davis-yin-contraction-calibration]
+  - id: ryu-yin-2022
+    title: "Large-Scale Convex Optimization: Algorithms and Analyses via Monotone Operators"
+    authors: [E. K. Ryu, W. Yin]
+    year: 2022
+    kind: book
+    venue: Cambridge University Press
+    families: [first_order]
+    topics: [monotone operators textbook, splitting methods, douglas-rachford, davis-yin, forward-backward, convergence analyses]
+    summary: >
+      A textbook that derives the splitting methods (forward-backward, Douglas-Rachford, Davis-Yin,
+      primal-dual) from monotone operator theory and proves their convergence.
+    results:
+      - "unified derivation of splitting methods from monotone operators"
