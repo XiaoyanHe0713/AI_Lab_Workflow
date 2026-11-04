@@ -1,0 +1,52 @@
+# One configuration file names the storage path and the model endpoint (proposal, build plan).
+# ${VAR:-default} is expanded from the environment by lab/config.py.
+storage:
+  root: ${LAB_ROOT:-runs}                 # Colab: /content/drive/MyDrive/ai_lab
+  ledger: ${LAB_LEDGER:-${LAB_ROOT:-runs}/ledger.sqlite}
+  cache: ${LAB_CACHE:-${LAB_ROOT:-runs}/cache}
+
+endpoint:                                 # the OpenAI-compatible server started by colab/serve.ipynb
+  base_url: ${LAB_ENDPOINT:-http://127.0.0.1:8000/v1}
+  api_key_env: LAB_ENDPOINT_KEY           # random key given to the server; env var holding it
+  model: qwen3.6-27b                      # served-model-name; a role's adapter is served under its own name
+  gpu: ${LAB_GPU:-unknown}                # H100 | G4 | A100 | L4, written by the notebook
+  precision: ${LAB_PRECISION:-unknown}    # bf16 | int4, written by the notebook
+
+# Recorded responses, one directory per provider name, keyed by a hash of the request. Offline mode
+# replays them, record mode writes them, and a missing fixture is a failure, never a live call.
+fixtures: tests/fixtures/providers
+
+# provider: local | openai | anthropic;  mode: offline | online | record.
+providers:
+  local:                                  # the Qwen3.6-27B endpoint: the provider of the three roles
+    kind: local
+    base_url: ${LAB_ENDPOINT:-http://127.0.0.1:8000/v1}
+    api_key_env: LAB_ENDPOINT_KEY
+    model: qwen3.6-27b
+    mode: ${LAB_MODE:-online}
+  openai:                                 # GPT: the first frontier provider for harness language parts
+    kind: openai
+    base_url: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+    api_key_env: OPENAI_API_KEY
+    model: ${LAB_OPENAI_MODEL:-gpt-5-mini}
+    mode: ${LAB_FRONTIER_MODE:-offline}
+  anthropic:                              # Claude: the second frontier provider, same interface
+    kind: anthropic
+    api_key_env: ANTHROPIC_API_KEY
+    model: ${LAB_ANTHROPIC_MODEL:-claude-sonnet-4-5}
+    mode: ${LAB_FRONTIER_MODE:-offline}
+
+harness:                                  # language parts of the harnesses (week 3 on); never a reward
+  provider: ${LAB_HARNESS_PROVIDER:-openai}   # GPT first, then Claude behind the same interface
+  budget: config/budget.yaml              # $200 a month, enforced before every online or record call
+
+roles:                                    # the three trained roles always run on the local endpoint
+  builder:  {provider: local, adapter: null, temperature: 0.8, max_tokens: 4096}
+  theorist: {provider: local, adapter: null, temperature: 0.8, max_tokens: 4096}
+  breaker:  {provider: local, adapter: null, temperature: 0.8, max_tokens: 4096}
+
+judge:
+  timeout_s: 120          # wall-clock cap inside the sandbox (proposal: 120 s per attempt)
+  memory_mb: 2048
+  sdp_cap_s: 60           # runtime cap for one performance-estimation SDP
+  sdp_solver: SCS         # SCS by default (no MOSEK licence, user decision 2026-11-04); CLARABEL allowed

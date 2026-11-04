@@ -1,0 +1,78 @@
+# Scoreboard: worst-case rates of first-order and splitting methods by performance estimation.
+# Each entry: the function class, the method with its parameters, the metric, the published rate with its
+# source and whether it is tight, PEPit's own reference value where its example documents one, and the
+# tolerance that counts as reproduced. The certifier `pep_worst_case_rate` compares its SDP value with
+# these. A beat on this board is a rate improved by at least one percent relative at the same class.
+class: first-order-and-splitting-worst-case-rates
+measure: certified worst-case contraction (lower is better)
+beat_margin: rate improved by at least 1% relative on the same function class and oracle budget
+certifier: pep_worst_case_rate
+certifier_version: 1.0.0
+solver: SCS through CVXPY (MOSEK not licensed); tolerance 1e-4 absolute or relative to the rate
+frozen_at: 2026-11-04
+
+entries:
+  - id: gd-strongly-convex-distance
+    method: gradient_descent
+    class: L-smooth, mu-strongly convex functions
+    metric: "||x_n - x*||^2 / ||x_0 - x*||^2"
+    params: {mu: 0.1, L: 1.0, gamma: 1.0, n: 1}
+    published_rate: "max(|1 - gamma mu|, |1 - gamma L|)^(2n)"
+    published_value: 0.81
+    tight: true
+    source: >
+      Attained on the quadratic f(x) = c/2 x^2 with c in {mu, L}; worst-case tightness for the distance metric in
+      Taylor, Hendrickx & Glineur, "Smooth strongly convex interpolation and exact worst-case performance of
+      first-order methods", Math. Program. 161 (2017), and Nesterov, Lectures on Convex Optimization (2018), Thm 2.1.15
+      for gamma = 2/(mu + L).
+    status: solved
+    entered: 2026-11-04
+  - id: nesterov-strongly-convex-function-value
+    method: nesterov_strongly_convex
+    class: L-smooth, mu-strongly convex functions
+    metric: "(f(x_n) - f*) / (f(x_0) - f* + mu/2 ||x_0 - x*||^2)"
+    params: {mu: 0.1, L: 1.0, n: 2}
+    published_rate: "(1 - sqrt(mu/L))^n, an upper bound"
+    published_value: 0.46754446796632404
+    tight: false
+    pepit_reference: 0.3476022263165957
+    source: >
+      d'Aspremont, Scieur & Taylor, "Acceleration Methods", Found. Trends Optim. 5 (2021), Cor. 4.15;
+      PEPit 0.5.1 example wc_accelerated_gradient_strongly_convex (MOSEK) for the reference value.
+    status: open
+    entered: 2026-11-04
+  - id: douglas-rachford-contraction
+    method: douglas_rachford
+    class: f1 L-smooth mu-strongly convex, f2 closed convex proper; prox of both
+    metric: "||w_n - w_n'||^2 / ||w_0 - w_0'||^2"
+    params: {mu: 0.1, L: 1.0, alpha: 3.0, theta: 1.0, n: 2}
+    published_rate: "theta = 1: max(1/(1 + mu alpha), alpha L/(1 + alpha L))^(2n)"
+    published_value: 0.3501277966457756
+    tight: true
+    pepit_reference: 0.35012780295429113
+    source: >
+      Giselsson & Boyd, "Linear convergence and metric selection for Douglas-Rachford splitting and ADMM",
+      IEEE TAC 62 (2017), Thm 2 (tight); Ryu, Taylor, Bergeling & Giselsson, "Operator splitting performance
+      estimation: tight contraction factors and optimal parameter selection", SIAM J. Optim. 30 (2020);
+      PEPit 0.5.1 example wc_douglas_rachford_splitting_contraction (MOSEK) for the reference value.
+    status: solved
+    entered: 2026-11-04
+  - id: davis-yin-contraction-calibration
+    method: davis_yin
+    class: f1 L1-smooth mu1-strongly convex, f2 closed convex proper, f3 L3-smooth convex; prox of f1, f2 and gradient of f3
+    metric: "||w_n - w_n'||^2 / ||w_0 - w_0'||^2"
+    params: {mu1: 0.1, L1: 10.0, L3: 1.0, alpha: 1.0, theta: 1.0, n: 4}
+    published_rate: >
+      no closed form; Davis & Yin (2017, Thm 3.3) give linear rates under extra assumptions that are not tight,
+      and the scaled-relative-graph analyses of Lee, Yi & Ryu (2022) and Yi & Ryu (2022) give the sharpest known
+      rates for their operator classes. The calibration point is PEPit's documented value, which this certifier
+      must reproduce with SCS.
+    published_value: null
+    tight: false
+    pepit_reference: 0.4754523346392658
+    source: >
+      Davis & Yin, "A three-operator splitting scheme and its optimization applications", Set-Valued Var. Anal. 25
+      (2017); Lee, Yi & Ryu, arXiv:2207.04015; Yi & Ryu, arXiv:2211.15604; PEPit 0.5.1 example
+      wc_three_operator_splitting (MOSEK) for the reference value.
+    status: open
+    entered: 2026-11-04

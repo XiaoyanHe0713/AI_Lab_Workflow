@@ -1,0 +1,142 @@
+# Scoreboard: quadrature and cubature rules with the fewest nodes for a given exactness degree.
+# Entry format (proposal, Work package 2): class definition, measure, best known value, source,
+# method dossier, date entered, flag solved or open, certifier version, margin that counts as a beat.
+# Open means no optimality proof is recorded here; it is a flag, not a distance from the training set.
+# Entries marked `provenance: provisional` were entered from memory of the compilations cited and
+# must be checked against the source by the librarian before any novelty claim.
+class: quadrature-cubature-fewest-nodes
+measure: node count at a stated exactness degree on a stated domain; lower is better
+beat_margin: node count reduced by at least one at the same degree, same domain, same rule class
+certifier: quadrature_exactness
+certifier_version: 1.0.0
+rule_class_default: any real nodes and weights; the certificate records positivity and interiority separately
+frozen_at: 2026-11-04
+
+interval:
+  domain: "[-1, 1]"
+  formula: "ceil((d + 1) / 2) nodes for degree d, attained by Gauss-Legendre; optimal for every d"
+  formula_source: >
+    Gauss (1814). Optimality: an n-point rule cannot integrate the square of its own node polynomial
+    (degree 2n, positive integral) exactly, so degree 2n is unreachable with n nodes; see Davis & Rabinowitz,
+    Methods of Numerical Integration, 2nd ed. (1984), Sec. 2.7, or Trefethen, Approximation Theory and
+    Approximation Practice (2013), Ch. 19.
+  entries:
+    - {id: interval-d1, degree: 1, best_known: 1, status: solved, method: midpoint rule, entered: 2026-11-04}
+    - {id: interval-d3, degree: 3, best_known: 2, status: solved, method: 2-point Gauss-Legendre, entered: 2026-11-04}
+    - {id: interval-d5, degree: 5, best_known: 3, status: solved, method: 3-point Gauss-Legendre, entered: 2026-11-04}
+    - {id: interval-d7, degree: 7, best_known: 4, status: solved, method: 4-point Gauss-Legendre, entered: 2026-11-04}
+    - {id: interval-d9, degree: 9, best_known: 5, status: solved, method: 5-point Gauss-Legendre, entered: 2026-11-04}
+    - {id: interval-d11, degree: 11, best_known: 6, status: solved, method: 6-point Gauss-Legendre, entered: 2026-11-04}
+    - {id: interval-d13, degree: 13, best_known: 7, status: solved, method: 7-point Gauss-Legendre, entered: 2026-11-04}
+    - {id: interval-d15, degree: 15, best_known: 8, status: solved, method: 8-point Gauss-Legendre, entered: 2026-11-04}
+
+square:
+  domain: "[-1, 1]^2"
+  entries:
+    - id: square-d1
+      degree: 1
+      best_known: 1
+      status: solved
+      method: centroid rule, weight 4
+      source: trivial (one point suffices for degree 1; none for fewer)
+      entered: 2026-11-04
+    - id: square-d3
+      degree: 3
+      best_known: 4
+      status: solved
+      method: "4 points on the axes at distance sqrt(2/3), weights 1 (Stroud C2:3-1)"
+      source: >
+        Stroud, Approximate Calculation of Multiple Integrals (1971), C2:3-1; lower bound 4 = 2n for odd degree 3
+        on a centrally symmetric region (Mysovskikh; see Cools, "Constructing cubature formulae: the science behind
+        the art", Acta Numerica 6 (1997)).
+      provenance: provisional
+      entered: 2026-11-04
+    - id: square-d5
+      degree: 5
+      best_known: 7
+      status: solved
+      method: Radon's 7-point rule (1948)
+      source: >
+        Radon (1948); minimality 7 from Moller's lower bound for degree 5 on the square (Moller 1976);
+        compiled in Cools & Rabinowitz, "Monomial cubature rules since Stroud: a compilation",
+        J. Comput. Appl. Math. 48 (1993).
+      provenance: provisional
+      entered: 2026-11-04
+    - id: square-d7
+      degree: 7
+      best_known: 12
+      status: solved
+      method: 12-point degree-7 rules (e.g. Stroud C2:7-1); Moller's bound 12 is attained
+      source: >
+        Stroud (1971), C2:7-1; Moller (1976) lower bound; Cools & Rabinowitz (1993) compilation;
+        Cools, "An encyclopaedia of cubature formulas", J. Complexity 19 (2003).
+      provenance: provisional
+      entered: 2026-11-04
+
+triangle:
+  domain: "reference triangle (0,0), (1,0), (0,1)"
+  entries:
+    - id: triangle-d1
+      degree: 1
+      best_known: 1
+      status: solved
+      method: centroid rule, weight 1/2
+      source: trivial
+      entered: 2026-11-04
+    - id: triangle-d2
+      degree: 2
+      best_known: 3
+      status: solved
+      method: 3 interior points (Strang & Fix 1973) or 3 edge midpoints, weights 1/6
+      source: >
+        Hammer, Marlowe & Stroud (1956); lower bound 3 = dim P_1 (a rule exact to degree 2k needs at least
+        dim P_k nodes).
+      entered: 2026-11-04
+    - id: triangle-d3
+      degree: 3
+      best_known: 4
+      status: solved
+      rule_class: one negative weight (the centroid); the smallest positive-interior rule known has 6 points
+      method: "Strang-Fix 4-point rule: centroid weight -27/48 and (0.6, 0.2, 0.2) orbit weight 25/48, times area"
+      source: >
+        Strang & Fix, An Analysis of the Finite Element Method (1973), Table 8.1 rule 6; Stroud (1971) T2:3-1.
+        Minimality 4 recorded in Cools & Rabinowitz (1993); flagged provisional.
+      provenance: provisional
+      entered: 2026-11-04
+    - id: triangle-d4
+      degree: 4
+      best_known: 6
+      status: solved
+      method: Dunavant's 6-point degree-4 rule (positive, interior)
+      source: >
+        Dunavant, "High degree efficient symmetrical Gaussian quadrature rules for the triangle",
+        Int. J. Numer. Meth. Eng. 21 (1985); lower bound 6 = dim P_2.
+      entered: 2026-11-04
+    - id: triangle-d5
+      degree: 5
+      best_known: 7
+      status: solved
+      method: Radon's 7-point degree-5 rule (positive, interior)
+      source: >
+        Radon (1948); Dunavant (1985) rule 5; minimality 7 by Moller's lower bound for degree 5 (Moller 1976),
+        see Cools (1997).
+      provenance: provisional
+      entered: 2026-11-04
+    - id: triangle-d6
+      degree: 6
+      best_known: 12
+      status: open
+      method: Dunavant's 12-point degree-6 rule (positive, interior); lower bound dim P_3 = 10
+      source: Dunavant (1985); Lyness & Jespersen (1975)
+      provenance: provisional
+      entered: 2026-11-04
+    - id: triangle-d7
+      degree: 7
+      best_known: 12
+      status: open
+      method: Gatermann's 12-point degree-7 rule (positive, interior); lower bound dim P_3 = 10
+      source: >
+        Gatermann, "The construction of symmetric cubature formulas for the square and the triangle",
+        Computing 40 (1988); compiled in Cools & Rabinowitz (1993).
+      provenance: provisional
+      entered: 2026-11-04

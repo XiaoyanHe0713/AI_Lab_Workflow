@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lab"
+version = "0.1.0"
+description = "Discovery at 27B: an automated numerical lab. Weeks 1-2: serving, ledger, cost meter, certifiers, judge, demo."
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "sympy>=1.12",
+    "pyyaml>=6",
+    "cvxpy>=1.4",
+    "scs>=3.2",
+    "PEPit>=0.3",
+    "openai>=1.30",
+    "anthropic>=0.40",
+    "psutil>=5.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "nbformat>=5.9"]
+colab = ["vllm", "huggingface_hub", "hf_transfer", "safetensors"]
+
+[tool.setuptools.packages.find]
+include = ["lab*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = ["online(key): makes a live API call; skipped unless the environment variable `key` is set"]

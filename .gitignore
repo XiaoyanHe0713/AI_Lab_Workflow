@@ -1,0 +1,23 @@
+# weights, ledgers and run outputs never enter the repository (proposal: "Repository, decided")
+runs/
+models/
+*.sqlite
+*.sqlite-journal
+*.jsonl
+cache/
+# secrets
+.env
+*.key
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+# notebooks checkpoints
+.ipynb_checkpoints/
+# OS
+.DS_Store
+Thumbs.db

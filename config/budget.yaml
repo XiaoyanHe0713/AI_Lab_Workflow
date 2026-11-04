@@ -1,0 +1,9 @@
+# The frontier API budget (user decision, 2026-11-04): $200 a month across GPT and Claude, enforced in
+# code by lab/cost.py (BudgetGuard) before every online or record call. Offline replays never count.
+# To raise the cap, edit this file by hand; every attempt row records the cap that was in force, so the
+# change stays visible in the ledger.
+frontier:
+  monthly_cap_usd: 200
+  warning_fraction: 0.8          # warn once per session above 80 percent of the cap
+  providers: [openai, anthropic] # provider kinds whose API dollars count
+  modes: [online, record]        # modes that count; offline replays cost nothing
