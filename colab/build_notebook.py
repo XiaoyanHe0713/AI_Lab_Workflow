@@ -18,7 +18,7 @@ def code(text: str) -> None:
 
 
 md("""
-<a href="https://colab.research.google.com/github/XiaoyanHe0713/AI_Lab_Workflow/blob/build%2Fweeks-1-2-serving-judge/colab/serve.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/XiaoyanHe0713/AI_Lab_Workflow/blob/build%2Fweek-3-harnesses/colab/serve.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 """)
 
 md("""
