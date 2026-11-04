@@ -168,12 +168,14 @@ its mirror, run outputs, `.env` and any API key (`.gitignore` covers them from t
 ledger and the weights live on Drive; the repository holds nothing that cannot be rebuilt from it plus
 Drive.
 
-## What is not verified here
+## What has run, and what has not
 
-This repository was built and tested on a CPU-only machine. The Colab notebook, the vLLM/SGLang server
-command lines, the llm-compressor AWQ build and the LoRA adapter loading are written to the current
-documentation but were not executed on a GPU; the first Colab session will tell. The compute-unit rates
-in `config/prices.yaml` are estimates: confirm them against the Resources panel and set `UNITS_PER_HOUR`
-in the notebook (the ledger records which source was used). Scoreboard entries marked `provenance:
-provisional` were entered from memory of the cited compilations and must be checked by the librarian
-before any novelty claim.
+The package and its tests run on a CPU-only machine. The notebook ran end to end once on a Colab G4
+(96 GB Blackwell) at bf16 on 2026-11-04: weights pinned, vLLM 0.33 serving with the zero adapter, smoke
+test and the 16-attempt demo, all in the ledger on Drive (see `RESULTS.md`). Not yet exercised: the
+A100/L4 path (the llm-compressor AWQ build and the bitsandbytes fallback), SGLang, and the tunnel cell.
+The compute-unit rates in `config/prices.yaml` are estimates: confirm them against the Resources panel and
+set `UNITS_PER_HOUR` in the notebook (the ledger records which source was used). Scoreboard entries marked
+`provenance: provisional` were entered from memory of the cited compilations and must be checked by the
+librarian before any novelty claim. The demo runs its attempts one after another; batching the 16 attempts
+of a group into concurrent requests is the first serving improvement worth making.

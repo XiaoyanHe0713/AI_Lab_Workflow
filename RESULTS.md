@@ -1,8 +1,9 @@
 # Results: weeks 1 and 2
 
-Date: 2026-11-04. Machine for everything below: a CPU-only Windows laptop, Python 3.12, NumPy 2.5, SciPy 1.18,
-CVXPY 1.9.3, SCS 3.3.1, PEPit 0.5.1. No GPU session has run yet; the Colab rows are empty until the
-notebook runs and are to be filled from the ledger on Drive.
+Date: 2026-11-04. Two machines: a CPU-only Windows laptop (Python 3.12, NumPy 2.5, SciPy 1.18, CVXPY 1.9.3,
+SCS 3.3.1, PEPit 0.5.1) for the tests and the offline demo, and one Colab Pro+ session on a G4 (NVIDIA RTX PRO
+6000 Blackwell Server Edition, 96 GB; Python 3.13; vLLM 0.33.0) for serving, the smoke test and the demo
+against the frozen model.
 
 ## Tests
 
@@ -65,18 +66,46 @@ imports, a prose-only answer, a syntax error, a crash, mismatched lengths, and a
 
 These numbers test the loop, the judge and the ledger. They say nothing about Qwen3.6-27B.
 
-## Serving and the frozen baseline (to be filled from the first Colab session)
+## The frozen base
 
-| Tier | Precision | Build | tokens/s | units/h (source) | $/h | smoke attempt id |
-|---|---|---|---|---|---|---|
-| A100 | int4 | | | | | |
-| H100 or G4 | bf16 | | | | | |
+`Qwen/Qwen3.6-27B` at revision `6a9e13bd6fc8f0983b9b99948120bc37f49c13e9`: 29 files, 55.6 GB, checkpoint hash
+`sha256:4286c4e5279e2dbaa43b0dd44c44a18c6202c34d2ecd1bfca769dd7129966778` (sha256 over the sorted
+`path:sha256` lines of the Hub manifest), pinned on 2026-11-04 in `config/model.yaml`. vLLM identifies the
+checkpoint as `Qwen3_5ForConditionalGeneration`: a hybrid Gated-DeltaNet architecture with a vision tower,
+which is why serving needs `--max-num-seqs` well below vLLM's default (one state block per sequence).
 
-| Target | Precision | Attempts | pass@1 valid | pass@1 optimal | pass@16 optimal | optimal found | units | $ | group id |
-|---|---|---|---|---|---|---|---|---|---|
-| quad-d7 | int4 | 16 | | | | | | | |
-| quad-d7 | bf16 | 16 | | | | | | | |
+## Serving (first Colab session, 2026-11-04)
 
-Precision used so far: none (no GPU session). Units spent so far: 0. The frozen base is not yet pinned:
-`config/model.yaml` gets its checkpoint hash from the first run of `colab/serve.ipynb`. A run on the 4-bit
-build is marked `int4` in the ledger and never enters a reported cell; the bf16 row is the one that counts.
+| Tier | Precision | Build | Server | Start-up | tokens/s, one stream | units/h (source) | $/h |
+|---|---|---|---|---|---|---|---|
+| G4 | bf16 | frozen base | vLLM 0.33.0, LoRA on, 32k context, 64 sequences, CUDA graphs | 1120 s | 20.8 base, 18.2 through the zero adapter `builder` | 11.77 (config/prices.yaml, not yet confirmed against the Resources panel) | 1.18 |
+| A100 or L4 | int4 | not built yet | | | | | |
+
+Both smoke completions (43 tokens each) succeeded and are in the `serving` table of the ledger on Drive; the
+zero-initialized adapter is served under its own name, so an untrained role is exactly the base.
+
+## The frozen baseline, quad-d7 (first Colab session)
+
+`python -m lab.demo --target quad-d7 --attempts 16 --gpu G4 --precision bf16`, temperature 0.8, thinking off,
+seeds 0 to 15, group `grp_4ebed252ac564b60`.
+
+| Quantity | Value |
+|---|---|
+| valid rules (exact to degree 7) | 14 / 16 |
+| optimal (4 nodes, the scoreboard's best known value) | 14 / 16 (every valid rule was the 4-node Gauss rule) |
+| pass@1, pass@16 (valid) | 0.875, 1.000 |
+| pass@1, pass@16 (optimal) | 0.875, 1.000 |
+| verify-first check | PASS: the 4-node Gauss rule found 14 times in 16 attempts at $0.32 |
+| the two failures | 4-node rules whose weights do not sum to 2 (constant-monomial errors 38.6 and 6.0): derivations that lost a factor |
+| completion tokens per attempt | 901 to 3111, about 26 tokens/s while generating |
+| cost | $0.3163 for 967.6 GPU seconds (3.164 units at the unconfirmed rate); judge CPU 0.1 s |
+| wall time | 971 s for 16 sequential attempts |
+
+Two readings of this record. First, the machinery works end to end on the frozen model: prompt, endpoint,
+sandbox, certificate, cost, ledger. Second, quad-d7 is a verification target, not a training family: with
+pass@1 at 0.875 it sits above the 80 percent ceiling of the proposal's training gate (a family trains only
+when the base's pass@64 lies between 5 and 80 percent), as a rediscovery target should.
+
+Precision used so far: bf16 on the G4. Units spent so far: about 7.4 in that session (0.63 h at 11.77 units/h;
+the rate is still the table's estimate). No run on the 4-bit build has happened; when one does, it is marked
+`int4` in the ledger and never enters a reported cell.

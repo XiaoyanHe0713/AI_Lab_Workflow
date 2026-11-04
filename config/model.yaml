@@ -3,12 +3,12 @@
 # After that it is pinned: the notebook refuses to overwrite a different hash and logs the mismatch.
 frozen_base:
   hf_repo: Qwen/Qwen3.6-27B
-  revision: null            # commit sha pinned by the notebook on first download
-  checkpoint_hash: null     # sha256 over "path:sha256\n" lines of every file at that revision
+  revision: 6a9e13bd6fc8f0983b9b99948120bc37f49c13e9            # commit sha pinned by the notebook on first download
+  checkpoint_hash: sha256:4286c4e5279e2dbaa43b0dd44c44a18c6202c34d2ecd1bfca769dd7129966778     # sha256 over "path:sha256\n" lines of every file at that revision
   dtype: bfloat16
-  files: null
-  bytes: null
-  pinned_at: null
+  files: 29
+  bytes: 55586107940
+  pinned_at: '2026-11-04T20:02:54+00:00'  # first Colab session (G4), verified against the Hub: True
   drive_dir: models/Qwen3.6-27B-bf16   # relative to the lab root on Drive
 
 # The 4-bit development build. Built once on an A100 from the frozen base (user decision 2026-11-04:
