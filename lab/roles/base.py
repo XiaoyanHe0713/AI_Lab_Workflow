@@ -88,7 +88,7 @@ class OpenAIChatProvider(Provider):
     """The local endpoint (vLLM, SGLang) and the OpenAI API: both speak /v1/chat/completions."""
 
     def __init__(self, *, kind: str, base_url: str, api_key: str | None, model: str, name: str | None = None,
-                 timeout_s: float = 600.0):
+                 timeout_s: float = 600.0, extra_body: dict | None = None):
         from openai import OpenAI  # imported lazily so offline runs never need a client
 
         if kind not in ("local", "openai"):
@@ -98,17 +98,26 @@ class OpenAIChatProvider(Provider):
         self.base_url = base_url
         self.model = model
         self.mode = "online"
+        self.extra_body = dict(extra_body or {})   # provider defaults from config (e.g. reasoning_effort for GPT-5)
         self.client = OpenAI(base_url=base_url, api_key=api_key or "EMPTY", timeout=timeout_s, max_retries=1)
 
     def complete(self, messages, *, temperature=0.8, max_tokens=2048, seed=None, model=None, tools=None, extra_body=None):
-        kwargs: dict[str, Any] = dict(model=model or self.model, messages=messages, temperature=temperature,
-                                      max_tokens=max_tokens)
+        kwargs: dict[str, Any] = dict(model=model or self.model, messages=messages)
+        # the OpenAI API's current models take max_completion_tokens (reasoning tokens included) and reject a
+        # temperature other than the default on reasoning models, so None means "do not send it"
+        if self.kind == "openai":
+            kwargs["max_completion_tokens"] = max_tokens
+        else:
+            kwargs["max_tokens"] = max_tokens
+        if temperature is not None:
+            kwargs["temperature"] = temperature
         if seed is not None:
             kwargs["seed"] = int(seed)
         if tools:
             kwargs["tools"] = tools
-        if extra_body:
-            kwargs["extra_body"] = extra_body
+        body = {**self.extra_body, **(extra_body or {})}
+        if body:
+            kwargs["extra_body"] = body
         t0 = time.perf_counter()
         resp = self.client.chat.completions.create(**kwargs)
         latency = time.perf_counter() - t0
@@ -249,11 +258,13 @@ class BudgetedProvider(Provider):
         self.mode = inner.mode
 
     def complete(self, messages, *, temperature=0.8, max_tokens=2048, seed=None, model=None, tools=None, extra_body=None):
-        status = self.guard.check(self.kind, self.mode)  # raises BudgetExceeded at the cap
+        with self.guard.lock:
+            status = self.guard.check(self.kind, self.mode)  # raises BudgetExceeded at the cap
         c = self.inner.complete(messages, temperature=temperature, max_tokens=max_tokens, seed=seed, model=model,
                                 tools=tools, extra_body=extra_body)
         dollars = self.meter.api_cost(model or self.model, c.prompt_tokens, c.completion_tokens).dollars
-        self.guard.charge(dollars)
+        with self.guard.lock:
+            self.guard.charge(dollars)
         c.api_dollars = dollars
         c.raw["budget"] = {**status, "call_dollars": dollars}
         return c
@@ -294,7 +305,7 @@ def make_provider(name: str, cfg: dict, *, mode: str | None = None, fixtures_roo
                                            timeout_s=float(pcfg.get("timeout_s", 600)))
     else:
         live = OpenAIChatProvider(kind=kind, base_url=pcfg["base_url"], api_key=api_key, model=pcfg["model"], name=name,
-                                  timeout_s=float(pcfg.get("timeout_s", 600)))
+                                  timeout_s=float(pcfg.get("timeout_s", 600)), extra_body=pcfg.get("extra_body"))
     if kind in FRONTIER_KINDS:
         guard = BudgetGuard(budget or load_budget(), ledger=ledger)
         live = BudgetedProvider(live, guard, meter)

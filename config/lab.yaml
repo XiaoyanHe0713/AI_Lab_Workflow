@@ -30,6 +30,8 @@ providers:
     api_key_env: OPENAI_API_KEY
     model: ${LAB_OPENAI_MODEL:-gpt-5-mini}
     mode: ${LAB_FRONTIER_MODE:-offline}
+    extra_body:                           # sent with every call; GPT-5 reasoning budget for harness calls
+      reasoning_effort: ${LAB_OPENAI_REASONING:-low}
   anthropic:                              # Claude: the second frontier provider, same interface
     kind: anthropic
     api_key_env: ANTHROPIC_API_KEY
@@ -39,6 +41,11 @@ providers:
 harness:                                  # language parts of the harnesses (week 3 on); never a reward
   provider: ${LAB_HARNESS_PROVIDER:-openai}   # GPT first, then Claude behind the same interface
   budget: config/budget.yaml              # $200 a month, enforced before every online or record call
+  max_tokens: 4096                        # per harness call (reasoning tokens included for GPT-5)
+  reading_list: reading_list              # the librarian's documents, one YAML per family, with dates
+  lesson_token_budget: 2000               # the lesson bank's consolidation budget (tokens, estimated as chars/4)
+  detector_min_fires: 2                   # a detector must fire on at least this many held-out cases
+  detector_min_right: 0.9                 # and be right on more than this fraction of the held-out pool
 
 roles:                                    # the three trained roles always run on the local endpoint
   builder:  {provider: local, adapter: null, temperature: 0.8, max_tokens: 4096}

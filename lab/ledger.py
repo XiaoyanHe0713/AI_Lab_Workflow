@@ -267,6 +267,53 @@ class Ledger:
             out.append(d)
         return out
 
+    # --- harness tables (citations, lessons, artifacts, provenance, detectors, dossiers) ---------------
+    def ensure_table(self, table: str, columns: list[tuple[str, str]]) -> None:
+        """Create a harness table if missing and add any column a newer schema introduced."""
+        if not table.isidentifier():
+            raise ValueError(table)
+        self.conn.execute(_ddl(table, columns))
+        existing = {r[1] for r in self.conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        for name, typ in columns:
+            if name not in existing:
+                self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {name} {typ.replace('NOT NULL', '').replace('PRIMARY KEY', '')}")
+
+    def insert(self, table: str, row: dict, json_columns: tuple[str, ...] = ()) -> None:
+        """Insert or replace one row (dicts and lists in json_columns are serialized); mirrored to the JSONL file."""
+        if not table.isidentifier():
+            raise ValueError(table)
+        row = dict(row)
+        for k in json_columns:
+            if k in row and not isinstance(row[k], str):
+                row[k] = json.dumps(row[k], ensure_ascii=False, sort_keys=True, default=_json_default)
+        names = list(row)
+        placeholders = ", ".join("?" for _ in names)
+        self.conn.execute(f"INSERT OR REPLACE INTO {table} ({', '.join(names)}) VALUES ({placeholders})",
+                          [row[n] for n in names])
+        if self.mirror_path is not None:
+            with open(self.mirror_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps({"table": table, **row}, ensure_ascii=False, default=_json_default) + "\\n")
+
+    def rows(self, table: str, where: str = "", args: tuple | list = (), json_columns: tuple[str, ...] = (),
+             order: str = "") -> list[dict]:
+        if not table.isidentifier():
+            raise ValueError(table)
+        sql = f"SELECT * FROM {table}" + (f" WHERE {where}" if where else "") + (f" ORDER BY {order}" if order else "")
+        out = []
+        for r in self.conn.execute(sql, list(args)).fetchall():
+            d = dict(r)
+            for k in json_columns:
+                if isinstance(d.get(k), str):
+                    try:
+                        d[k] = json.loads(d[k])
+                    except ValueError:
+                        pass
+            out.append(d)
+        return out
+
+    def query(self, sql: str, args: tuple | list = ()) -> list[dict]:
+        return [dict(r) for r in self.conn.execute(sql, list(args)).fetchall()]
+
     # --- summaries --------------------------------------------------------------------------
     def group_summary(self, group_id: str) -> dict:
         return summarize(self.attempts(group_id=group_id))

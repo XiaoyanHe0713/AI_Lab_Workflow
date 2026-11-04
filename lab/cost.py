@@ -16,6 +16,7 @@ attempt row records the cap in force, so the change stays visible in the ledger.
 from __future__ import annotations
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -163,6 +164,7 @@ class BudgetGuard:
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.session_spend = 0.0
         self.warned = False
+        self.lock = threading.RLock()   # concurrent attempts share one guard
 
     def ledger_spend(self) -> float:
         if self.ledger is None:
