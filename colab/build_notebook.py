@@ -218,11 +218,12 @@ LOG = os.path.join(LAB_ROOT, "logs", f"{SERVER}.log")
 KEY = os.environ["LAB_ENDPOINT_KEY"]
 
 
-def start_server(adapters, max_len):
+def start_server(adapters, max_len, eager=False, mem=0.92):
     \"\"\"Launch the server and wait for /health; returns (process, seconds to ready or None).\"\"\"
     cmd = server_command(server=SERVER, model_path=MODEL_PATH, served_name=mcfg["serving"]["served_model_name"],
                          precision=PRECISION, quant_method=QUANT, port=8000, api_key=KEY,
-                         max_model_len=max_len, lora_rank=64, adapters=adapters)
+                         max_model_len=max_len, lora_rank=64, adapters=adapters, enforce_eager=eager,
+                         gpu_memory_utilization=mem)
     shown = shell(cmd).replace(KEY, "<LAB_ENDPOINT_KEY>")
     print(shown)
     with open(LOG, "a") as f:
@@ -246,31 +247,49 @@ def log_tail(n=80):
         return "".join(f.readlines()[-n:])
 
 
-# A short ladder: as configured; then without LoRA if this vLLM build refuses LoRA for the architecture;
-# then with a shorter context if the KV cache does not fit. What actually served is recorded in the ledger.
-queue = [(dict(ADAPTERS), int(mcfg["serving"]["max_model_len"]), "as configured")]
+# A short ladder, one change at a time, chosen from the log of the failed start: without LoRA if the build
+# refuses LoRA for the model; eager mode if torch.compile or CUDA-graph capture failed; a shorter context
+# and less reserved memory if the KV cache did not fit or allocation ran out of memory. The last rung tries
+# all three. What actually served is recorded in the ledger through the smoke rows.
+START = dict(adapters=dict(ADAPTERS), max_len=int(mcfg["serving"]["max_model_len"]), eager=False, mem=0.92)
+queue = [(START, "as configured")]
+tried = set()
 server, READY_S, SERVED = None, None, None
 while queue and server is None:
-    adapters, max_len, why = queue.pop(0)
-    print(f"starting the server ({why}; adapters {list(adapters)}; max_model_len {max_len})")
-    proc, READY_S = start_server(adapters, max_len)
+    cfg_try, why = queue.pop(0)
+    key = (tuple(sorted(cfg_try["adapters"])), cfg_try["max_len"], cfg_try["eager"], cfg_try["mem"])
+    if key in tried:
+        continue
+    tried.add(key)
+    print(f"starting the server ({why}; adapters {list(cfg_try['adapters'])}; max_model_len {cfg_try['max_len']}; "
+          f"eager {cfg_try['eager']}; gpu memory {cfg_try['mem']})")
+    proc, READY_S = start_server(**cfg_try)
     if READY_S is not None:
-        server, SERVED = proc, (adapters, max_len, why)
+        server, SERVED = proc, (cfg_try, why)
         break
-    tail = log_tail()
-    print(f"the server exited with code {proc.returncode}; last lines of {LOG}:\\n{tail[-4000:]}")
+    tail = log_tail(120)
+    print(f"the server exited with code {proc.returncode}; last lines of {LOG}:\\n{tail[-5000:]}")
     low = tail.lower()
-    if adapters and "lora" in low and ("not support" in low or "unsupported" in low or "does not implement" in low):
-        queue.append(({}, max_len, "retry without LoRA: this build refuses LoRA for the model"))
-    elif max_len > 8192 and ("kv cache" in low or "max seq len" in low or "max_model_len" in low or "out of memory" in low):
-        queue.append((adapters, max_len // 2, "retry with a shorter context: the KV cache did not fit"))
+    lora_refused = cfg_try["adapters"] and "lora" in low and any(s in low for s in ("not support", "unsupported", "does not implement"))
+    compile_failed = any(s in low for s in ("cuda graph", "cudagraph", "torch.compile", "inductor", "triton", "dynamo"))
+    memory_failed = any(s in low for s in ("out of memory", "outofmemoryerror", "kv cache", "max seq len", "max_model_len"))
+    if lora_refused:
+        queue.append((dict(cfg_try, adapters={}), "retry without LoRA: this build refuses LoRA for the model"))
+    if compile_failed and not cfg_try["eager"]:
+        queue.append((dict(cfg_try, eager=True), "retry in eager mode: torch.compile or CUDA-graph capture failed"))
+    if memory_failed and cfg_try["max_len"] > 8192:
+        queue.append((dict(cfg_try, max_len=cfg_try["max_len"] // 2, mem=0.85), "retry with a shorter context and less reserved memory"))
+    if not queue and len(tried) == 1:
+        queue.append((dict(cfg_try, adapters={}, eager=True, max_len=min(cfg_try["max_len"], 16384), mem=0.85),
+                      "last rung: no LoRA, eager mode, 16k context"))
 if server is None:
     raise RuntimeError(f"the server did not start; the last lines of {LOG} are printed above")
-ADAPTERS, MAX_MODEL_LEN, SERVER_NOTE = SERVED
+cfg_used, SERVER_NOTE = SERVED
+ADAPTERS, MAX_MODEL_LEN = cfg_used["adapters"], cfg_used["max_len"]
 SERVER_LABEL = SERVER if SERVER_NOTE == "as configured" else f"{SERVER} ({SERVER_NOTE})"
 os.environ["LAB_ENDPOINT"] = "http://127.0.0.1:8000/v1"
 print(f"endpoint ready after {READY_S} s: {os.environ['LAB_ENDPOINT']} (model {mcfg['serving']['served_model_name']}, "
-      f"adapters {list(ADAPTERS)}, max_model_len {MAX_MODEL_LEN}, {SERVER_NOTE})")
+      f"adapters {list(ADAPTERS)}, max_model_len {MAX_MODEL_LEN}, eager {cfg_used['eager']}, {SERVER_NOTE})")
 """)
 
 code("""

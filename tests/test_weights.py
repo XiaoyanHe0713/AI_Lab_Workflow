@@ -77,7 +77,15 @@ def test_gpu_tier_and_precision():
 def test_server_commands():
     v = server_command(server="vllm", model_path="/m", served_name="qwen3.6-27b", precision="bf16", quant_method=None,
                        adapters={"builder": "/a/builder"}, api_key="k")
+    assert v[:3] == ["vllm", "serve", "/m"]
     assert "--enable-lora" in v and "--max-lora-rank" in v and "builder=/a/builder" in v and "--dtype" in v
+    base_only = server_command(server="vllm", model_path="/m", served_name="x", precision="bf16", quant_method=None)
+    assert "--enable-lora" not in base_only and "--enforce-eager" not in base_only
+    eager = server_command(server="vllm", model_path="/m", served_name="x", precision="bf16", quant_method=None,
+                           enforce_eager=True, gpu_memory_utilization=0.8)
+    assert "--enforce-eager" in eager and eager[eager.index("--gpu-memory-utilization") + 1] == "0.8"
+    se = server_command(server="sglang", model_path="/m", served_name="x", precision="bf16", quant_method=None, enforce_eager=True)
+    assert "--disable-cuda-graph" in se and "--mem-fraction-static" in se
     q = server_command(server="vllm", model_path="/q", served_name="qwen3.6-27b", precision="int4", quant_method="awq-w4a16")
     assert "compressed-tensors" in q
     a = server_command(server="vllm", model_path="/q", served_name="qwen3.6-27b", precision="int4", quant_method="autoawq")

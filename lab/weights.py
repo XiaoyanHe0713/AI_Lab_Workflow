@@ -172,13 +172,23 @@ def gpu_tier(device_name: str) -> str:
 
 def server_command(*, server: str, model_path: str, served_name: str, precision: str, quant_method: str | None,
                    port: int = 8000, api_key: str | None = None, max_model_len: int = 32768, lora_rank: int = 64,
-                   adapters: dict[str, str] | None = None, gpu_memory_utilization: float = 0.92) -> list[str]:
-    """The OpenAI-compatible server command line for vLLM or SGLang, with LoRA serving enabled."""
+                   adapters: dict[str, str] | None = None, gpu_memory_utilization: float = 0.92,
+                   enforce_eager: bool = False) -> list[str]:
+    """The OpenAI-compatible server command line for vLLM (`vllm serve`) or SGLang.
+
+    LoRA serving is enabled only when adapters are given, so a build that refuses LoRA for the model can
+    still serve the base. `enforce_eager` skips torch.compile and CUDA graphs (slower, but it sidesteps
+    compiler and graph-capture failures on new GPUs).
+    """
     adapters = adapters or {}
     if server == "vllm":
-        cmd = ["python", "-m", "vllm.entrypoints.openai.api_server", "--model", model_path, "--served-model-name",
-               served_name, "--port", str(port), "--max-model-len", str(max_model_len), "--gpu-memory-utilization",
-               str(gpu_memory_utilization), "--enable-lora", "--max-lora-rank", str(lora_rank), "--trust-remote-code"]
+        cmd = ["vllm", "serve", model_path, "--served-model-name", served_name, "--port", str(port),
+               "--max-model-len", str(max_model_len), "--gpu-memory-utilization", str(gpu_memory_utilization),
+               "--trust-remote-code"]
+        if adapters:
+            cmd += ["--enable-lora", "--max-lora-rank", str(lora_rank)]
+        if enforce_eager:
+            cmd += ["--enforce-eager"]
         if precision == "bf16":
             cmd += ["--dtype", "bfloat16"]
         elif quant_method and quant_method.startswith("awq-w4a16"):
@@ -199,7 +209,10 @@ def server_command(*, server: str, model_path: str, served_name: str, precision:
         return cmd
     if server == "sglang":
         cmd = ["python", "-m", "sglang.launch_server", "--model-path", model_path, "--served-model-name", served_name,
-               "--port", str(port), "--context-length", str(max_model_len), "--trust-remote-code"]
+               "--port", str(port), "--context-length", str(max_model_len), "--trust-remote-code",
+               "--mem-fraction-static", str(gpu_memory_utilization)]
+        if enforce_eager:
+            cmd += ["--disable-cuda-graph"]
         if precision == "bf16":
             cmd += ["--dtype", "bfloat16"]
         elif quant_method and quant_method.startswith("awq"):
