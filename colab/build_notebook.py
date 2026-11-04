@@ -40,7 +40,7 @@ SESSION_T0 = time.time()
 
 LAB_ROOT = "/content/drive/MyDrive/ai_lab"      #@param {type:"string"}
 REPO_URL = "https://github.com/XiaoyanHe0713/AI_Lab_Workflow.git"  #@param {type:"string"}
-REPO_BRANCH = "main"                            #@param {type:"string"}
+REPO_BRANCH = ""                                #@param {type:"string"}
 SERVER = "vllm"                                 #@param ["vllm", "sglang"]
 QUANT_METHOD = "awq"                            #@param ["awq", "bnb"]
 UNITS_PER_HOUR = 0                              #@param {type:"number"}
@@ -51,6 +51,7 @@ MAKE_ZERO_ADAPTER = True                        #@param {type:"boolean"}
 VERIFY_LOCAL_HASH = False                       #@param {type:"boolean"}
 OPEN_TUNNEL = False                             #@param {type:"boolean"}
 
+# REPO_BRANCH: empty clones the repository's default branch; set it to track another branch.
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
 #               "bnb" quantizes in flight with bitsandbytes NF4 at load time (nothing to build, slower serving).
 # UNITS_PER_HOUR: the rate shown in Colab's Resources panel for this GPU; 0 means use config/prices.yaml.
@@ -71,13 +72,27 @@ def secret(name):
     except Exception:
         return None
 
-token = secret("GITHUB_TOKEN")
-url = REPO_URL if not token else REPO_URL.replace("https://", f"https://{token}@")
+def git(*args, token=None):
+    \"\"\"Run git with the token supplied through GIT_ASKPASS, never on the command line, never in an error.\"\"\"
+    env = dict(os.environ)
+    if token:
+        askpass = "/content/.git-askpass.sh"
+        with open(askpass, "w") as f:
+            f.write('#!/bin/sh\\ncase "$1" in\\n  Username*) echo "x-access-token";;\\n  *) echo "$GIT_TOKEN";;\\nesac\\n')
+        os.chmod(askpass, 0o700)
+        env.update({"GIT_ASKPASS": askpass, "GIT_TOKEN": token, "GIT_TERMINAL_PROMPT": "0"})
+    r = subprocess.run(["git", *args], env=env, capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"git {' '.join(args)} failed (exit {r.returncode}):\\n{r.stderr[-2000:]}")
+    return r.stdout
+
+token = secret("GITHUB_TOKEN")  # a fine-grained token with read access to Contents on this repository
 REPO = "/content/AI_Lab_Workflow"
 if not os.path.exists(REPO):
-    subprocess.run(["git", "clone", "--branch", REPO_BRANCH, url, REPO], check=True)
+    git("clone", *(["--branch", REPO_BRANCH] if REPO_BRANCH else []), REPO_URL, REPO, token=token)
 else:
-    subprocess.run(["git", "-C", REPO, "pull", "--ff-only"], check=True)
+    git("-C", REPO, "pull", "--ff-only", token=token)
+print("checked out:", git("-C", REPO, "rev-parse", "--abbrev-ref", "HEAD").strip(), git("-C", REPO, "rev-parse", "--short", "HEAD").strip())
 os.chdir(REPO)
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-e", ".", "huggingface_hub", "hf_transfer", "safetensors", "requests"], check=True)
 os.environ.update({"LAB_ROOT": LAB_ROOT, "LAB_REPO": REPO, "HF_HUB_ENABLE_HF_TRANSFER": "1"})
