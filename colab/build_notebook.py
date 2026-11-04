@@ -99,6 +99,9 @@ else:
 print("checked out:", git("-C", REPO, "rev-parse", "--abbrev-ref", "HEAD").strip(), git("-C", REPO, "rev-parse", "--short", "HEAD").strip())
 os.chdir(REPO)
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-e", ".", "huggingface_hub", "hf_transfer", "safetensors", "requests"], check=True)
+# a running kernel keeps the modules it imported before the pull; drop them so later cells import the new code
+for _name in [n for n in sys.modules if n == "lab" or n.startswith("lab.")]:
+    del sys.modules[_name]
 os.environ.update({"LAB_ROOT": LAB_ROOT, "LAB_REPO": REPO, "HF_HUB_ENABLE_HF_TRANSFER": "1"})
 os.environ.setdefault("LAB_ENDPOINT_KEY", secrets.token_urlsafe(24))
 print("repository at", REPO, "| lab root", LAB_ROOT)
@@ -209,7 +212,10 @@ print("adapters:", ADAPTERS or "none (base only)")
 
 code("""
 #@title 7. Start the OpenAI-compatible server with LoRA serving enabled
+import importlib
 import requests
+import lab.weights
+importlib.reload(lab.weights)  # pick up the repository's current code even if an older copy was imported earlier
 from lab.weights import server_command, shell
 
 pkg = ["vllm"] if SERVER == "vllm" else ["sglang[all]"]
