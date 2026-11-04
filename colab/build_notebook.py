@@ -18,6 +18,10 @@ def code(text: str) -> None:
 
 
 md("""
+<a href="https://colab.research.google.com/github/XiaoyanHe0713/AI_Lab_Workflow/blob/build%2Fweeks-1-2-serving-judge/colab/serve.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+""")
+
+md("""
 # Discovery at 27B: serve the frozen base from Colab
 
 Week 1 of the build plan. This notebook
