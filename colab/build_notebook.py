@@ -63,6 +63,7 @@ GATE_THINKING = "0 512"                         #@param {type:"string"}
 RUN_ABLATION = False                            #@param {type:"boolean"}
 ABLATION_TARGET = "quad-d7"                     #@param {type:"string"}
 ABLATION_ATTEMPTS = 16                          #@param {type:"integer"}
+RECORD_FIXTURES = False                         #@param {type:"boolean"}
 
 # REPO_BRANCH: empty clones the repository's default branch; set it to track another branch.
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
@@ -71,6 +72,7 @@ ABLATION_ATTEMPTS = 16                          #@param {type:"integer"}
 # CONCURRENCY: attempts of a group sent as parallel requests (the server runs up to --max-num-seqs sequences).
 # RUN_GATE / RUN_ABLATION (week 3): the training gate on GATE_TARGETS and the ablation harness; the ablation needs
 #   the Colab secret OPENAI_API_KEY for the lesson harness (spend capped by config/budget.yaml).
+# RECORD_FIXTURES (week 3): record the harness tests' GPT fixtures here and export them to Drive for a commit.
 UNITS_PER_HOUR = UNITS_PER_HOUR or None
 """)
 
@@ -405,7 +407,40 @@ if RUN_ABLATION:
 """)
 
 code("""
-#@title 12. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
+#@title 12. Week 3: record the harness fixtures with GPT and export them to Drive (no GPU needed)
+# The harness tests replay recorded GPT responses. This cell records them here: the key comes from the Colab secret
+# OPENAI_API_KEY, every call passes the budget guard and lands in the ledger on Drive. It then rebuilds the notebook
+# arms' local sequences, writes the librarian's reviews of the provisional scoreboard entries, replays the recorded
+# tests offline once to prove the fixtures, and copies the files to LAB_ROOT/exports/week3-fixtures/ for a commit
+# from your own machine (Colab pulls the repository read-only). Cost: well under a dollar at gpt-5-mini prices.
+import shutil
+if RECORD_FIXTURES:
+    key = secret("OPENAI_API_KEY")
+    assert key, "add the Colab secret OPENAI_API_KEY (notebook access on) and rerun this cell"
+    rec_env = dict(os.environ, OPENAI_API_KEY=key, LAB_FRONTIER_MODE="record")
+    off_env = dict(os.environ, LAB_FRONTIER_MODE="offline")
+    subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pytest"], check=True)
+    tests = ["tests/test_librarian.py", "tests/test_lessons.py", "tests/test_checker.py", "tests/test_ablation.py"]
+    r = subprocess.run([sys.executable, "-m", "pytest", *tests, "-k", "openai", "-p", "no:cacheprovider", "-rs"],
+                       cwd=REPO, env=rec_env, text=True, capture_output=True)
+    print("record run:", r.stdout[-2500:], r.stderr[-1000:])
+    subprocess.run([sys.executable, "tests/make_fixtures.py"], cwd=REPO, check=True)
+    for board, mode in (("quadrature", "offline"), ("time_integrators", "record"), ("fast_transforms", "record")):
+        subprocess.run([sys.executable, "-m", "lab.harness.librarian", "--review", board, "--provider", "openai", "--mode", mode],
+                       cwd=REPO, env=rec_env if mode == "record" else off_env, check=True)
+    r2 = subprocess.run([sys.executable, "-m", "pytest", *tests, "-k", "openai", "-p", "no:cacheprovider"],
+                        cwd=REPO, env=off_env, text=True, capture_output=True)
+    print("offline replay:", r2.stdout[-1200:], r2.stderr[-600:])
+    out = os.path.join(LAB_ROOT, "exports", "week3-fixtures")
+    for rel in ("tests/fixtures/providers/openai", "tests/fixtures/providers/local", "scoreboard/reviews"):
+        src, dst = os.path.join(REPO, rel), os.path.join(out, rel)
+        if os.path.isdir(src):
+            shutil.copytree(src, dst, dirs_exist_ok=True)
+    print("exported to", out, ": copy its three folders into the repository (same relative paths) and commit them")
+""")
+
+code("""
+#@title 13. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
 # The in-notebook path above is the primary one. This exposes the server through a temporary public URL
 # protected only by LAB_ENDPOINT_KEY; close the tunnel when done. The binary is Cloudflare's official release.
 if OPEN_TUNNEL:
@@ -424,7 +459,7 @@ if OPEN_TUNNEL:
 """)
 
 code("""
-#@title 13. Session cost so far
+#@title 14. Session cost so far
 hours = (time.time() - SESSION_T0) / 3600
 units = hours * RATE
 print(f"{hours:.2f} h on {GPU} at {RATE} units/h ({RATE_SOURCE}): about {units:.2f} units = ${meter.units_to_dollars(units):.2f}")

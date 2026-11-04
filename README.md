@@ -92,7 +92,9 @@ On Colab (Pro+, background execution): open `colab/serve.ipynb`, set the GPU run
 cells. Cells 4 to 9 pin the frozen base, build or reuse the 4-bit copy, start vLLM with the zero adapter, run the
 smoke test and the demo with `CONCURRENCY` parallel requests. Cells 10 and 11 (off by default: `RUN_GATE`,
 `RUN_ABLATION`) run the gate on `GATE_TARGETS` with the thinking ladder and the ablation harness online; both write
-to the ledger on Drive, the memos to `gates/` and the reports to `ablations/` next to it.
+to the ledger on Drive, the memos to `gates/` and the reports to `ablations/` next to it. Cell 12 (`RECORD_FIXTURES`,
+no GPU needed) records the harness tests' GPT fixtures with the same secret, replays them once, and exports them with the
+librarian's reviews to `exports/week3-fixtures/` on Drive for a commit from your own machine (Colab pulls read-only).
 
 ## Providers, modes, fixtures and the frontier budget
 
@@ -120,7 +122,8 @@ python tests/make_fixtures.py
 ```
 
 The second command rebuilds the lessons offline from the recorded fixtures and writes the synthetic sequences the
-ablation's notebook arms replay. Repeat both with `ANTHROPIC_API_KEY` and `-k anthropic` for Claude. Harness prompts
+ablation's notebook arms replay. Repeat both with `ANTHROPIC_API_KEY` and `-k anthropic` for Claude. With the key only on
+Colab, cell 12 of the notebook runs the same two commands there and exports the files to Drive. Harness prompts
 are deterministic functions of their inputs (attempts are labelled by order, numbers rounded to three digits), which
 is what makes a recording replayable.
 
