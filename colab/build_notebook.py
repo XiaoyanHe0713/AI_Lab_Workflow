@@ -214,25 +214,63 @@ from lab.weights import server_command, shell
 
 pkg = ["vllm"] if SERVER == "vllm" else ["sglang[all]"]
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-U", *pkg], check=True)
-cmd = server_command(server=SERVER, model_path=MODEL_PATH, served_name=mcfg["serving"]["served_model_name"],
-                     precision=PRECISION, quant_method=QUANT, port=8000, api_key=os.environ["LAB_ENDPOINT_KEY"],
-                     max_model_len=int(mcfg["serving"]["max_model_len"]), lora_rank=64, adapters=ADAPTERS)
-print(shell(cmd))
 LOG = os.path.join(LAB_ROOT, "logs", f"{SERVER}.log")
-server = subprocess.Popen(cmd, stdout=open(LOG, "a"), stderr=subprocess.STDOUT)
-for i in range(360):
-    if server.poll() is not None:
-        raise RuntimeError(f"the server exited with code {server.returncode}; see {LOG}")
-    try:
-        if requests.get("http://127.0.0.1:8000/health", timeout=5).status_code == 200:
-            break
-    except Exception:
-        pass
-    time.sleep(5)
-else:
-    raise RuntimeError(f"the server did not become healthy in 30 minutes; see {LOG}")
+KEY = os.environ["LAB_ENDPOINT_KEY"]
+
+
+def start_server(adapters, max_len):
+    \"\"\"Launch the server and wait for /health; returns (process, seconds to ready or None).\"\"\"
+    cmd = server_command(server=SERVER, model_path=MODEL_PATH, served_name=mcfg["serving"]["served_model_name"],
+                         precision=PRECISION, quant_method=QUANT, port=8000, api_key=KEY,
+                         max_model_len=max_len, lora_rank=64, adapters=adapters)
+    shown = shell(cmd).replace(KEY, "<LAB_ENDPOINT_KEY>")
+    print(shown)
+    with open(LOG, "a") as f:
+        f.write(f"\\n===== {time.strftime('%Y-%m-%d %H:%M:%S')} {shown}\\n")
+    proc = subprocess.Popen(cmd, stdout=open(LOG, "a"), stderr=subprocess.STDOUT)
+    for i in range(360):
+        if proc.poll() is not None:
+            return proc, None
+        try:
+            if requests.get("http://127.0.0.1:8000/health", timeout=5).status_code == 200:
+                return proc, 5 * i
+        except Exception:
+            pass
+        time.sleep(5)
+    proc.kill()
+    return proc, None
+
+
+def log_tail(n=80):
+    with open(LOG, "r", errors="replace") as f:
+        return "".join(f.readlines()[-n:])
+
+
+# A short ladder: as configured; then without LoRA if this vLLM build refuses LoRA for the architecture;
+# then with a shorter context if the KV cache does not fit. What actually served is recorded in the ledger.
+queue = [(dict(ADAPTERS), int(mcfg["serving"]["max_model_len"]), "as configured")]
+server, READY_S, SERVED = None, None, None
+while queue and server is None:
+    adapters, max_len, why = queue.pop(0)
+    print(f"starting the server ({why}; adapters {list(adapters)}; max_model_len {max_len})")
+    proc, READY_S = start_server(adapters, max_len)
+    if READY_S is not None:
+        server, SERVED = proc, (adapters, max_len, why)
+        break
+    tail = log_tail()
+    print(f"the server exited with code {proc.returncode}; last lines of {LOG}:\\n{tail[-4000:]}")
+    low = tail.lower()
+    if adapters and "lora" in low and ("not support" in low or "unsupported" in low or "does not implement" in low):
+        queue.append(({}, max_len, "retry without LoRA: this build refuses LoRA for the model"))
+    elif max_len > 8192 and ("kv cache" in low or "max seq len" in low or "max_model_len" in low or "out of memory" in low):
+        queue.append((adapters, max_len // 2, "retry with a shorter context: the KV cache did not fit"))
+if server is None:
+    raise RuntimeError(f"the server did not start; the last lines of {LOG} are printed above")
+ADAPTERS, MAX_MODEL_LEN, SERVER_NOTE = SERVED
+SERVER_LABEL = SERVER if SERVER_NOTE == "as configured" else f"{SERVER} ({SERVER_NOTE})"
 os.environ["LAB_ENDPOINT"] = "http://127.0.0.1:8000/v1"
-print(f"endpoint ready after {5 * i} s: {os.environ['LAB_ENDPOINT']} (model {mcfg['serving']['served_model_name']}, adapters {list(ADAPTERS)})")
+print(f"endpoint ready after {READY_S} s: {os.environ['LAB_ENDPOINT']} (model {mcfg['serving']['served_model_name']}, "
+      f"adapters {list(ADAPTERS)}, max_model_len {MAX_MODEL_LEN}, {SERVER_NOTE})")
 """)
 
 code("""
@@ -241,9 +279,9 @@ import json
 from lab.smoke import smoke
 
 if RUN_SMOKE:
-    rows = [smoke(gpu=GPU, precision=PRECISION, server=SERVER, units_per_hour=UNITS_PER_HOUR)]
+    rows = [smoke(gpu=GPU, precision=PRECISION, server=SERVER_LABEL, units_per_hour=UNITS_PER_HOUR)]
     if ADAPTERS:
-        rows.append(smoke(gpu=GPU, precision=PRECISION, server=SERVER, adapter="builder", units_per_hour=UNITS_PER_HOUR))
+        rows.append(smoke(gpu=GPU, precision=PRECISION, server=SERVER_LABEL, adapter="builder", units_per_hour=UNITS_PER_HOUR))
     for r in rows:
         print(json.dumps({k: r[k] for k in ("gpu", "precision", "adapter", "completion_tokens", "latency_s",
                                              "tokens_per_second", "units_per_hour", "dollars_per_hour", "ok")}, default=str))
