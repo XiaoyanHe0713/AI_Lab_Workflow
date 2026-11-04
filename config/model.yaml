@@ -27,6 +27,8 @@ serving:
   server: vllm                  # vllm | sglang
   served_model_name: qwen3.6-27b
   max_model_len: 32768
+  max_num_seqs: 64              # concurrent sequences; the hybrid Gated-DeltaNet layers need one state block each
+  architecture: Qwen3_5ForConditionalGeneration   # as vLLM 0.33 identifies the checkpoint (hybrid, with a vision tower)
   lora:
     enabled: true
     max_rank: 64
