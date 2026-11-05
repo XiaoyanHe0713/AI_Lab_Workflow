@@ -38,14 +38,18 @@ IMPORT_LOG: list[dict] = []
 
 
 class _Guard:
-    """A meta-path finder that refuses anything outside the allowlist and logs every attempt."""
+    """A meta-path finder that refuses anything outside the allowlist and logs every attempt. `extra` names
+    top-level modules allowed for this run alone (the theorist's lemma checks get sympy and mpmath)."""
+
+    def __init__(self, extra=()):
+        self.extra = set(extra)
 
     def find_spec(self, fullname, path=None, target=None):
         if fullname == "resource":  # the runner's own accounting import; harmless to candidates
             return None
         top = fullname.split(".")[0]
-        denied = any(fullname == p or fullname.startswith(p + ".") for p in DENIED_PREFIXES)
-        allowed = (top in ALLOWED_TOP_LEVEL) and not denied
+        denied = any(fullname == p or fullname.startswith(p + ".") for p in DENIED_PREFIXES) and top not in self.extra
+        allowed = (top in ALLOWED_TOP_LEVEL or top in self.extra) and not denied
         IMPORT_LOG.append({"module": fullname, "allowed": allowed})
         if allowed:
             return None  # defer to the normal finders
@@ -139,7 +143,15 @@ def main(spec_path: str) -> int:
     out["limits"] = _limit_resources(spec.get("memory_mb", 0), spec.get("cpu_s", 0))
     _disable_network()
     _preimport_and_strip()
-    sys.meta_path.insert(0, _Guard())
+    extra = list(spec.get("allow_modules") or ())
+    for name in extra:  # loaded before the guard, so their own stdlib dependencies resolve (sympy pulls in dozens)
+        try:
+            mod = __import__(name)
+            if name == "sympy":
+                exec("from sympy import *", {})  # the names the lemma program uses, and the submodules behind them
+        except Exception as e:  # the check file will fail to import it and say so
+            out["stderr"] += f"preimport of {name} failed: {type(e).__name__}: {e}\n"
+    sys.meta_path.insert(0, _Guard(extra))
     os.environ.clear()
     os.environ["PYTHONHASHSEED"] = "0"
 

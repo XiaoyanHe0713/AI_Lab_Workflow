@@ -58,13 +58,17 @@ class SandboxResult:
         return d
 
 
-def static_check(source: str) -> list[str]:
-    """Violations of the no-library-solvers rule found by reading the code, before it runs."""
+def static_check(source: str, allow_modules: tuple[str, ...] = (), allow_attrs: tuple[str, ...] = ()) -> list[str]:
+    """Violations of the no-library-solvers rule found by reading the code, before it runs. `allow_modules` and
+    `allow_attrs` widen the rule for one run (the theorist's lemma checks are allowed sympy and its methods);
+    candidates judged for a certificate never get them."""
     violations: list[str] = []
     try:
         tree = ast.parse(source)
     except SyntaxError as e:
         return [f"syntax error: {e}"]
+    allow_modules = tuple(allow_modules or ())
+    allow_attrs = set(allow_attrs or ())
     for node in ast.walk(tree):
         names: list[str] = []
         if isinstance(node, ast.Import):
@@ -74,13 +78,15 @@ def static_check(source: str) -> list[str]:
             names = [base] + [f"{base}.{a.name}" for a in node.names]
         for name in names:
             top = name.split(".")[0]
+            if top in allow_modules:
+                continue
             if top not in ALLOWED_TOP_LEVEL or any(name == p or name.startswith(p + ".") for p in DENIED_PREFIXES):
                 violations.append(f"forbidden import {name!r} at line {node.lineno}")
         if isinstance(node, ast.Call):
             fn = node.func
             if isinstance(fn, ast.Name) and fn.id in FORBIDDEN_CALLS:
                 violations.append(f"forbidden call {fn.id}() at line {node.lineno}")
-        if isinstance(node, ast.Attribute) and node.attr in FORBIDDEN_ATTRS:
+        if isinstance(node, ast.Attribute) and node.attr in FORBIDDEN_ATTRS and node.attr not in allow_attrs:
             violations.append(f"forbidden attribute .{node.attr} at line {node.lineno}")
     return violations
 
@@ -129,8 +135,9 @@ class Judge:
         return "python-level"
 
     def run_sandbox(self, source: str, entry_point: str, args: list | None = None, kwargs: dict | None = None,
-                    timeout_s: float | None = None, instrument: dict | None = None) -> SandboxResult:
-        violations = static_check(source)
+                    timeout_s: float | None = None, instrument: dict | None = None,
+                    allow_modules: tuple[str, ...] = (), allow_attrs: tuple[str, ...] = ()) -> SandboxResult:
+        violations = static_check(source, allow_modules, allow_attrs)
         if violations:
             return SandboxResult(ok=False, error={"type": "ForbiddenImport", "message": "; ".join(violations)},
                                  static_violations=violations)
@@ -142,6 +149,8 @@ class Judge:
             spec = {"candidate_path": str(cand), "entry_point": entry_point, "args": args or [],
                     "kwargs": kwargs or {}, "output_path": str(tmp_path / "out.json"),
                     "memory_mb": self.memory_mb, "cpu_s": int(timeout) + 1}
+            if allow_modules:
+                spec["allow_modules"] = list(allow_modules)
             if instrument:
                 spec["instrument"] = instrument
             spec_path = tmp_path / "spec.json"

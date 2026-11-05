@@ -243,6 +243,10 @@ def main() -> None:
     for name in ("openai", "anthropic"):
         for p in write_ablation_fixtures(name):
             print(p)
+    from fixtures_week4 import write_loop_fixtures, write_matrix_fixtures  # the week-4 roles, the loop, the matrix
+
+    for p in write_loop_fixtures() + write_matrix_fixtures():
+        print(p)
     readme = FIXTURES / "README.md"
     readme.write_text(
         "# Recorded provider responses\n\n"
@@ -254,10 +258,13 @@ def main() -> None:
         "  fixtures under `openai/` and `anthropic/` are recorded by running the harness tests with\n"
         "  `LAB_FRONTIER_MODE=record` and the provider's key (see README, Providers).\n"
         "* `<prompt hash>.seq.json`: a list of responses replayed in seed order, so a group of N attempts replays\n"
-        "  from one recording. The `local` sequences are synthetic (hand-written in `tests/make_fixtures.py`, 16\n"
-        "  responses: 7 valid rules, 4 of them optimal), not model outputs: one for the quad-d7 prompt and one per\n"
-        "  ablation notebook arm per recorded provider. Regenerate them with `python tests/make_fixtures.py` whenever\n"
-        "  the quad-d7 prompt text or the recorded lessons change.\n", encoding="utf-8")
+        "  from one recording. The `local` sequences are synthetic (hand-written in `tests/make_fixtures.py` and\n"
+        "  `tests/fixtures_week4.py`), not model outputs: the week-2 quad-d7 sequence (16 responses: 7 valid rules, 4 of\n"
+        "  them optimal), one per ablation notebook arm per recorded provider, and the week-4 sequences for the loop\n"
+        "  (builder rungs on the square and the triangle; theorist proposals and breaker replies with a `rounds` list,\n"
+        "  one reply per tool round, keyed by the opening prompt; builders derived from proposals) and the matrix cells.\n"
+        "  Regenerate them with `python tests/make_fixtures.py` whenever a prompt text, the recorded lessons or the\n"
+        "  synthetic responses change; delete stale ones first (git clean on the local directory) so no orphan stays.\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

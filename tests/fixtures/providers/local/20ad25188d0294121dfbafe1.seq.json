@@ -1,0 +1,82 @@
+[
+ {
+  "text": "A 3 x 3 tensor product of the 3-point Gauss rule is exact to degree 5 in each variable.\n\n```python\nimport math\n\ndef rule():\n    r = math.sqrt(3.0 / 5.0)\n    x1 = [-r, 0.0, r]\n    w1 = [5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0]\n    nodes, weights = [], []\n    for i in range(3):\n        for j in range(3):\n            nodes.append([x1[i], x1[j]])\n            weights.append(w1[i] * w1[j])\n    return nodes, weights\n```",
+  "prompt_tokens": 410,
+  "completion_tokens": 142,
+  "latency_s": 3.54,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ },
+ {
+  "text": "Use the orbit structure centre, two points on the x axis, four symmetric points, and solve the even moment equations up to degree 5.\n\n```python\nimport math\n\ndef rule():\n    r = math.sqrt(14.0 / 15.0)\n    s = math.sqrt(1.0 / 3.0)\n    t = math.sqrt(3.0 / 5.0)\n    nodes = [[0.0, 0.0], [r, 0.0], [-r, 0.0], [s, t], [s, -t], [-s, t], [-s, -t]]\n    weights = [8.0 / 7.0, 20.0 / 63.0, 20.0 / 63.0, 5.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0]\n    return nodes, weights\n```",
+  "prompt_tokens": 410,
+  "completion_tokens": 156,
+  "latency_s": 3.83,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ },
+ {
+  "text": "```python\ndef rule():\n    return [[0.0, 0.0]], [4.0]\n```",
+  "prompt_tokens": 410,
+  "completion_tokens": 54,
+  "latency_s": 1.78,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ },
+ {
+  "text": "```python\nimport math\n\ndef rule():\n    r = math.sqrt(14.0 / 15.0)\n    s = math.sqrt(1.0 / 3.0)\n    t = math.sqrt(3.0 / 5.0)\n    nodes = [[0.0, 0.0], [r, 0.0], [-r, 0.0], [s, t], [s, -t], [-s, t], [-s, -t]]\n    weights = [8.0 / 7.0, 20.0 / 63.0, 20.0 / 63.0, 5.0 / 9.0, 5.0 / 9.0, 5.0 / 9.0, 4.0 / 9.0]\n    return nodes, weights\n```",
+  "prompt_tokens": 410,
+  "completion_tokens": 122,
+  "latency_s": 3.16,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ },
+ {
+  "text": "Radon showed in 1948 that seven points suffice for degree 5 on the square: the centre, two points on an axis and four points symmetric about both axes, with weights found from the moment equations.",
+  "prompt_tokens": 410,
+  "completion_tokens": 89,
+  "latency_s": 2.48,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ },
+ {
+  "text": "```python\nimport math\n\ndef rule():\n    a = math.sqrt((3.0 - 2.0 * math.sqrt(6.0 / 5.0)) / 7.0)\n    b = math.sqrt((3.0 + 2.0 * math.sqrt(6.0 / 5.0)) / 7.0)\n    wa = (18.0 + math.sqrt(30.0)) / 36.0\n    wb = (18.0 - math.sqrt(30.0)) / 36.0\n    x1 = [-b, -a, a, b]\n    w1 = [wb, wa, wa, wb]\n    nodes = [[x1[i], x1[j]] for i in range(4) for j in range(4)]\n    weights = [w1[i] * w1[j] for i in range(4) for j in range(4)]\n    return nodes, weights\n```",
+  "prompt_tokens": 410,
+  "completion_tokens": 151,
+  "latency_s": 3.73,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ },
+ {
+  "text": "```python\nfrom scipy.special import roots_legendre\n\ndef rule():\n    x, w = roots_legendre(3)\n    return [[a, b] for a in x for b in x], [p * q for p in w for q in w]\n```",
+  "prompt_tokens": 410,
+  "completion_tokens": 82,
+  "latency_s": 2.34,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ },
+ {
+  "text": "```python\ndef rule():\n    return nodes, weights\n```",
+  "prompt_tokens": 410,
+  "completion_tokens": 52,
+  "latency_s": 1.75,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-square-d5"
+ }
+]

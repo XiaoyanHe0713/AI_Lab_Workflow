@@ -1,0 +1,68 @@
+[
+ {
+  "text": "```json\n{\n \"witness\": {\n  \"kind\": \"exactness_error\",\n  \"input\": {\n   \"exponents\": [\n    6\n   ]\n  }\n },\n \"reason\": \"x^6 is the highest even power\"\n}\n```",
+  "rounds": [
+   "```json\n{\n \"witness\": {\n  \"kind\": \"exactness_error\",\n  \"input\": {\n   \"exponents\": [\n    6\n   ]\n  }\n },\n \"reason\": \"x^6 is the highest even power\"\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 97,
+  "latency_s": 1.75,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop breaker on quad-d7 candidate 4 (tool calls 1)"
+ },
+ {
+  "text": "```json\n{\n \"witness\": {\n  \"kind\": \"exactness_error\",\n  \"input\": {\n   \"exponents\": [\n    8\n   ]\n  }\n },\n \"reason\": \"x^8 breaks any 4-node rule\"\n}\n```",
+  "rounds": [
+   "```json\n{\n \"witness\": {\n  \"kind\": \"exactness_error\",\n  \"input\": {\n   \"exponents\": [\n    8\n   ]\n  }\n },\n \"reason\": \"x^8 breaks any 4-node rule\"\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 97,
+  "latency_s": 1.74,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop breaker on quad-d7 candidate 4 (tool calls 1)"
+ },
+ {
+  "text": "```json\n{\n \"probe\": {\n  \"exponents\": [\n   [\n    2\n   ],\n   [\n    4\n   ],\n   [\n    6\n   ]\n  ]\n }\n}\n```",
+  "rounds": [
+   "```json\n{\n \"probe\": {\n  \"exponents\": [\n   [\n    2\n   ],\n   [\n    4\n   ],\n   [\n    6\n   ]\n  ]\n }\n}\n```",
+   "```json\n{\n \"witness\": {\n  \"kind\": \"exactness_error\",\n  \"input\": {\n   \"coefficients\": {\n    \"6\": 1.0,\n    \"4\": -1.0\n   }\n  }\n },\n \"reason\": \"last try\"\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 85,
+  "latency_s": 1.5,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop breaker on quad-d7 candidate 4 (tool calls 1)"
+ },
+ {
+  "text": "The rule looks exact on every monomial I can think of; I cannot find a breaking input.",
+  "rounds": [
+   "The rule looks exact on every monomial I can think of; I cannot find a breaking input."
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 81,
+  "latency_s": 1.43,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop breaker on quad-d7 candidate 4 (tool calls 1)"
+ },
+ {
+  "text": "```json\n{\n \"witness\": {\n  \"kind\": \"exactness_error\",\n  \"input\": {\n   \"coefficients\": {\n    \"4,0\": 100000000.0,\n    \"0,0\": -100000000.0\n   }\n  }\n },\n \"reason\": \"amplify the rounding error\"\n}\n```",
+  "rounds": [
+   "```json\n{\n \"witness\": {\n  \"kind\": \"exactness_error\",\n  \"input\": {\n   \"coefficients\": {\n    \"4,0\": 100000000.0,\n    \"0,0\": -100000000.0\n   }\n  }\n },\n \"reason\": \"amplify the rounding error\"\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 108,
+  "latency_s": 1.96,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop breaker on quad-d7 candidate 4 (tool calls 1)"
+ }
+]

@@ -207,6 +207,11 @@ class ReplayProvider(Provider):
             source = path.name
         else:
             seq = self.dir / f"{prompt_hash(messages).split(':')[1][:24]}.seq.json"
+            turn = sum(1 for m in messages if m.get("role") == "assistant")
+            if not seq.exists() and turn > 0:
+                # a later round of a tool conversation: the sequence keyed by the opening prompt, the item's `rounds`
+                # indexed by the number of assistant turns so far
+                seq = self.dir / f"{prompt_hash(conversation_opening(messages)).split(':')[1][:24]}.seq.json"
             if not seq.exists():
                 raise FileNotFoundError(
                     f"offline mode: no recorded response for provider {self.name!r} under {self.dir} "
@@ -214,7 +219,14 @@ class ReplayProvider(Provider):
             items = json.loads(seq.read_text(encoding="utf-8"))
             if not items:
                 raise FileNotFoundError(f"empty replay sequence {seq}")
-            d = items[(seed or 0) % len(items)]
+            d = dict(items[(seed or 0) % len(items)])
+            if turn > 0 and "rounds" in d:
+                rounds = d["rounds"]
+                if turn >= len(rounds):
+                    raise FileNotFoundError(f"offline mode: sequence {seq.name} has no round {turn + 1} for seed {seed}")
+                d["text"] = rounds[turn]
+            elif turn > 0:
+                raise FileNotFoundError(f"offline mode: sequence {seq.name} holds single-round responses; round {turn + 1} was requested")
             source = seq.name
         return Completion(
             text=d["text"], prompt_tokens=int(d.get("prompt_tokens", 0)), completion_tokens=int(d.get("completion_tokens", 0)),
@@ -272,6 +284,22 @@ class BudgetedProvider(Provider):
         c.api_dollars = dollars
         c.raw["budget"] = {**status, "call_dollars": dollars}
         return c
+
+
+def conversation_opening(messages: list[dict]) -> list[dict]:
+    """The system prompt and the first user turn: the key a tool conversation's replay sequence is filed under."""
+    for i, m in enumerate(messages):
+        if m.get("role") == "user":
+            return list(messages[: i + 1])
+    return list(messages)
+
+
+_THINK = re.compile(r"^\s*<think>.*?</think>\s*", re.S)
+
+
+def strip_thinking(text: str) -> str:
+    """An assistant turn as it goes back into the history: without its reasoning block (Qwen's template drops it too)."""
+    return _THINK.sub("", text or "", count=1)
 
 
 def _fixtures_dir(cfg: dict, name: str, fixtures_root: str | Path | None) -> Path:
@@ -361,7 +389,11 @@ class Role:
                    "directly now.")
 
     def attempt(self, user_prompt: str, *, seed: int | None = None) -> RoleResult:
-        messages = self.build_messages(user_prompt)
+        return self.attempt_messages(self.build_messages(user_prompt), seed=seed)
+
+    def attempt_messages(self, messages: list[dict], *, seed: int | None = None) -> RoleResult:
+        """One model call on a conversation (the opening prompt, or the opening plus earlier rounds and tool
+        results); the thinking budget applies to this call."""
         extra = dict(self.extra_body)
         if self.provider.kind == "local":
             # Qwen3-family chat template: thinking off at budget 0 (vLLM/SGLang chat_template_kwargs)
@@ -373,8 +405,11 @@ class Role:
             completion = self.provider.complete(messages, temperature=self.temperature, max_tokens=self.max_tokens,
                                                 seed=seed, model=self.served_model, extra_body=extra or None)
             tool_log = [self._log(completion, seed, "chat.completions")]
-        return RoleResult(role=self.name, messages=messages, prompt_hash=prompt_hash(messages), completion=completion,
-                          served_model=self.served_model, adapter=self.adapter, tool_log=tool_log)
+        turn = sum(1 for m in messages if m.get("role") == "assistant") + 1
+        for entry in tool_log:
+            entry["round"] = turn
+        return RoleResult(role=self.name, messages=messages, prompt_hash=prompt_hash(conversation_opening(messages)),
+                          completion=completion, served_model=self.served_model, adapter=self.adapter, tool_log=tool_log)
 
     def _log(self, completion: Completion, seed, tool: str, **more) -> dict:
         return {"tool": tool, "provider": self.provider.name, "mode": completion.mode, "model": self.served_model, "seed": seed,

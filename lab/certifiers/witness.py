@@ -11,6 +11,12 @@ Witness kinds:
   * quadrature / exception: evaluating the rule on the input raises;
   * first_order / rate_violation: on the quadratic f(x) = c/2 ||x||^2 with the given curvature c in
     [mu, L], the method contracts the stated distance by more than the claimed rate.
+
+The class definition for quadrature (version 1.1.0): monomials of total degree at most the target degree, or
+polynomials of that degree with coefficients of absolute value at most one (the judge's own random-polynomial
+convention); a polynomial's tolerance is the certifier tolerance times its number of terms, so a witness
+cannot manufacture a break by scaling rounding error with large coefficients. Anything else is outside the class
+and pays nothing.
 """
 from __future__ import annotations
 
@@ -57,12 +63,13 @@ def _quadratic_ratio(method: str, params: dict, curvature: float, n: int) -> flo
 
 class WitnessCertifier(Certifier):
     name = "witness_check"
-    version = "1.0.0"
+    version = "1.1.0"
     runtime_cap_s = 30.0
 
-    def __init__(self, tol: float = 1e-9, rate_tol: float = 1e-6):
+    def __init__(self, tol: float = 1e-9, rate_tol: float = 1e-6, max_coefficient: float = 1.0):
         self.tol = float(tol)
         self.rate_tol = float(rate_tol)
+        self.max_coefficient = float(max_coefficient)
 
     def run(self, candidate: Any, rng, *, target, seed, witness: dict | None = None, **kw) -> Certificate:
         if witness is None:
@@ -90,13 +97,20 @@ class WitnessCertifier(Certifier):
                                witness=witness)
         inp = witness.get("input", {})
         degree = witness.get("degree")
-        if "exponents" in inp:
-            alphas = {tuple(int(a) for a in inp["exponents"]): 1.0}
-        elif "coefficients" in inp:
-            alphas = {tuple(int(a) for a in k.split(",")): float(v) for k, v in inp["coefficients"].items()}
-        else:
+        try:
+            if "exponents" in inp:
+                alphas = {tuple(int(a) for a in inp["exponents"]): 1.0}
+            elif "coefficients" in inp:
+                alphas = {tuple(int(a) for a in str(k).split(",")): float(v) for k, v in inp["coefficients"].items()}
+            else:
+                return Certificate(self.name, self.version, target, False, score=0.0,
+                                   error="witness input needs exponents or coefficients", witness=witness)
+        except (TypeError, ValueError, AttributeError) as e:
             return Certificate(self.name, self.version, target, False, score=0.0,
-                               error="witness input needs exponents or coefficients", witness=witness)
+                               error=f"instance outside the class definition: malformed input ({e})", witness=witness)
+        if not alphas or any(k < 0 for a in alphas for k in a):
+            return Certificate(self.name, self.version, target, False, score=0.0,
+                               error="instance outside the class definition: exponents must be non-negative", witness=witness)
         if degree is not None and any(sum(a) > int(degree) for a in alphas):
             return Certificate(self.name, self.version, target, False, score=0.0,
                                error="instance outside the class definition: degree above the target degree",
@@ -104,6 +118,11 @@ class WitnessCertifier(Certifier):
         if any(len(a) != DIM[domain] for a in alphas):
             return Certificate(self.name, self.version, target, False, score=0.0,
                                error="instance outside the class definition: wrong dimension", witness=witness)
+        if any(not np.isfinite(c) or abs(c) > self.max_coefficient + 1e-12 for c in alphas.values()):
+            return Certificate(self.name, self.version, target, False, score=0.0,
+                               error=f"instance outside the class definition: coefficients must have absolute value at most "
+                                     f"{self.max_coefficient:g}", witness=witness)
+        tol = self.tol * len(alphas)   # one monomial: the certifier tolerance; a polynomial: times its number of terms
         try:
             got = sum(c * apply_rule(nodes, weights, a) for a, c in alphas.items())
             exact = sum(c * monomial_exact(domain, a) for a, c in alphas.items())
@@ -116,9 +135,9 @@ class WitnessCertifier(Certifier):
         if kind == "exception":
             reproduces = False  # it evaluated fine
         else:
-            reproduces = bool(err > self.tol)
+            reproduces = bool(err > tol)
         return Certificate(self.name, self.version, target, reproduces, score=float(reproduces),
-                           details={"reproduces": reproduces, "error": err, "tol": self.tol,
+                           details={"reproduces": reproduces, "error": err, "tol": tol, "terms": len(alphas),
                                     "rule_value": got, "exact_value": exact}, witness=witness)
 
     def _first_order(self, candidate, witness, target, kind) -> Certificate:

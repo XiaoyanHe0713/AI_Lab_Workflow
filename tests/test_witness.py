@@ -41,9 +41,37 @@ def test_symmetric_corruption_misses_odd_monomial():
 
 def test_coefficient_polynomial_witness():
     witness = _w()
-    witness["input"] = {"coefficients": {"0": 1.0, "2": -0.5, "6": 2.0}}
-    assert W.certify(corrupt_weight(gauss_legendre(4), 1, 1e-4), target="t", seed=0, witness=witness).passed
+    witness["input"] = {"coefficients": {"0": 1.0, "2": -0.5, "6": 1.0}}
+    cert = W.certify(corrupt_weight(gauss_legendre(4), 1, 1e-4), target="t", seed=0, witness=witness)
+    assert cert.passed and cert.details["terms"] == 3 and cert.details["tol"] == pytest.approx(3e-9)
     assert not W.certify(gauss_legendre(4), target="t", seed=0, witness=witness).passed
+
+
+def test_coefficients_above_one_are_outside_the_class():
+    # large coefficients would scale rounding error past the tolerance of any floating-point rule: not a break
+    witness = _w()
+    witness["input"] = {"coefficients": {"0": 1.0, "2": -0.5, "6": 2.0}}
+    cert = W.certify(corrupt_weight(gauss_legendre(4), 1, 1e-4), target="t", seed=0, witness=witness)
+    assert not cert.passed and cert.score == 0.0 and "outside the class" in cert.error and "absolute value" in cert.error
+    witness["input"] = {"coefficients": {"0": 1e9}}
+    assert "outside the class" in W.certify(gauss_legendre(4), target="t", seed=0, witness=witness).error
+
+
+def test_polynomial_tolerance_scales_with_its_terms_so_rounding_is_not_a_break():
+    # the intact rule has rounding-level error on every monomial; a 36-term polynomial with unit coefficients stays below tol * terms
+    witness = _w()
+    witness["input"] = {"coefficients": {str(k): (1.0 if k % 2 == 0 else -1.0) for k in range(8)}}
+    cert = W.certify(gauss_legendre(4), target="t", seed=0, witness=witness)
+    assert not cert.passed and cert.details["terms"] == 8 and cert.details["error"] < cert.details["tol"]
+
+
+@pytest.mark.parametrize("inp", [{"exponents": [-1]}, {"exponents": ["a"]}, {"coefficients": {"x": 1.0}}, {"coefficients": {"0": "nan"}},
+                                 {"exponents": []}, {"nothing": 1}])
+def test_malformed_inputs_score_zero(inp):
+    witness = _w()
+    witness["input"] = inp
+    cert = W.certify(gauss_legendre(4), target="t", seed=0, witness=witness)
+    assert not cert.passed and cert.score == 0.0 and cert.error
 
 
 def test_degree_above_target_is_outside_the_class():

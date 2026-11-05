@@ -18,7 +18,7 @@ def code(text: str) -> None:
 
 
 md("""
-<a href="https://colab.research.google.com/github/XiaoyanHe0713/AI_Lab_Workflow/blob/build%2Fweek-3-harnesses/colab/serve.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/XiaoyanHe0713/AI_Lab_Workflow/blob/build%2Fweek-4-loop/colab/serve.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 """)
 
 md("""
@@ -31,7 +31,8 @@ Week 1 of the build plan. This notebook
 3. builds (or reuses) the 4-bit development copy on an A100, or serves bf16 on an H100 / G4,
 4. starts an OpenAI-compatible server (vLLM by default, SGLang as the alternative) with LoRA serving enabled, so that a role can later be an adapter name,
 5. runs the serving smoke test at the session's precision and the week-2 demo (16 attempts on `quad-d7`, as parallel requests), both written to the ledger on Drive,
-6. optionally (week 3) runs the training gate on the training-family candidates and the ablation harness with GPT for the lessons.
+6. optionally (week 3) runs the training gate on the training-family candidates and the ablation harness with GPT for the lessons,
+7. optionally (week 4) runs the loop end to end on the quadrature curriculum (theorist, builder, breaker, judge, archive, lesson bank, gate memos), the frozen baseline for every certifier family, the 256-attempt search-only baseline on `quad-square-d5`, and the first transfer-matrix cells.
 
 Rules that never bend: every score comes from a program; quantized runs are marked in the ledger's precision column and never enter a reported cell; weights and the ledger stay on Drive, never in the repository; API keys live in Colab secrets.
 
@@ -45,7 +46,7 @@ SESSION_T0 = time.time()
 
 LAB_ROOT = "/content/drive/MyDrive/ai_lab"      #@param {type:"string"}
 REPO_URL = "https://github.com/XiaoyanHe0713/AI_Lab_Workflow.git"  #@param {type:"string"}
-REPO_BRANCH = "build/week-3-harnesses"          #@param {type:"string"}
+REPO_BRANCH = "build/week-4-loop"               #@param {type:"string"}
 SERVER = "vllm"                                 #@param ["vllm", "sglang"]
 QUANT_METHOD = "awq"                            #@param ["awq", "bnb"]
 UNITS_PER_HOUR = 0                              #@param {type:"number"}
@@ -65,7 +66,40 @@ RUN_ABLATION = False                            #@param {type:"boolean"}
 ABLATION_TARGET = "quad-d7"                     #@param {type:"string"}
 ABLATION_ATTEMPTS = 16                          #@param {type:"integer"}
 RECORD_FIXTURES = False                         #@param {type:"boolean"}
+RUN_LOOP = False                                #@param {type:"boolean"}
+LOOP_TARGETS = "quad-d7 quad-square-d5 quad-triangle-d2 quad-triangle-d3 quad-triangle-d4"  #@param {type:"string"}
+LOOP_ATTEMPTS = 64                              #@param {type:"integer"}
+LOOP_THEORIST_ATTEMPTS = 16                     #@param {type:"integer"}
+LOOP_PROPOSAL_ATTEMPTS = 16                     #@param {type:"integer"}
+LOOP_BREAKER_ATTEMPTS = 8                       #@param {type:"integer"}
+LOOP_BREAKER_CANDIDATES = 4                     #@param {type:"integer"}
+LOOP_TOOL_CALLS = 0                             #@param {type:"integer"}
+LOOP_CARRIER = "lessons"                        #@param ["lessons", "none"]
+RUN_BASELINES = False                           #@param {type:"boolean"}
+BASELINE_TARGETS = "pep-gd-strongly-convex-distance order-ode-p4 opcount-dft-n16 ssp-s3-p3 stab-real-s4-p4"  #@param {type:"string"}
+BASELINE_ATTEMPTS = 64                          #@param {type:"integer"}
+RUN_SEARCH_BASELINE = False                     #@param {type:"boolean"}
+SEARCH_BASELINE_TARGET = "quad-square-d5"       #@param {type:"string"}
+SEARCH_BASELINE_ATTEMPTS = 256                  #@param {type:"integer"}
+RUN_MATRIX = False                              #@param {type:"boolean"}
+MATRIX_SOURCES = "quad-d7"                      #@param {type:"string"}
+MATRIX_TARGETS = "quad-square-d5 quad-triangle-d4"  #@param {type:"string"}
+MATRIX_CARRIERS = "none lessons process_only unrelated skills"  #@param {type:"string"}
+MATRIX_SEEDS = 3                                #@param {type:"integer"}
+MATRIX_ATTEMPTS = 16                            #@param {type:"integer"}
 
+# RUN_LOOP (week 4): one generation of the loop on LOOP_TARGETS in that order (the curriculum rungs): per rung the theorist
+#   proposes (lemmas checked by SymPy in the sandbox), the builder runs its gate group of LOOP_ATTEMPTS from the plain prompt
+#   (the gate memo), a lesson group when the bank holds lessons, and LOOP_PROPOSAL_ATTEMPTS builds derived from the proposals;
+#   the breaker attacks LOOP_BREAKER_CANDIDATES survivors with LOOP_BREAKER_ATTEMPTS each; survivors enter the archive; GPT
+#   (secret OPENAI_API_KEY) extracts lessons and writes dossiers; without the secret the loop runs search-only (--no-harness).
+#   LOOP_TOOL_CALLS = 1 gives the builder one certifier dry run and a revision per attempt (the gate memo then says so).
+# RUN_BASELINES (week 4): the gate on one target per remaining certifier family (BASELINE_TARGETS, 64 attempts each), then
+#   the frozen baseline record over every family in the ledger (python -m lab.harness.checker --baseline --reportable-only).
+# RUN_SEARCH_BASELINE (week 4): SEARCH_BASELINE_ATTEMPTS attempts of the frozen base on SEARCH_BASELINE_TARGET as one gate
+#   group: does the 7-point rule ever appear without training?
+# RUN_MATRIX (week 4): transfer-matrix cells from the archive of MATRIX_SOURCES to MATRIX_TARGETS with MATRIX_CARRIERS at
+#   MATRIX_SEEDS seeds x MATRIX_ATTEMPTS attempts (lessons are never measured on the family they came from; the program refuses).
 # REPO_BRANCH: the branch this notebook was built from; cell 2 clones or checks it out, so the code matches the cells
 #   (empty = the repository's default branch, which may be older than this notebook).
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
@@ -436,7 +470,7 @@ if RECORD_FIXTURES:
     rec_env = dict(os.environ, OPENAI_API_KEY=key, LAB_FRONTIER_MODE="record")
     off_env = dict(os.environ, LAB_FRONTIER_MODE="offline")
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", "pytest"], check=True)
-    tests = ["tests/test_librarian.py", "tests/test_lessons.py", "tests/test_checker.py", "tests/test_ablation.py"]
+    tests = ["tests/test_librarian.py", "tests/test_lessons.py", "tests/test_checker.py", "tests/test_ablation.py", "tests/test_loop.py"]
     r = subprocess.run([sys.executable, "-m", "pytest", *tests, "-k", "openai", "-p", "no:cacheprovider", "-rs"],
                        cwd=REPO, env=rec_env, text=True, capture_output=True)
     print("record run:", r.stdout[-2500:], r.stderr[-1000:])
@@ -447,7 +481,7 @@ if RECORD_FIXTURES:
     r2 = subprocess.run([sys.executable, "-m", "pytest", *tests, "-k", "openai", "-p", "no:cacheprovider"],
                         cwd=REPO, env=off_env, text=True, capture_output=True)
     print("offline replay:", r2.stdout[-1200:], r2.stderr[-600:])
-    out = os.path.join(LAB_ROOT, "exports", "week3-fixtures")
+    out = os.path.join(LAB_ROOT, "exports", "recorded-fixtures")
     for rel in ("tests/fixtures/providers/openai", "tests/fixtures/providers/local", "scoreboard/reviews"):
         src, dst = os.path.join(REPO, rel), os.path.join(out, rel)
         if os.path.isdir(src):
@@ -458,7 +492,83 @@ else:
 """)
 
 code("""
-#@title 13. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
+#@title 13. Week 4: the loop end to end on the quadrature curriculum (theorist, builder, breaker, judge, archive, lessons)
+# One generation on LOOP_TARGETS in order. Every attempt of every role is a ledger row on Drive with its cost; a gate memo
+# per target under gates/, the generation record (archive snapshot, ledger pointer, delayed credit) under generations/.
+# GPT extracts the lessons and writes the dossiers (secret OPENAI_API_KEY, capped by config/budget.yaml); without the
+# secret the loop runs search-only with the program's template dossiers.
+from lab.loop import main as loop_main
+
+if RUN_LOOP:
+    argv = ["--targets", *LOOP_TARGETS.split(), "--attempts", str(LOOP_ATTEMPTS), "--theorist-attempts", str(LOOP_THEORIST_ATTEMPTS),
+            "--proposal-attempts", str(LOOP_PROPOSAL_ATTEMPTS), "--breaker-attempts", str(LOOP_BREAKER_ATTEMPTS),
+            "--breaker-candidates", str(LOOP_BREAKER_CANDIDATES), "--tool-calls", str(LOOP_TOOL_CALLS), "--carrier", LOOP_CARRIER,
+            "--max-tokens", str(GATE_MAX_TOKENS), "--thinking", "0", "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION]
+    if UNITS_PER_HOUR:
+        argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
+    key = secret("OPENAI_API_KEY")
+    if key:
+        os.environ["OPENAI_API_KEY"] = key
+        argv += ["--harness-provider", "openai", "--harness-mode", "online"]
+    else:
+        print("no OPENAI_API_KEY secret: the loop runs search-only (no lesson extraction, template dossiers)")
+        argv += ["--no-harness"]
+    loop_main(argv)
+else:
+    print("RUN_LOOP is False in cell 1: the loop did not run. Set RUN_LOOP = True, rerun cell 1, then this cell.")
+""")
+
+code("""
+#@title 14. Week 4: the frozen baseline for every certifier family (the gate on one target per family, then the baseline record)
+from lab.gate import main as gate_main
+from lab.harness.checker import main as checker_main
+
+if RUN_BASELINES:
+    argv = ["--targets", *BASELINE_TARGETS.split(), "--attempts", str(BASELINE_ATTEMPTS), "--thinking", "0", "--gpu", GPU,
+            "--precision", PRECISION, "--concurrency", str(CONCURRENCY), "--max-tokens", str(GATE_MAX_TOKENS)]
+    if UNITS_PER_HOUR:
+        argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
+    gate_main(argv)
+    checker_main(["--baseline", "--reportable-only"])
+else:
+    print("RUN_BASELINES is False in cell 1: the family baselines did not run.")
+""")
+
+code("""
+#@title 15. Week 4: the search-only baseline, 256 attempts of the frozen base on quad-square-d5 (does the 7-point rule ever appear?)
+from lab.gate import main as gate_main
+
+if RUN_SEARCH_BASELINE:
+    argv = ["--targets", SEARCH_BASELINE_TARGET, "--attempts", str(SEARCH_BASELINE_ATTEMPTS), "--thinking", "0", "--gpu", GPU,
+            "--precision", PRECISION, "--concurrency", str(CONCURRENCY), "--max-tokens", str(GATE_MAX_TOKENS)]
+    if UNITS_PER_HOUR:
+        argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
+    gate_main(argv)
+    print("verify-first in the memo above says whether the best known value (7 nodes) appeared; the memo is under gates/ on Drive")
+else:
+    print("RUN_SEARCH_BASELINE is False in cell 1: the search-only baseline did not run.")
+""")
+
+code("""
+#@title 16. Week 4: transfer-matrix cells from the archive (lessons never measured on the family they came from)
+# Rows: the experience set of MATRIX_SOURCES (its archived methods and the lessons the loop extracted) plus the two controls
+# (process-only lessons with content redacted; unrelated-domain experience); columns: MATRIX_TARGETS in their settings.
+# Needs the loop (cell 13) to have run with GPT so the bank holds lessons; the report lands under matrices/ on Drive.
+from lab.harness.matrix import main as matrix_main
+
+if RUN_MATRIX:
+    argv = ["--sources", *MATRIX_SOURCES.split(), "--targets", *MATRIX_TARGETS.split(), "--carriers", *MATRIX_CARRIERS.split(),
+            "--seeds", str(MATRIX_SEEDS), "--attempts", str(MATRIX_ATTEMPTS), "--max-tokens", str(GATE_MAX_TOKENS), "--thinking", "0",
+            "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION, "--no-harness"]
+    if UNITS_PER_HOUR:
+        argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
+    matrix_main(argv)
+else:
+    print("RUN_MATRIX is False in cell 1: no matrix cells ran.")
+""")
+
+code("""
+#@title 17. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
 # The in-notebook path above is the primary one. This exposes the server through a temporary public URL
 # protected only by LAB_ENDPOINT_KEY; close the tunnel when done. The binary is Cloudflare's official release.
 if OPEN_TUNNEL:
@@ -477,7 +587,7 @@ if OPEN_TUNNEL:
 """)
 
 code("""
-#@title 14. Session cost so far
+#@title 18. Session cost so far
 hours = (time.time() - SESSION_T0) / 3600
 units = hours * RATE
 print(f"{hours:.2f} h on {GPU} at {RATE} units/h ({RATE_SOURCE}): about {units:.2f} units = ${meter.units_to_dollars(units):.2f}")

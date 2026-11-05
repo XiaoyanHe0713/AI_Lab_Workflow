@@ -334,11 +334,14 @@ class LessonHarness(Harness):
             out.append(lesson)
         return out
 
-    def gate(self, target, *, k_candidates: int = 6) -> dict:
+    def gate(self, target, *, k_candidates: int = 6, candidates: list[Lesson] | None = None) -> dict:
         """Select one lesson for a target and write a concrete check for use time (the language part), with the
-        program choosing the candidates, validating the choice and the check, and falling back to the top-ranked
-        lesson when the model's choice is not a candidate."""
-        candidates = self.bank.active(target.family)[:k_candidates]
+        program choosing the candidates (the family's active lessons, or the experience set's lessons when given),
+        validating the choice and the check, and falling back to the top-ranked lesson when the model's choice is not
+        a candidate."""
+        if candidates is None:
+            candidates = self.bank.active(target.family)
+        candidates = sorted(candidates, key=lambda l: l.rank_key(), reverse=True)[:k_candidates]
         if not candidates:
             return {"lesson": None, "check": None, "candidates": [], "harness_attempt_id": None, "reason": "no active lessons"}
         listing = "\n".join(f"{i + 1}. id={l.id} level={l.level} evidence={l.evidence_tag} support={len(l.support)}: {l.text}"

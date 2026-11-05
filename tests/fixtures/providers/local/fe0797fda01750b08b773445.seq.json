@@ -1,0 +1,58 @@
+[
+ {
+  "text": "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The integral of x^2 over the square [-1,1]^2 is 4/3\",\n   \"check\": \"integrate(integrate(x**2, (x, -1, 1)), (y, -1, 1)) - Rational(4, 3)\"\n  },\n  {\n   \"statement\": \"The integral of x^2 y^2 over the square is 4/9\",\n   \"check\": \"Eq(integrate(integrate(x**2 * y**2, (x, -1, 1)), (y, -1, 1)), Rational(4, 9))\"\n  },\n  {\n   \"statement\": \"Every monomial with an odd exponent integrates to zero over the square by symmetry\",\n   \"check\": \"integrate(integrate(x**3 * y**2, (x, -1, 1)), (y, -1, 1))\"\n  }\n ],\n \"structure\": \"the centre, two points on the x axis at distance r, and four points (+-s, +-t): seven nodes, three weights, three parameters r, s, t\",\n \"hypotheses\": [\n  \"with that orbit structure the six even moment equations up to degree 5 determine r^2 = 14/15, s^2 = 1/3, t^2 = 3/5\",\n  \"a tensor product needs 9 points; the orbit rule needs 7\"\n ]\n}\n```",
+  "rounds": [
+   "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The integral of x^2 over the square [-1,1]^2 is 4/3\",\n   \"check\": \"integrate(integrate(x**2, (x, -1, 1)), (y, -1, 1)) - Rational(4, 3)\"\n  },\n  {\n   \"statement\": \"The integral of x^2 y^2 over the square is 4/9\",\n   \"check\": \"Eq(integrate(integrate(x**2 * y**2, (x, -1, 1)), (y, -1, 1)), Rational(4, 9))\"\n  },\n  {\n   \"statement\": \"Every monomial with an odd exponent integrates to zero over the square by symmetry\",\n   \"check\": \"integrate(integrate(x**3 * y**2, (x, -1, 1)), (y, -1, 1))\"\n  }\n ],\n \"structure\": \"the centre, two points on the x axis at distance r, and four points (+-s, +-t): seven nodes, three weights, three parameters r, s, t\",\n \"hypotheses\": [\n  \"with that orbit structure the six even moment equations up to degree 5 determine r^2 = 14/15, s^2 = 1/3, t^2 = 3/5\",\n  \"a tensor product needs 9 points; the orbit rule needs 7\"\n ]\n}\n```",
+   "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The integral of x^2 over the square [-1,1]^2 is 4/3\",\n   \"check\": \"integrate(integrate(x**2, (x, -1, 1)), (y, -1, 1)) - Rational(4, 3)\"\n  },\n  {\n   \"statement\": \"The integral of x^2 y^2 over the square is 4/9\",\n   \"check\": \"Eq(integrate(integrate(x**2 * y**2, (x, -1, 1)), (y, -1, 1)), Rational(4, 9))\"\n  },\n  {\n   \"statement\": \"Every monomial with an odd exponent integrates to zero over the square by symmetry\",\n   \"check\": \"integrate(integrate(x**3 * y**2, (x, -1, 1)), (y, -1, 1))\"\n  }\n ],\n \"structure\": \"the centre, two points on the x axis at distance r, and four points (+-s, +-t): seven nodes, three weights, three parameters r, s, t\",\n \"hypotheses\": [\n  \"with that orbit structure the six even moment equations up to degree 5 determine r^2 = 14/15, s^2 = 1/3, t^2 = 3/5\",\n  \"a tensor product needs 9 points; the orbit rule needs 7\"\n ]\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 283,
+  "latency_s": 5.46,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop theorist quad-square-d5"
+ },
+ {
+  "text": "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The integral of x^4 over the square is 4/3\",\n   \"check\": \"integrate(integrate(x**4, (x, -1, 1)), (y, -1, 1)) - Rational(4, 3)\"\n  },\n  {\n   \"statement\": \"A trivial constant check\",\n   \"check\": \"Rational(1, 2) - Rational(1, 2)\"\n  }\n ],\n \"structure\": \"a 3 x 3 tensor product of the 3-point Gauss rule\",\n \"hypotheses\": [\n  \"the tensor product is optimal\"\n ]\n}\n```",
+  "rounds": [
+   "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The integral of x^4 over the square is 4/3\",\n   \"check\": \"integrate(integrate(x**4, (x, -1, 1)), (y, -1, 1)) - Rational(4, 3)\"\n  },\n  {\n   \"statement\": \"A trivial constant check\",\n   \"check\": \"Rational(1, 2) - Rational(1, 2)\"\n  }\n ],\n \"structure\": \"a 3 x 3 tensor product of the 3-point Gauss rule\",\n \"hypotheses\": [\n  \"the tensor product is optimal\"\n ]\n}\n```",
+   "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The integral of x^4 over the square is 4/5\",\n   \"check\": \"integrate(integrate(x**4, (x, -1, 1)), (y, -1, 1)) - Rational(4, 5)\"\n  }\n ],\n \"structure\": \"a 3 x 3 tensor product of the 3-point Gauss rule\",\n \"hypotheses\": [\n  \"the tensor product is exact to degree 5\"\n ]\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 160,
+  "latency_s": 3.02,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop theorist quad-square-d5"
+ },
+ {
+  "text": "I think the key lemma is that the moments of even monomials over the square factor into one-dimensional moments, and that symmetric node sets kill the odd moments automatically.",
+  "rounds": [
+   "I think the key lemma is that the moments of even monomials over the square factor into one-dimensional moments, and that symmetric node sets kill the odd moments automatically.",
+   "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The moment of x^2 y^2 factors into the product of the one-dimensional moments\",\n   \"check\": \"Eq(integrate(integrate(x**2 * y**2, (x, -1, 1)), (y, -1, 1)), integrate(x**2, (x, -1, 1)) * integrate(y**2, (y, -1, 1)))\"\n  }\n ],\n \"structure\": \"symmetric orbits under the sign changes of x and y\",\n \"hypotheses\": [\n  \"odd moments vanish for symmetric node sets\"\n ]\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 104,
+  "latency_s": 1.89,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop theorist quad-square-d5"
+ },
+ {
+  "text": "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The equation x^2 + 1 = 0 has a tenth real root\",\n   \"check\": \"solve(x**2 + 1, x)[9]\"\n  },\n  {\n   \"statement\": \"The third Legendre polynomial has three real roots, the 3-point Gauss nodes\",\n   \"check\": \"Eq(len(real_roots(legendre(3, x))), 3)\"\n  }\n ],\n \"structure\": \"nodes from Legendre roots\",\n \"hypotheses\": [\n  \"use Gauss nodes in each coordinate\"\n ]\n}\n```",
+  "rounds": [
+   "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The equation x^2 + 1 = 0 has a tenth real root\",\n   \"check\": \"solve(x**2 + 1, x)[9]\"\n  },\n  {\n   \"statement\": \"The third Legendre polynomial has three real roots, the 3-point Gauss nodes\",\n   \"check\": \"Eq(len(real_roots(legendre(3, x))), 3)\"\n  }\n ],\n \"structure\": \"nodes from Legendre roots\",\n \"hypotheses\": [\n  \"use Gauss nodes in each coordinate\"\n ]\n}\n```",
+   "```json\n{\n \"lemmas\": [\n  {\n   \"statement\": \"The third Legendre polynomial has three real roots, the 3-point Gauss nodes\",\n   \"check\": \"Eq(len(real_roots(legendre(3, x))), 3)\"\n  }\n ],\n \"structure\": \"nodes from Legendre roots\",\n \"hypotheses\": [\n  \"use Gauss nodes in each coordinate\"\n ]\n}\n```"
+  ],
+  "prompt_tokens": 600,
+  "completion_tokens": 160,
+  "latency_s": 3.0,
+  "model": "synthetic-fixture",
+  "finish_reason": "stop",
+  "note": "synthetic, hand-written; not a recorded model output",
+  "for": "loop theorist quad-square-d5"
+ }
+]

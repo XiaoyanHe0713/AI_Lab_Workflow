@@ -265,3 +265,84 @@ the node interval and the monomials), which is also what the two new failures in
 Costs: the printed per-arm dollars ($0.32, $0.28, $0.25) are inflated by the concurrent-latency defect described above;
 the arms' wall times were 88, 77 and 78 s, about 0.8 units or $0.08 in all at the table rate. Session total for cells
 10 and 11: about 54 minutes of G4 time, 10.5 units.
+
+# Results: week 4
+
+Date: 2026-11-05, the same CPU-only Windows laptop (Python 3.12, NumPy 2.5, SciPy 1.18, SymPy 1.14). Nothing in this
+section ran on a GPU: the week-4 code (the three roles, the episode runner, the loop, the transfer matrix) is exercised
+offline under pytest from synthetic fixtures and once by hand. The verification run against the served model is cells
+13 to 16 of `colab/serve.ipynb` (the loop on the quadrature curriculum, the frozen baseline for every certifier family,
+the 256-attempt search baseline on `quad-square-d5`, the first matrix cells); its results are recorded below once it
+has run.
+
+## Tests
+
+`pytest`: 435 tests; 426 pass and 9 are skipped (the two live-API smoke tests without keys, the six harness and loop
+tests parametrized over Claude until its fixtures are recorded, and the loop's lesson-extraction test over GPT until the
+notebook's recording cell has run on this branch); about 7 minutes. New known-answer cases: the lemma check 29 (15 true identities, 6 false claims, 7 trivial
+checks, 9 invalid checks, duplicates, crashes, the sandbox allowance), the transfer blocks and settings 17, the roles 9
+(theorist on fixtures with and without the revision round, the builder's dry run, five breaker cases), the loop 3, the
+matrix 7, the witness certifier 6 more (the class bound, the tolerance per term, malformed inputs).
+
+## The witness check, version 1.1.0
+
+The quadrature class now bounds a polynomial witness's coefficients by one in absolute value and scales the tolerance
+with the number of terms. Before, a witness with coefficients of 1e8 would have turned rounding error into a "break" of
+any floating-point rule, which is a tolerance-edge exploit of the kind Work package 7 lists; now it is an instance
+outside the class and pays nothing. The 31 known-answer cases of version 1.0.0 still pass, with the one test that used a
+coefficient of 2 moved to the outside-the-class cases.
+
+## The lemma check (the theorist's reward), calibration
+
+Fifteen true identities pass through the sandbox with SymPy allowed (moments of monomials on the interval, the square
+and the triangle, orthogonality of P2 and P3, the root count and location of P4 and P5, a finite sum, a binomial
+symmetry, a determinant, a derivative); six false claims fail; seven constant or symbol-free checks are refused as
+trivial before anything runs (`1 - 1`, `x - x`, `sqrt(4) - 2`, ...); a check that raises is a failed check (`IndexError`
+on `solve(x**2 + 1, x)[9]`); a proposal of five lemmas with two passing scores 0.4 and passes. The sandbox allowance is
+per run: `import sympy` fails a candidate judged for a certificate and succeeds for a lemma file, and `os` stays
+forbidden in both. Known weakness, in the exploit catalogue: a tautology with a symbol (`simplify(x - x)`) passes the
+filter; the delayed credit and the person's reading of the ten best theorist attempts per family are the controls.
+
+## The loop, offline (machinery check, not a measurement)
+
+`python -m lab.loop --targets quad-d7 quad-square-d5 quad-triangle-d2 --attempts 8 --theorist-attempts 4
+--proposal-attempts 4 --breaker-attempts 5 --breaker-candidates 2 --mode offline --no-harness --concurrency 4`, every
+role replayed from the synthetic sequences of `tests/fixtures_week4.py` (hand-written: 8 builder files per rung of the
+kinds a model produces, 4 theorist proposals with their revision, 5 breaker replies), lemma checks and certificates real.
+
+| rung | target | gate verdict (pass rate) | optimal | proposal group | theorist lemmas | survivors | confirmed breaks | archived |
+|---|---|---|---|---|---|---|---|---|
+| 0 | quad-d7 | in the band (0.625, 5/8) | 3 | 1.000 (4/4) | 4/5 in 4 attempts | 2 | 0 | 2 |
+| 1 | quad-square-d5 | in the band (0.375, 3/8) | 1 (Radon's 7-point rule, synthetic) | 0.500 (2/4) | 5/6 in 4 attempts | 2 | 0 | 2 |
+| 2 | quad-triangle-d2 | in the band (0.500, 4/8) | 2 | 0.500 (2/4) | 4/5 in 4 attempts | 2 | 0 | 2 |
+
+78 ledger rows (builder, theorist, breaker) with their stage, prompt hash, context, tool log, certificate, diagnosis and
+cost; 6 methods in the archive snapshot, each with a template dossier and a witness record (5 attacks, 0 confirmed
+breaks); a gate memo per rung; the generation record with the ledger pointer and the delayed credit of every proposal
+(for example on the square: the proposal with the orbit structure led to 1 certified build of 2, best 7 against the
+gate group's best 7, credit 0, pass-rate gain +0.125). The breaker's replies exercised the whole reward: a monomial inside
+the class that does not reproduce (0), one above the target degree (outside the class, 0), a probe of four monomials
+followed by a bounded polynomial (0), prose without a witness (0), coefficients of 1e8 (outside the class, 0). Because
+every role replays the same synthetic texts, the numbers test the loop, the lemma checks, the witness check, the archive
+and the ledger; they say nothing about Qwen3.6-27B.
+
+## The matrix, offline (machinery check)
+
+The experience of `quad-d7` (3 archived methods, 4 program-written lessons: approach, implementation, two process) applied
+to `quad-square-d5` and `quad-triangle-d2` (new family under the same certificate) and refused on `quad-d9` (same family,
+harder regime) and on `quad-d7` itself (same instances); the two controls: process-only lessons with content redacted
+("Self-test the rule on every monomial up to the required degree and check that the weights sum to the volume 2" becomes
+"Self-test the [...] on every [...] up to the required [...] and check that the [...] sum to the volume [...]") and
+unrelated experience (two lessons from `ssp-s3-p3`, a new domain). Two seeds of 8 attempts per cell; every cell row in the
+ledger with its matrix id, cell id, experience, carrier, setting and seed index; the analysis a query over the ledger.
+Every gain is 0.000 [0.000, 0.000] by construction (the carrier cells replay the same synthetic files as the baseline),
+which is what the check wants: the machinery adds nothing of its own to a score.
+
+## The verification run on Colab (cells 13 to 16): not yet run
+
+To be filled from the notebook's output: the gate memo per rung of the quadrature curriculum (interval d7, square d5,
+triangle d2, d3, d4; 64 attempts at 8192 answer tokens, thinking 0, 16 parallel requests), the theorist's lemma-check
+rate and the delayed credit of its proposals, the breaker's rewards on the survivors (0 expected on sound certificates;
+any confirmed break is an exploit alarm), the archive snapshot, the lesson bank after GPT's extraction, the frozen
+baseline record over every certifier family (`baselines/` on Drive), the 256-attempt search baseline on `quad-square-d5`
+(verify-first: does the 7-point rule appear?), and the first matrix cells with their intervals.

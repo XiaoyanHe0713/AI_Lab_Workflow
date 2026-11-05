@@ -29,18 +29,17 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Callable
 
 from . import __version__
 from .config import lab_config, model_config, repo_root
 from .cost import CostMeter
+from .episode import JudgeGate, diagnosis_text, model_identity_for, run_episodes, wave_gpu_seconds  # noqa: F401
 from .judge import Judge
-from .ledger import Attempt, Ledger, new_id, summarize
-from .roles import FRONTIER_KINDS, KINDS, MODES, extract_code, make_provider, make_role
+from .ledger import Attempt, Ledger, new_id, summarize  # noqa: F401
+from .roles import FRONTIER_KINDS, KINDS, MODES, extract_code, make_provider, make_role  # noqa: F401
+from .roles.builder import BuilderRunner
 from .targets import SYSTEM_PROMPT, get_target, list_targets
 
 
@@ -67,27 +66,37 @@ def budget_status(provider) -> dict | None:
 
 
 def _diagnosis(cert, call_error) -> str | None:
-    diagnosis = cert.error or call_error
-    if diagnosis is None and not cert.passed:
-        d = cert.details
-        if d.get("max_monomial_error") is not None:
-            diagnosis = f"not exact: max monomial error {d.get('max_monomial_error'):.3e} on {d.get('worst_monomial')}"
-        elif d.get("checks"):
-            failed = [k for k, v in d["checks"].items() if not v]
-            diagnosis = "failed checks: " + ", ".join(failed) if failed else "failed certificate"
-        else:
-            diagnosis = "failed certificate"
-    return diagnosis
+    return diagnosis_text(cert, call_error)
 
 
-def wave_gpu_seconds(latencies: list[float]) -> list[float]:
-    """GPU seconds of the attempts of one wave: the wave's wall time (its longest latency) shared in proportion
-    to each attempt's latency, so the sum is the wall time. A single request keeps its own latency."""
-    total = sum(latencies)
-    if total <= 0:
-        return [0.0 for _ in latencies]
-    wall = max(latencies)
-    return [wall * lat / total for lat in latencies]
+def prepare(*, cfg: dict, role_name: str, provider_name: str | None = None, mode: str | None = None,
+            fixtures_root: str | Path | None = None, ledger: Ledger | None = None, provider=None, gpu: str | None = None,
+            precision: str | None = None, units_per_hour: float | None = None, temperature: float | None = None,
+            max_tokens: int | None = None, thinking_budget: int | None = None, timeout_s: float | None = None,
+            cache_dir: str | Path | None = None, system_prompt: str | None = None) -> dict:
+    """Everything a group of episodes shares: the provider, the role with its sampling settings, the judge, the cost
+    meter, the model identity and precision of the rows. Used by run_group, the gate, the ablation and the loop."""
+    mcfg = model_config()
+    pname = provider_name or cfg["roles"][role_name]["provider"]
+    provider = provider or make_provider(pname, cfg, mode=mode, fixtures_root=fixtures_root or repo_root(), ledger=ledger)
+    role = make_role(role_name, cfg, provider=provider, system_prompt=SYSTEM_PROMPT if system_prompt is None else system_prompt)
+    if temperature is not None:
+        role.temperature = temperature
+    if max_tokens is not None:
+        role.max_tokens = max_tokens
+    if thinking_budget is not None:
+        role.thinking_budget = int(thinking_budget)
+    meter = CostMeter()
+    gpu = gpu or cfg["endpoint"].get("gpu") or "unknown"
+    model, model_version, precision = model_identity_for(provider, pname, cfg, mcfg, precision)
+    if units_per_hour is not None:
+        meter.set_units_per_hour(gpu, units_per_hour)
+    jcfg = cfg.get("judge", {})
+    judge = Judge(timeout_s=timeout_s or float(jcfg.get("timeout_s", 120)), memory_mb=int(jcfg.get("memory_mb", 2048)),
+                  cache_dir=cache_dir or cfg["storage"].get("cache"), sdp_cap_s=float(jcfg.get("sdp_cap_s", 60)),
+                  sdp_solver=str(jcfg.get("sdp_solver", "SCS")))
+    return {"provider": provider, "provider_name": pname, "role": role, "judge": judge, "meter": meter, "model": model,
+            "model_version": model_version, "precision": precision, "gpu": gpu, "cfg": cfg}
 
 
 def run_group(*, target_id: str, attempts: int, seed: int, provider_name: str | None, role_name: str,
@@ -97,178 +106,40 @@ def run_group(*, target_id: str, attempts: int, seed: int, provider_name: str | 
               mode: str | None = None, concurrency: int = 1, judge_concurrency: int = 4, prompt: str | None = None,
               context_extra: dict | None = None, post_check: Callable | None = None, stop_at_dollars: float | None = None,
               thinking_budget: int | None = None, provider=None, ledger: Ledger | None = None,
-              group_id: str | None = None) -> dict:
-    """One group of attempts on a target. `prompt` overrides the target's prompt (the ablation arms add lessons),
-    `context_extra` is merged into every row's context, `post_check(result_json, row_meta) -> dict | None` runs the
-    gate's check on a successful sandbox result and is recorded in meta (never scored), `stop_at_dollars` ends the
-    group once the cumulative cost reaches that budget (matched-dollar arms), `thinking_budget` is the thinking
-    ladder's rung (0 = off; tokens of reasoning before the answer, see Role.attempt)."""
+              group_id: str | None = None, tool_calls: int = 0, proposal_for: Callable | None = None) -> dict:
+    """One group of builder attempts on a target (the week-2 demo, the gate's groups, the ablation's arms, the loop's
+    builder episodes). `prompt` overrides the target's prompt (the ablation arms add lessons), `context_extra` is
+    merged into every row's context, `post_check(result_json, row_meta) -> dict | None` runs the gate's check on a
+    successful sandbox result and is recorded in meta (never scored), `stop_at_dollars` ends the group once the
+    cumulative cost reaches that budget (matched-dollar arms), `thinking_budget` is the thinking ladder's rung (0 = off;
+    tokens of reasoning before the answer, see Role.attempt), `tool_calls` the number of certifier dry runs the builder
+    gets before its final answer, `proposal_for(index)` the theorist proposal an attempt is derived from."""
     cfg = cfg or lab_config()
-    mcfg = model_config()
     target = get_target(target_id)
     own_ledger = ledger is None
     ledger = ledger or Ledger(ledger_path)
-    pname = provider_name or cfg["roles"][role_name]["provider"]
-    provider = provider or make_provider(pname, cfg, mode=mode, fixtures_root=fixtures_root or repo_root(), ledger=ledger)
-    role = make_role(role_name, cfg, provider=provider, system_prompt=SYSTEM_PROMPT)
-    if temperature is not None:
-        role.temperature = temperature
-    if max_tokens is not None:
-        role.max_tokens = max_tokens
-    if thinking_budget is not None:
-        role.thinking_budget = int(thinking_budget)
-    meter = CostMeter()
-    gpu = gpu or cfg["endpoint"].get("gpu") or "unknown"
-    if provider.mode == "offline":
-        precision = precision or "replay"
-        model, model_version = f"replay:{pname}", "replay:fixtures"
-    elif provider.kind in FRONTIER_KINDS:
-        precision = precision or "api"
-        model, model_version = provider.model, f"api:{provider.model}"
-    else:
-        precision = precision or cfg["endpoint"].get("precision") or "unknown"
-        model, model_version = model_identity(cfg, mcfg, precision)
-    if units_per_hour is not None:
-        meter.set_units_per_hour(gpu, units_per_hour)
-    jcfg = cfg.get("judge", {})
-    judge = Judge(timeout_s=timeout_s or float(jcfg.get("timeout_s", 120)), memory_mb=int(jcfg.get("memory_mb", 2048)),
-                  cache_dir=cache_dir or cfg["storage"].get("cache"), sdp_cap_s=float(jcfg.get("sdp_cap_s", 60)),
-                  sdp_solver=str(jcfg.get("sdp_solver", "SCS")))
-    group_id = group_id or new_id("grp")
-    user_prompt = prompt if prompt is not None else target.prompt
-    t_group = time.perf_counter()
-    rows: list[Attempt] = []
+    s = prepare(cfg=cfg, role_name=role_name, provider_name=provider_name, mode=mode, fixtures_root=fixtures_root, ledger=ledger,
+                provider=provider, gpu=gpu, precision=precision, units_per_hour=units_per_hour, temperature=temperature,
+                max_tokens=max_tokens, thinking_budget=thinking_budget, timeout_s=timeout_s, cache_dir=cache_dir)
+    provider, pname, role = s["provider"], s["provider_name"], s["role"]
     if not quiet:
         print(f"target {target.id}: {target.title}")
         print(f"  best known: {target.best_known} ({target.status}); provider {pname} ({provider.kind}, {provider.mode}); "
-              f"model {model} [{precision}]; group {group_id}; concurrency {concurrency}; thinking {role.thinking_budget}; "
-              f"max tokens {role.max_tokens}")
+              f"model {s['model']} [{s['precision']}]; concurrency {concurrency}; thinking {role.thinking_budget}; "
+              f"max tokens {role.max_tokens}; tool calls {tool_calls}")
         bs = budget_status(provider)
         if bs is not None:
             print(f"  frontier budget: ${bs['spent_usd']:.2f} of ${bs['cap_usd']:.2f} spent in {bs['month']} "
                   f"(cap in {bs['budget_file']}; offline replays never count)")
-    judge_gate = threading.Semaphore(max(1, int(judge_concurrency)))
-
-    def one_attempt(i: int) -> dict:
-        """The model call and the judge for attempt i; pricing and the ledger row happen on the main thread."""
-        s = seed + i
-        t0 = time.perf_counter()
-        try:
-            res = role.attempt(user_prompt, seed=s)
-            output, tool_log, comp = res.completion.text, res.tool_log, res.completion
-            phash = res.prompt_hash
-            call_error = None
-        except Exception as e:  # the endpoint failed or the budget refused: still a row, with the error as the diagnosis
-            output, tool_log, comp, phash, call_error = None, [], None, "", f"{type(e).__name__}: {e}"
-        code = extract_code(output) if output else None
-        with judge_gate:
-            cpu0 = time.process_time()
-            cert, sb = judge.judge(code, target, seed=s)
-            judge_cpu = time.process_time() - cpu0 + (sb.cpu_seconds if sb else 0.0)
-        check = None
-        if post_check is not None and sb is not None and sb.ok:
-            try:
-                check = post_check(sb.result, {"seed": s, "target": target.id})
-            except Exception as e:  # a failing check is information, never a crash
-                check = {"ok": None, "error": f"{type(e).__name__}: {e}"}
-        return {"i": i, "seed": s, "output": output, "tool_log": list(tool_log), "comp": comp, "phash": phash,
-                "call_error": call_error, "code": code, "cert": cert, "sb": sb, "judge_cpu": judge_cpu, "check": check,
-                "wall_s": time.perf_counter() - t0, "latency_s": comp.latency_s if comp else 0.0}
-
-    def record(a: dict, gpu_seconds: float) -> None:
-        """Price the attempt with its attributed GPU seconds and write the row."""
-        comp, cert, sb, i, s = a["comp"], a["cert"], a["sb"], a["i"], a["seed"]
-        tool_log = a["tool_log"] + [{"tool": "judge", "certifier": cert.certifier, "version": cert.version,
-                                     "passed": cert.passed, "score": cert.score, "runtime_s": cert.runtime_s,
-                                     "sandbox_wall_s": sb.wall_seconds if sb else None}]
-        cost = meter.attempt_cost(provider_kind=provider.kind, mode=provider.mode,
-                                  gpu=gpu if provider.kind == "local" else None, model=provider.model,
-                                  gpu_seconds=gpu_seconds, cpu_seconds=a["judge_cpu"],
-                                  prompt_tokens=comp.prompt_tokens if comp else 0,
-                                  completion_tokens=comp.completion_tokens if comp else 0)
-        diagnosis = _diagnosis(cert, a["call_error"])
-        bs = budget_status(provider)
-        context = {"target": target.id, "scoreboard": target.scoreboard_context(), "lesson_ids": [], "skill_ids": [],
-                   "reading_list_snapshot": None, "provider": pname, "mode": provider.mode, "adapter": role.adapter,
-                   "temperature": role.temperature, "max_tokens": role.max_tokens,
-                   "thinking_budget": role.thinking_budget, "lab_version": __version__, "prompt_override": prompt is not None}
-        if context_extra:
-            context.update(context_extra)
-        thinking = (comp.raw or {}).get("thinking") if comp else None
-        row = Attempt(
-            role=role_name, model=model, model_version=model_version, precision=precision, target=target.id,
-            prompt_hash=a["phash"], context=context,
-            output=a["output"], tool_log=tool_log, certificate=cert.to_dict(), diagnosis=diagnosis,
-            gpu_seconds=cost.gpu_seconds, cpu_seconds=cost.cpu_seconds, dollars=cost.dollars, seed=s,
-            provider=pname, mode=provider.mode, api_dollars=cost.api_dollars, group_id=group_id,
-            meta={"gpu": gpu, "prompt_tokens": cost.prompt_tokens, "completion_tokens": cost.completion_tokens,
-                  "cost_breakdown": cost.breakdown, "code": a["code"], "wall_s": a["wall_s"], "latency_s": a["latency_s"],
-                  "gpu_attribution": "wave wall time shared by latency" if concurrency > 1 else "request latency",
-                  "finish_reason": comp.finish_reason if comp else None, "thinking": thinking,
-                  "attempt_index": i, "concurrency": concurrency, "gate_check": a["check"],
-                  "budget": {"cap_usd": bs["cap_usd"], "spent_usd_after": bs["spent_usd"]} if bs else None},
-        )
-        ledger.add_attempt(row)
-        rows.append(row)
-        if not quiet:
-            flag = "PASS" if cert.passed else "fail"
-            opt = " optimal" if cert.optimal else ""
-            sc = f"score={cert.score:g}" if cert.score is not None else "score=-"
-            cap = " [cap]" if comp and comp.finish_reason == "length" else ""
-            print(f"  [{i + 1:2d}/{attempts}] seed={s} {flag}{opt} {sc} ${cost.dollars:.4f} "
-                  f"{(comp.completion_tokens if comp else 0)} tok {(comp.latency_s if comp else 0):.1f}s{cap}  {diagnosis or ''}"[:170])
-
-    def record_wave(results: list[dict]) -> None:
-        results = sorted(results, key=lambda r: r["i"])
-        for a, g in zip(results, wave_gpu_seconds([r["latency_s"] for r in results])):
-            record(a, g)
-
-    stopped_at = None
-    done = 0
-    width = max(1, int(concurrency))
-    with ThreadPoolExecutor(max_workers=width) as pool:
-        while done < attempts:
-            wave = list(range(done, min(attempts, done + width)))
-            if width == 1:
-                results = [one_attempt(wave[0])]
-            else:
-                results = [f.result() for f in as_completed([pool.submit(one_attempt, i) for i in wave])]
-            record_wave(results)
-            done = wave[-1] + 1
-            if stop_at_dollars is not None and sum(r.dollars for r in rows) >= stop_at_dollars:
-                stopped_at = done
-                break
-    n = len(rows)
-    ks = (1, 16, 64) if n in (16, 64) else (1, n, 16, 64)
-    summary = summarize(rows, ks=ks)
-    summary.update({"group_id": group_id, "target": target.id, "best_known": target.best_known, "model": model,
-                    "model_version": model_version, "precision": precision, "gpu": gpu, "provider": pname,
-                    "provider_kind": provider.kind, "mode": provider.mode, "wall_s": time.perf_counter() - t_group,
-                    "units": sum(r.meta.get("cost_breakdown", {}).get("units", 0.0) for r in rows),
-                    "api_dollars": sum(r.api_dollars for r in rows), "concurrency": concurrency,
-                    "thinking_budget": role.thinking_budget, "max_tokens": role.max_tokens, "requested_attempts": attempts,
-                    "stopped_at": stopped_at, "stop_at_dollars": stop_at_dollars, "prompt_override": prompt is not None,
-                    "context_extra": context_extra or {}, "pass_rate": (summary["passed"] / n) if n else float("nan"),
-                    "optimal_rate": (summary["optimal"] / n) if n else float("nan"),
-                    "capped": sum(1 for r in rows if r.meta.get("finish_reason") == "length"),
-                    "no_code": sum(1 for r in rows if (r.certificate or {}).get("error", "") and "no code block" in r.certificate["error"]),
-                    "request_latency_s": sum(r.meta.get("latency_s", 0.0) for r in rows),
-                    "ledger": str(Path(ledger.path).resolve()),
-                    "verify_first": {"required": "best known value found at least once",
-                                     "found": summary_optimal(rows), "attempts": n}})
-    if post_check is not None:
-        checks = [r.meta.get("gate_check") for r in rows]
-        summary["gate_checks"] = {"applied": sum(1 for c in checks if c is not None),
-                                  "passed": sum(1 for c in checks if c and c.get("ok") is True),
-                                  "failed": sum(1 for c in checks if c and c.get("ok") is False)}
-    best = ledger.get_attempt(summary["best_attempt_id"]) if summary["best_attempt_id"] else None
+    runner = BuilderRunner(role, target, s["judge"], prompt=prompt, tool_calls=tool_calls, judge_gate=JudgeGate(judge_concurrency),
+                           post_check=post_check, proposal_for=proposal_for)
+    summary = run_episodes(runner.attempt, role_name=role_name, role=role, provider=provider, provider_name=pname, target=target,
+                           attempts=attempts, seed=seed, ledger=ledger, meter=s["meter"], model=s["model"], model_version=s["model_version"],
+                           precision=s["precision"], gpu=s["gpu"], concurrency=concurrency, group_id=group_id, stop_at_dollars=stop_at_dollars,
+                           quiet=quiet, tool_calls=tool_calls, prompt_override=prompt is not None, context_extra=context_extra,
+                           post_check_used=post_check is not None)
     if own_ledger:
         ledger.close()
-    if not quiet:
-        print_summary(summary, best)
-    out_dir = Path(ledger_path).resolve().parent / "groups"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / f"{group_id}.json").write_text(json.dumps(summary, indent=1, default=str), encoding="utf-8")
     return summary
 
 

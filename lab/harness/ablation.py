@@ -27,22 +27,10 @@ from ..ledger import Ledger, new_id
 from ..roles import KINDS, MODES
 from ..targets import get_target
 from .base import harness_provider
+from .carriers import gate_prompt, notebook_prompt  # noqa: F401  (the carriers module holds the prompts; the matrix generalizes the arms)
 from .lessons import LessonBank, LessonHarness, apply_check
 
 ARMS = ("no_notebook", "notebook", "notebook_gate")
-
-
-def notebook_prompt(target, text: str) -> str:
-    if not text.strip():
-        return target.prompt + "\n\n(The notebook holds no lessons for this family yet.)"
-    return target.prompt + "\n\nLessons from earlier attempts on this family (the notebook):\n" + text
-
-
-def gate_prompt(target, gate: dict) -> str:
-    text = LessonHarness.gate_text(gate)
-    if not text:
-        return target.prompt + "\n\n(The gate selected no lesson for this target.)"
-    return target.prompt + "\n\n" + text
 
 
 def plan_ablation(*, target_id: str, attempts: int, seed: int, cfg: dict, ledger: Ledger, harness: LessonHarness,

@@ -10,6 +10,14 @@ Families and their candidate contracts (the entry point the judge calls in the s
 
 Target ids: quad-d7, quad-square-d5, quad-triangle-d4, quad-d7-pi, pep-<entry>, order-ode-p4, order-poisson-p2,
 order-quad-p4, opcount-dft-n16, ssp-s3-p3, stab-real-s4-p4, stab-imag-s4-p4.
+
+Transfer blocks (week 4): every target carries the coordinates the source-target matrix is read from (proposal,
+"Transfer settings, carriers and controls"): the certificate family, the instance id, the regime level (harder is
+larger), the structure class within the family (the domain of a cubature rule, the problem family of a scheme, the
+method of a first-order rate, the objective of a time integrator), the certifier, and the open flag, which is
+recorded and never ranked. `transfer_setting(source_ids, target_id)` names the setting of a target relative to the
+targets an experience set came from: same instances, new instances, harder (or easier) regime, a new family under
+the same certificate, or a new domain under a different certificate.
 """
 from __future__ import annotations
 
@@ -135,6 +143,57 @@ FAMILY_DESC = {
 }
 
 
+SETTINGS = ("same_instances", "new_instances", "harder_regime", "easier_regime", "new_family_same_certificate", "new_domain")
+
+# Words a process-only lesson from a family may not carry into another family (the content-redaction control):
+# the names of methods, objects and quantities of the family. Digits are redacted everywhere.
+CONTENT_TERMS = {
+    "quadrature": ["gauss", "gaussian", "legendre", "jacobi", "lobatto", "radau", "chebyshev", "clenshaw", "curtis", "newton-cotes",
+                   "simpson", "trapezoid", "midpoint", "node", "nodes", "weight", "weights", "quadrature", "cubature", "rule",
+                   "rules", "radon", "stroud", "dunavant", "tensor", "product", "orbit", "orbits", "barycentric", "monomial",
+                   "monomials", "moment", "moments", "polynomial", "polynomials", "degree", "exactness", "exact", "triangle",
+                   "square", "cube", "interval", "symmetric", "symmetry", "centroid", "vertices", "edge", "golub", "welsch",
+                   "eigenvalue", "eigenvalues", "recurrence", "integrate", "integral", "integrates"],
+    "first_order": ["gradient", "descent", "nesterov", "momentum", "douglas", "rachford", "davis", "yin", "proximal", "prox",
+                    "splitting", "operator", "contraction", "rate", "rates", "step", "size", "strongly", "convex", "smooth",
+                    "lipschitz", "condition", "kappa", "alpha", "theta", "gamma", "iteration", "iterations", "worst-case",
+                    "performance", "estimation", "interpolation"],
+    "order": ["euler", "heun", "runge", "kutta", "rk4", "midpoint", "trapezoid", "simpson", "finite", "difference", "differences",
+              "stencil", "central", "boundary", "refinement", "step", "steps", "mesh", "grid", "order", "convergence", "richardson",
+              "extrapolation", "poisson", "ode", "stage", "stages", "scheme", "schemes", "composite", "panel", "panels", "tridiagonal"],
+    "opcount": ["fft", "butterfly", "radix", "cooley", "tukey", "twiddle", "twiddles", "transform", "transforms", "fourier", "dft",
+                "split-radix", "recursion", "recursive", "even", "odd", "stage", "stages", "multiplication", "multiplications",
+                "addition", "additions", "operation", "operations", "count", "flops", "symmetry", "symmetries", "conjugate"],
+    "time_integrator": ["runge", "kutta", "butcher", "tableau", "shu", "osher", "ssp", "strong", "stability", "stable", "region",
+                        "polynomial", "amplification", "stage", "stages", "explicit", "order", "conditions", "coefficient",
+                        "coefficients", "monotonicity", "radius", "extent", "axis", "imaginary", "real", "heun", "euler", "optimal"],
+}
+
+
+@dataclass
+class TransferBlock:
+    """Where a target sits for the source-target matrix: `family` is the certificate family, `structure` the class
+    within it (a cubature domain, a problem family, a method, a transform, an objective), `regime` a difficulty level
+    that is larger when harder, `instance` the target id, `open` the scoreboard flag (recorded, never ranked)."""
+    family: str
+    instance: str
+    regime: float
+    structure: str
+    certificate: str
+    open: bool = False
+    regime_name: str = ""
+    content_terms: list[str] = field(default_factory=list)
+
+    @property
+    def family_key(self) -> str:
+        """The family an experience set is said to come from: the certificate family and the structure class."""
+        return f"{self.family}/{self.structure}"
+
+    def to_dict(self) -> dict:
+        return {"family": self.family, "instance": self.instance, "regime": self.regime, "regime_name": self.regime_name,
+                "structure": self.structure, "certificate": self.certificate, "open": self.open, "family_key": self.family_key}
+
+
 @dataclass
 class Target:
     id: str
@@ -151,6 +210,27 @@ class Target:
     scoreboard_id: str | None = None
     cutoff: str | None = None                 # reading-list cutoff date (YYYY-MM-DD) for the librarian
     instrument: dict | None = None            # sandbox instrumentation (opcount)
+    transfer: TransferBlock | None = None     # the target's coordinates in the source-target matrix
+
+    @property
+    def class_definition(self) -> str:
+        """The class a certified candidate is claimed for, in words: what the breaker may build instances from."""
+        p = self.params
+        if self.family == "quadrature":
+            desc = DOMAIN_TEXT[p["domain"]][0]
+            return (f"polynomials of total degree at most {p['degree']} on {desc}, as monomials x^a (y^b) with a + b <= "
+                    f"{p['degree']} or as polynomials with coefficients of absolute value at most 1; the rule must integrate each "
+                    f"of them within 1e-9 (times the number of terms for a polynomial)")
+        if self.family == "first_order":
+            return (f"the function class {p['params']} of {p['method']}: quadratics f(x) = c/2 x^2 with curvature c in [mu, L] are "
+                    f"instances; the claimed rate must hold on each of them")
+        if self.family == "order":
+            return f"problems of the family {p['problem_family']} with parameters in the certifier's own ranges"
+        if self.family == "opcount":
+            return f"inputs of length {p['n']} to the transform {p['transform']}"
+        if self.family == "time_integrator":
+            return f"explicit Runge-Kutta methods with {p.get('stages')} stages and order {p['order']} on the test equation"
+        return self.family
 
     def make_certifier(self, cache_dir=None, sdp_cap_s: float = 60.0, sdp_solver: str = "SCS"):
         p = self.params
@@ -222,7 +302,10 @@ def quadrature_target(domain: str, degree: int, *, require_positive: bool = Fals
                   params={"domain": domain, "degree": int(degree), "require_positive": require_positive,
                           "require_interior": require_interior},
                   best_known=best, best_known_source=source, status=status, scoreboard_id=sid,
-                  cutoff=CUTOFFS[f"quad-{domain}"])
+                  cutoff=CUTOFFS[f"quad-{domain}"],
+                  transfer=TransferBlock(family="quadrature", instance=tid, regime=float(degree), regime_name="exactness degree",
+                                         structure=domain, certificate="quadrature_exactness", open=(status == "open"),
+                                         content_terms=CONTENT_TERMS["quadrature"]))
 
 
 def first_order_target(entry_id: str, board: dict | None = None) -> Target:
@@ -231,11 +314,17 @@ def first_order_target(entry_id: str, board: dict | None = None) -> Target:
         if e["id"] == entry_id:
             params = dict(e["params"])
             prompt = PEP_PROMPT.format(method=e["method"], cls=e["class"], params=params)
+            mu = float(params.get("mu", params.get("mu1", 0.1)) or 0.1)          # Davis-Yin names its smooth term f1
+            L = float(params.get("L", params.get("L1", 1.0)) or 1.0)
             return Target(id=f"pep-{entry_id}", family="first_order", title=f"worst-case rate of {e['method']}",
                           prompt=prompt, entry_point="method", certifier_name="pep_worst_case_rate",
                           params={"method": e["method"], "params": params}, best_known=e.get("published_value"),
                           best_known_source=e.get("source"), status=e.get("status"), scoreboard_id=entry_id,
-                          cutoff=CUTOFFS.get(f"pep-{entry_id}"))
+                          cutoff=CUTOFFS.get(f"pep-{entry_id}"),
+                          transfer=TransferBlock(family="first_order", instance=f"pep-{entry_id}", regime=float(L / mu),
+                                                 regime_name="condition number L/mu", structure=str(e["method"]),
+                                                 certificate="pep_worst_case_rate", open=(e.get("status") == "open"),
+                                                 content_terms=CONTENT_TERMS["first_order"]))
     raise KeyError(entry_id)
 
 
@@ -253,7 +342,11 @@ def order_target(short: str, order: int, board: dict | None = None) -> Target:
                   certifier_name="convergence_order", params={"problem_family": fam, "order": int(order)},
                   best_known=float(entry["best_known"]) if entry else float(order),
                   best_known_source=entry.get("source") if entry else None, status=entry.get("status") if entry else None,
-                  scoreboard_id=tid if entry else None, cutoff=CUTOFFS["order"])
+                  scoreboard_id=tid if entry else None, cutoff=CUTOFFS["order"],
+                  transfer=TransferBlock(family="order", instance=tid, regime=float(order), regime_name="order of convergence",
+                                         structure=fam, certificate="convergence_order",
+                                         open=(entry.get("status") == "open") if entry else False,
+                                         content_terms=CONTENT_TERMS["order"]))
 
 
 def opcount_target(n: int, board: dict | None = None) -> Target:
@@ -266,7 +359,11 @@ def opcount_target(n: int, board: dict | None = None) -> Target:
                   entry_point="transform", certifier_name="operation_count", params={"transform": "dft", "n": int(n)},
                   best_known=float(entry["best_known"]) if entry else fft, best_known_source=entry.get("source") if entry else None,
                   status=entry.get("status") if entry else None, scoreboard_id=tid if entry else None,
-                  cutoff=CUTOFFS["opcount"], instrument={"module": str(COUNTED_MODULE), "wrap_args": [0, 1]})
+                  cutoff=CUTOFFS["opcount"], instrument={"module": str(COUNTED_MODULE), "wrap_args": [0, 1]},
+                  transfer=TransferBlock(family="opcount", instance=tid, regime=float(n), regime_name="transform length",
+                                         structure="dft", certificate="operation_count",
+                                         open=(entry.get("status") == "open") if entry else False,
+                                         content_terms=CONTENT_TERMS["opcount"]))
 
 
 def stability_target(kind: str, stages: int, order: int, board: dict | None = None) -> Target:
@@ -290,7 +387,11 @@ def stability_target(kind: str, stages: int, order: int, board: dict | None = No
                   certifier_name="stability_region_ssp", params={"kind": kind, "stages": int(stages), "order": int(order)},
                   best_known=float(entry["best_known"]) if entry else None, best_known_source=entry.get("source") if entry else None,
                   status=entry.get("status") if entry else None, scoreboard_id=tid if entry else None,
-                  cutoff=CUTOFFS["ssp" if kind == "ssp" else "stab"])
+                  cutoff=CUTOFFS["ssp" if kind == "ssp" else "stab"],
+                  transfer=TransferBlock(family="time_integrator", instance=tid, regime=float(order), regime_name="order",
+                                         structure=kind, certificate="stability_region_ssp",
+                                         open=(entry.get("status") == "open") if entry else False,
+                                         content_terms=CONTENT_TERMS["time_integrator"]))
 
 
 def get_target(target_id: str) -> Target:
@@ -340,3 +441,32 @@ def list_targets() -> list[str]:
 
 def family_of(target_id: str) -> str:
     return get_target(target_id).family
+
+
+def transfer_setting(source_ids: list[str], target_id: str) -> dict:
+    """The setting of a target relative to the targets an experience set came from (proposal: instances, regime,
+    structure as three axes; the open flag recorded separately). The nearest description wins: same instances, then
+    new instances (same structure and regime), harder or easier regime (same structure), a new family under the same
+    certificate (a different structure class), or a new domain (a different certificate)."""
+    t = get_target(target_id).transfer
+    sources = [get_target(s).transfer for s in source_ids]
+    if t is None or any(s is None for s in sources):
+        raise ValueError("every target needs a transfer block")
+    if not sources:
+        raise ValueError("an experience set needs at least one source target")
+    same_struct = [s for s in sources if s.family == t.family and s.structure == t.structure]
+    if any(s.instance == t.instance for s in sources):
+        setting = "same_instances"
+    elif any(s.regime == t.regime for s in same_struct):
+        setting = "new_instances"
+    elif same_struct and t.regime > max(s.regime for s in same_struct):
+        setting = "harder_regime"
+    elif same_struct:
+        setting = "easier_regime"
+    elif any(s.certificate == t.certificate for s in sources):
+        setting = "new_family_same_certificate"
+    else:
+        setting = "new_domain"
+    return {"setting": setting, "target": t.to_dict(), "sources": [s.to_dict() for s in sources],
+            "same_family": bool(same_struct), "open": t.open,
+            "source_family_keys": sorted({s.family_key for s in sources}), "target_family_key": t.family_key}
