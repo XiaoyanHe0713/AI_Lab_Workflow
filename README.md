@@ -29,8 +29,8 @@ harness writes enters a reward.
 | `lab/certifiers/stability.py` | Week 3: the stability polynomial, the real- and imaginary-axis extents of the region of absolute stability, the order conditions and the SSP coefficient (radius of absolute monotonicity) of an explicit Runge-Kutta method in Butcher or Shu-Osher form. |
 | `lab/judge.py`, `lab/sandbox_runner.py` | The judge: subprocess sandbox plus the certifier; the runner can wrap entry arguments as counted scalars for the operation-count family. |
 | `lab/targets.py` | Targets with prompts, scoreboard entries and reading-list cutoffs: `quad-*`, `pep-*`, `order-*`, `opcount-dft-n*`, `ssp-s*-p*`, `stab-{real,imag}-s*-p*`. |
-| `lab/demo.py` | `python -m lab.demo`: N attempts from one prompt, judged, priced, in the ledger, pass@1 and pass@16; `--concurrency 16` sends a group as parallel requests; prompt overrides and a logged post-check for the ablation arms. |
-| `lab/gate.py` | `python -m lab.gate --targets ... --attempts 64 --thinking 0 512`: the training gate, a memo per target with pass@1/16/64 valid and optimal, the 5 to 80 percent verdict and the cost. |
+| `lab/demo.py` | `python -m lab.demo`: N attempts from one prompt, judged, priced, in the ledger, pass@1 and pass@16; `--concurrency 16` sends a group as parallel requests (a wave's GPU time is its wall time, shared among its attempts by latency); `--thinking N` caps the reasoning at N tokens and then asks for the answer (two requests); prompt overrides and a logged post-check for the ablation arms. |
+| `lab/gate.py` | `python -m lab.gate --targets ... --attempts 64 --thinking 0 512 --max-tokens 8192`: the training gate, a memo per target with the pass rate (the verdict's statistic), pass@1/16/64 valid and optimal, the attempts that hit the token cap or returned no code, the 5 to 80 percent verdict and the cost. |
 | `lab/harness/base.py` | The harness base: every language call goes through the provider and the budget guard and into the ledger as role `harness:<name>` with provider, mode and API dollars. |
 | `lab/harness/librarian.py`, `reading_list/*.yaml` | The librarian: the reading list with dates, retrieval under a per-target date cutoff (lexical ranking by a program, selection and summary by the provider), every citation logged, and the pass over `provenance: provisional` scoreboard entries. |
 | `lab/harness/archive.py` | The archive: a content-addressed store of certified methods with witnesses and dossiers, linked to the attempt, reading-list snapshot, lessons, citations and cost; `trace()` is one SQL query. |
@@ -62,7 +62,7 @@ python -m lab.demo --target quad-d7 --attempts 16 --provider local --mode offlin
 The training gate on the training-family candidates (a memo per target under `<ledger dir>/gates/`):
 
 ```bash
-python -m lab.gate --targets quad-square-d5 quad-triangle-d4 --attempts 64 --thinking 0 512 --gpu G4 --precision bf16
+python -m lab.gate --targets quad-square-d5 quad-triangle-d4 --attempts 64 --thinking 0 512 --max-tokens 8192 --gpu G4 --precision bf16
 ```
 
 The ablation harness offline (local attempts and GPT lessons both from recorded fixtures):
@@ -91,7 +91,7 @@ On Colab (Pro+, background execution): open `colab/serve.ipynb`, set the GPU run
 `HF_TOKEN`, `GITHUB_TOKEN` (private repository) and, for the ablation, `OPENAI_API_KEY`, fill cell 1 and run all
 cells. Cells 4 to 9 pin the frozen base, build or reuse the 4-bit copy, start vLLM with the zero adapter, run the
 smoke test and the demo with `CONCURRENCY` parallel requests. Cells 10 and 11 (off by default: `RUN_GATE`,
-`RUN_ABLATION`) run the gate on `GATE_TARGETS` with the thinking ladder and the ablation harness online; both write
+`RUN_ABLATION`) run the gate on `GATE_TARGETS` with the thinking ladder and `GATE_MAX_TOKENS` answer tokens, and the ablation harness online; both write
 to the ledger on Drive, the memos to `gates/` and the reports to `ablations/` next to it. Cell 12 (`RECORD_FIXTURES`,
 no GPU needed) records the harness tests' GPT fixtures with the same secret, replays them once, and exports them with the
 librarian's reviews to `exports/week3-fixtures/` on Drive for a commit from your own machine (Colab pulls read-only).
@@ -204,6 +204,7 @@ The package and its tests run on a CPU-only machine. The notebook ran end to end
 2026-11-04 (weights pinned, vLLM serving, smoke test, the 16-attempt demo, see `RESULTS.md`). Week 3 adds the three
 certifiers, the harnesses and the ablation harness, all exercised offline under pytest; the GPT fixtures were recorded
 on Colab on 2026-11-05 (25 calls, $0.04) and the harness tests replay them. Not yet exercised: the A100/L4 path, SGLang,
-the tunnel cell, the gate runner and the ablation harness against the served model (cells 10 and 11), and the Claude
-provider (no key yet; its harness tests skip until recorded). Scoreboard entries marked `provenance: provisional` must be checked by a person against the
+the tunnel cell, the ablation harness against the served model (cell 11), the thinking ladder with a real budget (the first
+gate run on 2026-11-05 predates it, see `RESULTS.md`), and the Claude provider (no key yet; its harness tests skip
+until recorded). The gate ran once on the square and triangle targets at thinking 0 (cell 10). Scoreboard entries marked `provenance: provisional` must be checked by a person against the
 sources, with the librarian's reviews under `scoreboard/reviews/` as a starting point, before any novelty claim.

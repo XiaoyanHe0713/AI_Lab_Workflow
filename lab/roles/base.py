@@ -18,6 +18,10 @@ Modes
   record     live calls, each written as a fixture so the same test runs offline afterwards.
 The pytest default is offline. Live tests carry the `online` marker and are skipped without a key.
 
+Thinking budget (the ladder 0, 512, 1024 of the proposal): a role on the local endpoint with a positive budget makes
+two requests per attempt, the reasoning capped at the budget and closed, then the answer continued after it; see
+Role._attempt_with_thinking_budget. Offline replays make one request (the recorded text stands for both).
+
 Budget: every online or record call to a frontier provider passes through the budget guard
 (config/budget.yaml, $200 a month): above the warning fraction it warns once per session, at the cap it
 raises and makes no call. Offline replays cost nothing and never count.
@@ -351,6 +355,11 @@ class Role:
         msgs.append({"role": "user", "content": user_prompt})
         return msgs
 
+    # Qwen's own early-stop sentence: appended to the reasoning when the thinking budget runs out, so the model
+    # closes its thinking and answers from what it has (the thinking-budget mechanism of the Qwen3 serving stack).
+    THINK_CLOSE = ("\n\nConsidering the limited time by the user, I have to give the solution based on the thinking "
+                   "directly now.")
+
     def attempt(self, user_prompt: str, *, seed: int | None = None) -> RoleResult:
         messages = self.build_messages(user_prompt)
         extra = dict(self.extra_body)
@@ -358,14 +367,54 @@ class Role:
             # Qwen3-family chat template: thinking off at budget 0 (vLLM/SGLang chat_template_kwargs)
             extra.setdefault("chat_template_kwargs", {})
             extra["chat_template_kwargs"].setdefault("enable_thinking", self.thinking_budget > 0)
-        completion = self.provider.complete(messages, temperature=self.temperature, max_tokens=self.max_tokens,
-                                            seed=seed, model=self.served_model, extra_body=extra or None)
+        if self.provider.kind == "local" and self.thinking_budget > 0 and self.provider.mode != "offline":
+            completion, tool_log = self._attempt_with_thinking_budget(messages, extra, seed)
+        else:
+            completion = self.provider.complete(messages, temperature=self.temperature, max_tokens=self.max_tokens,
+                                                seed=seed, model=self.served_model, extra_body=extra or None)
+            tool_log = [self._log(completion, seed, "chat.completions")]
         return RoleResult(role=self.name, messages=messages, prompt_hash=prompt_hash(messages), completion=completion,
-                          served_model=self.served_model, adapter=self.adapter,
-                          tool_log=[{"tool": "chat.completions", "provider": self.provider.name, "mode": completion.mode,
-                                     "model": self.served_model, "seed": seed, "latency_s": completion.latency_s,
-                                     "prompt_tokens": completion.prompt_tokens,
-                                     "completion_tokens": completion.completion_tokens}])
+                          served_model=self.served_model, adapter=self.adapter, tool_log=tool_log)
+
+    def _log(self, completion: Completion, seed, tool: str, **more) -> dict:
+        return {"tool": tool, "provider": self.provider.name, "mode": completion.mode, "model": self.served_model, "seed": seed,
+                "latency_s": completion.latency_s, "prompt_tokens": completion.prompt_tokens,
+                "completion_tokens": completion.completion_tokens, **more}
+
+    def _attempt_with_thinking_budget(self, messages: list[dict], extra: dict, seed) -> tuple[Completion, list]:
+        """A real thinking budget on an OpenAI-compatible server: one request generates the reasoning with max_tokens
+        equal to the budget and stops at the closing tag; if the budget runs out the reasoning is closed with Qwen's
+        early-stop sentence; a second request continues the assistant message after </think> and writes the answer
+        with the role's own token limit. Both calls are in the tool log; their tokens and latencies are summed."""
+        think = self.provider.complete(messages, temperature=self.temperature, max_tokens=self.thinking_budget, seed=seed,
+                                       model=self.served_model, extra_body={**extra, "stop": ["</think>"]})
+        thought = think.text.lstrip()
+        if thought.startswith("<think>"):
+            thought = thought[len("<think>"):]
+        thought = thought.split("</think>")[0].strip()
+        budget_hit = think.finish_reason == "length"
+        if budget_hit:
+            thought = thought + self.THINK_CLOSE
+        prefix = f"<think>\n{thought}\n</think>\n\n"
+        logs = [self._log(think, seed, "chat.completions:thinking", budget=self.thinking_budget, budget_hit=budget_hit)]
+        info = {"budget": self.thinking_budget, "budget_hit": budget_hit, "thinking_tokens": think.completion_tokens,
+                "closed_by": "budget" if budget_hit else "model"}
+        try:
+            answer = self.provider.complete(messages + [{"role": "assistant", "content": prefix}], temperature=self.temperature,
+                                            max_tokens=self.max_tokens, seed=seed, model=self.served_model,
+                                            extra_body={**extra, "continue_final_message": True, "add_generation_prompt": False})
+        except Exception as e:  # the server could not continue the message: the attempt keeps its thinking, no answer
+            logs.append({"tool": "chat.completions:answer", "error": f"{type(e).__name__}: {e}"})
+            think.text = prefix
+            think.raw = {**think.raw, "thinking": {**info, "answer_error": f"{type(e).__name__}: {str(e)[:300]}"}}
+            return think, logs
+        logs.append(self._log(answer, seed, "chat.completions:answer"))
+        completion = Completion(text=prefix + answer.text, prompt_tokens=think.prompt_tokens + answer.prompt_tokens,
+                                completion_tokens=think.completion_tokens + answer.completion_tokens,
+                                latency_s=think.latency_s + answer.latency_s, model=answer.model, provider=answer.provider,
+                                mode=answer.mode, finish_reason=answer.finish_reason, api_dollars=think.api_dollars + answer.api_dollars,
+                                raw={**answer.raw, "thinking": {**info, "answer_tokens": answer.completion_tokens}})
+        return completion, logs
 
 
 def make_role(name: str, cfg: dict, provider: Provider | None = None, system_prompt: str = "",

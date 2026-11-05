@@ -71,12 +71,14 @@ def run_ablation(*, target_id: str, attempts: int, seed: int = 0, cfg: dict | No
                  budget_usd: float | None = None, gpu: str | None = None, precision: str | None = None,
                  units_per_hour: float | None = None, concurrency: int = 1, judge_concurrency: int = 4,
                  fixtures_root: str | Path | None = None, quiet: bool = True, cache_dir: str | Path | None = None,
-                 timeout_s: float | None = None, out_dir: str | Path | None = None, ledger: Ledger | None = None) -> dict:
+                 timeout_s: float | None = None, out_dir: str | Path | None = None, ledger: Ledger | None = None,
+                 max_tokens: int | None = None, thinking_budget: int | None = None) -> dict:
     cfg = cfg or lab_config()
     own = ledger is None
     ledger = ledger or Ledger(ledger_path)
-    run_kw = dict(gpu=gpu, precision=precision, units_per_hour=units_per_hour, temperature=None, max_tokens=None, timeout_s=timeout_s,
-                  fixtures_root=fixtures_root, cache_dir=cache_dir, concurrency=concurrency, judge_concurrency=judge_concurrency)
+    run_kw = dict(gpu=gpu, precision=precision, units_per_hour=units_per_hour, temperature=None, max_tokens=max_tokens,
+                  timeout_s=timeout_s, fixtures_root=fixtures_root, cache_dir=cache_dir, concurrency=concurrency,
+                  judge_concurrency=judge_concurrency, thinking_budget=thinking_budget)
     plan = plan_ablation(target_id=target_id, attempts=attempts, seed=seed, cfg=cfg, ledger=ledger, harness=harness,
                          provider_name=provider_name, mode=mode, token_budget=token_budget, budget_usd=budget_usd, run_kw=run_kw, quiet=quiet)
     target, gate = plan["target"], plan["gate"]
@@ -173,6 +175,8 @@ def main(argv=None) -> int:
     ap.add_argument("--precision", default=None)
     ap.add_argument("--units-per-hour", type=float, default=None)
     ap.add_argument("--concurrency", type=int, default=1)
+    ap.add_argument("--max-tokens", type=int, default=None, help="answer tokens per attempt (default: the role's, 4096)")
+    ap.add_argument("--thinking", type=int, default=None, help="thinking budget in tokens for every arm (0 = off)")
     ap.add_argument("--timeout", type=float, default=None)
     ap.add_argument("--fixtures", default=None)
     ap.add_argument("--out", default=None)
@@ -186,7 +190,8 @@ def main(argv=None) -> int:
     report = run_ablation(target_id=args.target, attempts=args.attempts, seed=args.seed, cfg=cfg, ledger_path=ledger_path, ledger=ledger,
                           harness=harness, provider_name=args.provider, mode=args.mode, token_budget=args.token_budget,
                           budget_usd=args.budget_usd, gpu=args.gpu, precision=args.precision, units_per_hour=args.units_per_hour,
-                          concurrency=args.concurrency, fixtures_root=args.fixtures, quiet=args.json, timeout_s=args.timeout, out_dir=args.out)
+                          concurrency=args.concurrency, fixtures_root=args.fixtures, quiet=args.json, timeout_s=args.timeout, out_dir=args.out,
+                          max_tokens=args.max_tokens, thinking_budget=args.thinking)
     ledger.close()
     if args.json:
         print(json.dumps(report, indent=1, default=str))

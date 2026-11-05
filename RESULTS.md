@@ -119,8 +119,9 @@ session (cells 10 and 11 of `colab/serve.ipynb`).
 
 ## Tests
 
-`pytest`: 364 tests; 357 pass and 7 are skipped (the two live-API smoke tests without keys, and the
+`pytest`: 371 tests; 364 pass and 7 are skipped (the two live-API smoke tests without keys, and the
 five harness tests parametrized over Claude until its fixtures are recorded; the five GPT ones replay the recorded fixtures). Known-answer cases:
+concurrency, cost attribution and the gate 17, the thinking budget 5;
 convergence order 27, operation count 34, stability and SSP 42 (plus 5 through the judge's sandbox); concurrency and the
 gate 14; the harness base 11; the librarian 4 offline (the retrieval test set of 8 cases, the cutoff, the citations); the
 archive 2; the lesson bank 16; the checker 7.
@@ -192,3 +193,42 @@ prompts (the extraction and the detector proposal) named a noise-level "worst mo
 that differs between machines; the digests no longer include it, and those two fixtures were re-keyed under the stable
 prompt with the original request text kept inside the file.
 
+
+## The gate on the training-family candidates (second Colab session, 2026-11-05, G4, bf16)
+
+Cell 10 of the notebook: `python -m lab.gate --targets quad-square-d5 quad-triangle-d4 --attempts 64 --thinking 0 512`,
+16 parallel requests, 4096 answer tokens, temperature 0.8, seeds 0 to 63. The frozen base, no adapter. Read with the
+three corrections below; the rows are in the ledger on Drive (groups grp_1a14d857f58245a0, grp_ff95ca660e71474f,
+grp_539445a3f0434916, grp_0cdb1fc6c9154169).
+
+| Target | thinking | valid | optimal | pass rate | pass@16 valid | no code (at the cap) | verdict (pass rate) | wall | GPU cost (corrected) |
+|---|---|---|---|---|---|---|---|---|---|
+| quad-square-d5 (best known 7) | 0 | 38 / 64 | 0 | 0.594 | 1.000 | 17 (17) | in the band | 678 s | $0.22 |
+| quad-square-d5 | 512 | 4 / 64 | 0 | 0.062 | 0.694 | 59 (64 of 64 at the cap) | in the band, but see 3 | 798 s | $0.26 |
+| quad-triangle-d4 (best known 6) | 0 | 0 / 64 | 0 | 0.000 | 0.000 | 53 (53) | below the band | 703 s | $0.23 |
+| quad-triangle-d4 | 512 | 0 / 64 | 0 | 0.000 | 0.000 | 64 (64) | below the band | 798 s | $0.26 |
+
+What the run says about the model: on the square the base finds a valid degree-5 rule in 59 percent of attempts, and
+every valid rule is the 9-node 3 x 3 Gauss tensor product; Radon's 7-point rule never appears (verify-first FAIL, 0 of
+128). On the triangle no attempt is valid at either budget: the few rules that return are off by O(1) on the constant
+monomial (the area 1/2 is dropped or the barycentric map is wrong), and most attempts run out of tokens before any code.
+With a 59 percent pass rate and a score spread between valid and invalid attempts, quad-square-d5 is a training
+candidate; quad-triangle-d4 is below the band and needs a curriculum or an imitation warm start before it can train.
+
+Three corrections, all fixed in the code after this run:
+
+1. The printed costs ($2.34, $4.17, $3.47, $4.17; 43,280 GPU seconds) priced every attempt by its own request latency
+   although 16 requests were in flight together. The GPU's time is the wall time of the waves: 2,977 s in all, 9.7 units,
+   about $0.97 at the table rate ($0.22 to $0.26 per group as above). The ledger rows on Drive keep the inflated numbers;
+   from now on a wave's wall time is shared among its attempts in proportion to their latencies (`meta.gpu_attribution`).
+2. The memos said "above the band" for the square at thinking 0 because the verdict read pass@64, which is 1 whenever one
+   attempt of the 64 passes. The verdict now reads the pass rate over the group (the per-attempt probability a GRPO
+   group needs to vary), and the memo reports pass@16 and pass@64 beside it.
+3. "Thinking 512" was thinking switched on with 512 extra completion tokens, not a budget: all 128 attempts at that rung
+   ran to the 4,608-token cap inside their reasoning and 123 produced no code. A positive budget is now two requests, the
+   reasoning capped at the budget and closed with Qwen's early-stop sentence, then the answer continued after `</think>`
+   with the role's own token limit; both calls are in the tool log. The 512 rows above measure "thinking on, output
+   capped", nothing else, and the rung has to be re-run. The gate also takes `--max-tokens` (the notebook's
+   `GATE_MAX_TOKENS`, default 8192), because at thinking 0 most triangle attempts hit the 4,096-token cap before any code.
+
+Session cost for the four groups: about 50 minutes of G4 time, 9.7 units at the unconfirmed 11.77 units per hour.

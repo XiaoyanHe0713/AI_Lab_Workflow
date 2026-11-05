@@ -60,6 +60,7 @@ RUN_GATE = False                                #@param {type:"boolean"}
 GATE_TARGETS = "quad-square-d5 quad-triangle-d4"  #@param {type:"string"}
 GATE_ATTEMPTS = 64                              #@param {type:"integer"}
 GATE_THINKING = "0 512"                         #@param {type:"string"}
+GATE_MAX_TOKENS = 8192                          #@param {type:"integer"}
 RUN_ABLATION = False                            #@param {type:"boolean"}
 ABLATION_TARGET = "quad-d7"                     #@param {type:"string"}
 ABLATION_ATTEMPTS = 16                          #@param {type:"integer"}
@@ -71,6 +72,8 @@ RECORD_FIXTURES = False                         #@param {type:"boolean"}
 #               "bnb" quantizes in flight with bitsandbytes NF4 at load time (nothing to build, slower serving).
 # UNITS_PER_HOUR: the rate shown in Colab's Resources panel for this GPU; 0 means use config/prices.yaml.
 # CONCURRENCY: attempts of a group sent as parallel requests (the server runs up to --max-num-seqs sequences).
+# GATE_MAX_TOKENS: answer tokens per attempt in the gate (the first G4 run hit the 4096 cap on most triangle attempts).
+# GATE_THINKING: thinking budgets; a positive budget caps the reasoning and then asks for the answer (two requests).
 # RUN_GATE / RUN_ABLATION (week 3): the training gate on GATE_TARGETS and the ablation harness; the ablation needs
 #   the Colab secret OPENAI_API_KEY for the lesson harness (spend capped by config/budget.yaml).
 # RECORD_FIXTURES (week 3): record the harness tests' GPT fixtures here and export them to Drive for a commit.
@@ -390,7 +393,7 @@ from lab.gate import main as gate_main
 
 if RUN_GATE:
     argv = ["--targets", *GATE_TARGETS.split(), "--attempts", str(GATE_ATTEMPTS), "--thinking", *GATE_THINKING.split(),
-            "--gpu", GPU, "--precision", PRECISION, "--concurrency", str(CONCURRENCY)]
+            "--gpu", GPU, "--precision", PRECISION, "--concurrency", str(CONCURRENCY), "--max-tokens", str(GATE_MAX_TOKENS)]
     if UNITS_PER_HOUR:
         argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
     gate_main(argv)
