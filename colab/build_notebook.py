@@ -45,7 +45,7 @@ SESSION_T0 = time.time()
 
 LAB_ROOT = "/content/drive/MyDrive/ai_lab"      #@param {type:"string"}
 REPO_URL = "https://github.com/XiaoyanHe0713/AI_Lab_Workflow.git"  #@param {type:"string"}
-REPO_BRANCH = ""                                #@param {type:"string"}
+REPO_BRANCH = "build/week-3-harnesses"          #@param {type:"string"}
 SERVER = "vllm"                                 #@param ["vllm", "sglang"]
 QUANT_METHOD = "awq"                            #@param ["awq", "bnb"]
 UNITS_PER_HOUR = 0                              #@param {type:"number"}
@@ -65,7 +65,8 @@ ABLATION_TARGET = "quad-d7"                     #@param {type:"string"}
 ABLATION_ATTEMPTS = 16                          #@param {type:"integer"}
 RECORD_FIXTURES = False                         #@param {type:"boolean"}
 
-# REPO_BRANCH: empty clones the repository's default branch; set it to track another branch.
+# REPO_BRANCH: the branch this notebook was built from; cell 2 clones or checks it out, so the code matches the cells
+#   (empty = the repository's default branch, which may be older than this notebook).
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
 #               "bnb" quantizes in flight with bitsandbytes NF4 at load time (nothing to build, slower serving).
 # UNITS_PER_HOUR: the rate shown in Colab's Resources panel for this GPU; 0 means use config/prices.yaml.
@@ -109,8 +110,14 @@ REPO = "/content/AI_Lab_Workflow"
 if not os.path.exists(REPO):
     git("clone", *(["--branch", REPO_BRANCH] if REPO_BRANCH else []), REPO_URL, REPO, token=token)
 else:
+    git("-C", REPO, "fetch", "origin", token=token)
+    if REPO_BRANCH:
+        git("-C", REPO, "checkout", REPO_BRANCH)
     git("-C", REPO, "pull", "--ff-only", token=token)
-print("checked out:", git("-C", REPO, "rev-parse", "--abbrev-ref", "HEAD").strip(), git("-C", REPO, "rev-parse", "--short", "HEAD").strip())
+BRANCH, COMMIT = git("-C", REPO, "rev-parse", "--abbrev-ref", "HEAD").strip(), git("-C", REPO, "rev-parse", "--short", "HEAD").strip()
+print("checked out:", BRANCH, COMMIT)
+if REPO_BRANCH and BRANCH != REPO_BRANCH:
+    raise RuntimeError(f"the runtime has {BRANCH} checked out, not {REPO_BRANCH}: the code would not match this notebook")
 os.chdir(REPO)
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-e", ".", "huggingface_hub", "hf_transfer", "safetensors", "requests"], check=True)
 # a running kernel keeps the modules it imported before the pull; drop them so later cells import the new code
