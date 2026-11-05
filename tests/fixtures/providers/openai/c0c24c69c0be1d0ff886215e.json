@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:18:51+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard fast_transforms, section entries, entry:\n{\n \"id\": \"opcount-dft-n32\",\n \"best_known\": 800,\n \"status\": \"open\",\n \"source\": \"as above\",\n \"n\": 32\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [dahlquist-1963] 1963: A special stability problem for linear multistep methods. Defines absolute stability through the test equation u' = lambda u: a method is A-stable when its numerical solution decays for every lambda in the left half-plane, and no explicit method and no linear multistep method of order above two can be A-stable. Results: absolute stability on the test equation; A-stability and the second Dahlquist barrier\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"cannot verify\",\n  \"reason\": \"The only provided document [dahlquist-1963] discusses absolute stability of linear multistep methods and the Dahlquist barrier; it does not mention fast transforms, DFT operation counts, a scoreboard, the value 800, the source 'as above', or the open/solved status for opcount-dft-n32. Therefore the best_known value, source, and status cannot be confirmed from the given documents.\",\n  \"documents\": [\n    \"dahlquist-1963\"\n  ],\n  \"suggested_change\": \"Provide one or more supporting documents that specifically address DFT operation counts or the scoreboard entry for n=32 (opcount-dft-n32). If no such document exists, change the entry's status to 'cannot verify' or remove the unsupported best_known value and source.\"\n}",
+  "prompt_tokens": 304,
+  "completion_tokens": 317,
+  "latency_s": 6.7562186800000745,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.00071
+ }
+}

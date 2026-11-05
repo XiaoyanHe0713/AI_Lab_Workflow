@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:15:09+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Query: n-point quadrature rule exact to degree 2n-1 with nodes at the zeros of the Legendre polynomial\n\nCandidate documents (the only ones you may cite):\n1. [gauss-1814] 1814: Methodus nova integralium valores per approximationem inveniendi. Chooses the n nodes as well as the n weights: with the nodes at the zeros of the n-th Legendre polynomial the rule integrates every polynomial of degree up to 2n-1 exactly, twice the degree that fixed nodes allow, and no n-node rule can do better. Tables of nodes and weights up to n = 7.\n2. [jacobi-1826] 1826: Ueber Gauss' neue Methode, die Werthe der Integrale näherungsweise zu finden. Rederives Gauss's rule from orthogonality: a rule with n nodes is exact to degree 2n-1 if and only if its node polynomial is orthogonal to all polynomials of degree below n, which makes the nodes the zeros of the Legendre polynomial, and shows that degree 2n is unreachable because the square of the node polynomial has a positive integral but is annihilated by the rule.\n3. [trefethen-2013] 2013: Approximation Theory and Approximation Practice. Chapter 19 treats Gauss and Clenshaw-Curtis quadrature, including the proof that an n-point rule cannot be exact for the square of its node polynomial and so cannot reach degree 2n.\n4. [legendre-1785] 1785: Recherches sur l'attraction des sphéroïdes homogènes. Introduces the polynomials P_n(x) in the expansion of the potential of a spheroid: P_n is orthogonal on [-1, 1] to every polynomial of lower degree, satisfies a three-term recurrence, and has n distinct real zeros inside the interval. The zeros and the orthogonality are exactly what an optimal interpolatory quadrature rule needs, although the paper does not discuss quadrature.\n5. [simpson-1743] 1743: Mathematical Dissertations on a Variety of Physical and Analytical Subjects. The parabolic rule with three equally spaced nodes and weights 1/3, 4/3, 1/3 on [-1, 1], exact for all polynomials of degree three because of the symmetry of the nodes about the midpoint.\n6. [clenshaw-curtis-1960] 1960: A method for numerical integration on an automatic computer. Quadrature at the Chebyshev extreme points by integrating the Chebyshev expansion of the integrand; the n-node rule is exact to degree n-1 (n even) or n (n odd), with nested nodes that let the rule be doubled.\n7. [radon-1948] 1948: Zur mechanischen Kubatur. Constructs cubature rules of degree 5 with seven nodes for the triangle and for the square, and shows that seven is the fewest nodes a degree-5 rule can have on these regions, using common zeros of orthogonal polynomials in two variables.\n8. [stroud-1971] 1971: Approximate Calculation of Multiple Integrals. The compendium of cubature rules for standard regions with their degrees and node counts, the lower bound dim P_k on the number of nodes of a rule of degree 2k, and constructions by symmetry. Includes the four-point degree-3 rule on the square with nodes on the axes (C2:3-1), twelve-point degree-7 rules on the square (C2:7-1) and the four-point degree-3 triangle rule (T2:3-1).\n9. [newton-1711] 1711: Methodus differentialis. Interpolation through equally spaced nodes and the quadrature rules it yields: integrate the interpolating polynomial through n equally spaced nodes to get the Newton-Cotes rules. A rule through n equally spaced nodes is exact to degree n-1 (n even) or n (n odd); the nodes are fixed, only the weights are chosen.\n10. [hammer-marlowe-stroud-1956] 1956: Numerical integration over simplexes and cones. Symmetric integration rules over triangles, tetrahedra and cones with few nodes, including the three-point rules of degree 2 on the triangle (interior points, or the edge midpoints) and rules of degree 3 with a negative centroid weight.\n\nChoose up to 4 documents most relevant to the query, most relevant first, and give one short reason each. Then summarize in at most three sentences what these documents establish about the query, citing ids in square brackets. Reply with JSON: {\"selected\": [{\"id\": \"...\", \"why\": \"...\"}], \"summary\": \"...\"}"
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"gauss-1814\",\n      \"why\": \"Original derivation: chooses n nodes as zeros of the n-th Legendre polynomial and shows exactness up to degree 2n-1 and optimality.\"\n    },\n    {\n      \"id\": \"jacobi-1826\",\n      \"why\": \"Re-derives Gauss's rule via orthogonality and proves the node polynomial must be orthogonal to lower-degree polynomials and degree 2n is impossible.\"\n    },\n    {\n      \"id\": \"legendre-1785\",\n      \"why\": \"Establishes the orthogonality, three-term recurrence, and n distinct real zeros of P_n, which justify using those zeros as nodes.\"\n    },\n    {\n      \"id\": \"trefethen-2013\",\n      \"why\": \"Modern treatment including the proof that an n-point rule cannot be exact for the square of its node polynomial and so cannot reach degree 2n.\"\n    }\n  ],\n  \"summary\": \"Gauss introduced the n-point quadrature rule with nodes at the zeros of the n-th Legendre polynomial and showed it integrates every polynomial up to degree 2n-1 exactly and is optimal among n-node rules [gauss-1814]. Jacobi recast this via orthogonality of the node polynomial to all lower-degree polynomials, identifying the nodes as the Legendre zeros and demonstrating degree 2n cannot be attained [jacobi-1826]; Legendre's work supplies the required orthogonality and zero-location properties of P_n [legendre-1785]. Modern expositions give concise proofs of the impossibility to reach degree 2n by showing the rule annihilates the positive integral of the square of the node polynomial [trefethen-2013].\"\n}",
+  "prompt_tokens": 1057,
+  "completion_tokens": 518,
+  "latency_s": 6.035306707000018,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.00130025
+ }
+}

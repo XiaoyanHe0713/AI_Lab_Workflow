@@ -202,8 +202,8 @@ it plus Drive.
 
 The package and its tests run on a CPU-only machine. The notebook ran end to end on a Colab G4 at bf16 on
 2026-11-04 (weights pinned, vLLM serving, smoke test, the 16-attempt demo, see `RESULTS.md`). Week 3 adds the three
-certifiers, the harnesses and the ablation harness, all exercised offline under pytest; the harness tests replay
-recorded GPT fixtures once those are recorded (see Providers). Not yet exercised: the A100/L4 path, SGLang, the
-tunnel cell, the gate runner and the ablation harness against the served model (cells 10 and 11), and the Claude
-provider (no key yet). Scoreboard entries marked `provenance: provisional` must be checked by a person against the
-sources, with the librarian's reviews as a starting point, before any novelty claim.
+certifiers, the harnesses and the ablation harness, all exercised offline under pytest; the GPT fixtures were recorded
+on Colab on 2026-11-05 (25 calls, $0.04) and the harness tests replay them. Not yet exercised: the A100/L4 path, SGLang,
+the tunnel cell, the gate runner and the ablation harness against the served model (cells 10 and 11), and the Claude
+provider (no key yet; its harness tests skip until recorded). Scoreboard entries marked `provenance: provisional` must be checked by a person against the
+sources, with the librarian's reviews under `scoreboard/reviews/` as a starting point, before any novelty claim.

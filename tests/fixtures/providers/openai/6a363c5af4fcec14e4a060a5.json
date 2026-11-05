@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:15:22+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Query: minimal number of nodes for a cubature rule of degree 5 on the square; symmetric nodes and moment equations\n\nCandidate documents (the only ones you may cite):\n1. [maxwell-1877] 1877: On approximate multiple integration between limits by summation. The first cubature rules: symmetric sets of nodes in the square and the cube whose weighted sums integrate all polynomials up to a stated degree exactly, found by imposing the moment equations on symmetric configurations, with a count of how many nodes the moment equations need.\n2. [simpson-1743] 1743: Mathematical Dissertations on a Variety of Physical and Analytical Subjects. The parabolic rule with three equally spaced nodes and weights 1/3, 4/3, 1/3 on [-1, 1], exact for all polynomials of degree three because of the symmetry of the nodes about the midpoint.\n3. [gauss-1814] 1814: Methodus nova integralium valores per approximationem inveniendi. Chooses the n nodes as well as the n weights: with the nodes at the zeros of the n-th Legendre polynomial the rule integrates every polynomial of degree up to 2n-1 exactly, twice the degree that fixed nodes allow, and no n-node rule can do better. Tables of nodes and weights up to n = 7.\n4. [jacobi-1826] 1826: Ueber Gauss' neue Methode, die Werthe der Integrale näherungsweise zu finden. Rederives Gauss's rule from orthogonality: a rule with n nodes is exact to degree 2n-1 if and only if its node polynomial is orthogonal to all polynomials of degree below n, which makes the nodes the zeros of the Legendre polynomial, and shows that degree 2n is unreachable because the square of the node polynomial has a positive integral but is annihilated by the rule.\n5. [newton-1711] 1711: Methodus differentialis. Interpolation through equally spaced nodes and the quadrature rules it yields: integrate the interpolating polynomial through n equally spaced nodes to get the Newton-Cotes rules. A rule through n equally spaced nodes is exact to degree n-1 (n even) or n (n odd); the nodes are fixed, only the weights are chosen.\n6. [lagrange-1795] 1795: Leçons élémentaires sur les mathématiques données à l'École Normale. The interpolation formula that writes the polynomial through n nodes as a combination of n basis polynomials, each one at its node and zero at the others. Integrating the basis polynomials gives the weights of any interpolatory quadrature rule once the nodes are chosen.\n7. [cotes-1722] 1722: Harmonia mensurarum. Tables of the weights of the Newton-Cotes rules with up to eleven equally spaced nodes on an interval, and the observation that high-order rules of this kind have weights of both signs.\n8. [kutta-1901] 1901: Beitrag zur näherungsweisen Integration totaler Differentialgleichungen. The classical four-stage fourth-order method with weights 1/6, 1/3, 1/3, 1/6, the 3/8 rule, and a three-stage third-order rule, obtained by matching the Taylor expansion of the step up to the stated order.\n9. [courant-friedrichs-lewy-1928] 1928: Über die partiellen Differenzengleichungen der mathematischen Physik. Convergence of finite-difference approximations to partial differential equations requires the numerical domain of dependence to contain the true one: the step-size restriction later named the CFL condition.\n10. [legendre-1785] 1785: Recherches sur l'attraction des sphéroïdes homogènes. Introduces the polynomials P_n(x) in the expansion of the potential of a spheroid: P_n is orthogonal on [-1, 1] to every polynomial of lower degree, satisfies a three-term recurrence, and has n distinct real zeros inside the interval. The zeros and the orthogonality are exactly what an optimal interpolatory quadrature rule needs, although the paper does not discuss quadrature.\n\nChoose up to 4 documents most relevant to the query, most relevant first, and give one short reason each. Then summarize in at most three sentences what these documents establish about the query, citing ids in square brackets. Reply with JSON: {\"selected\": [{\"id\": \"...\", \"why\": \"...\"}], \"summary\": \"...\"}"
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"maxwell-1877\",\n      \"why\": \"Directly treats symmetric cubature on the square/cube and counts how many nodes the moment equations require.\"\n    },\n    {\n      \"id\": \"jacobi-1826\",\n      \"why\": \"Explains the orthogonality condition that characterizes optimal node placement in one dimension, underpinning why moment conditions control node counts.\"\n    },\n    {\n      \"id\": \"legendre-1785\",\n      \"why\": \"Introduces the orthogonal polynomials (Legendre) whose zeroes are the optimal nodes in the 1D Gauss context that informs multidimensional constructions.\"\n    },\n    {\n      \"id\": \"lagrange-1795\",\n      \"why\": \"Gives the interpolation viewpoint that yields weights once nodes are chosen, relevant to forming cubature weights after solving moment equations.\"\n    }\n  ],\n  \"summary\": \"Maxwell shows how to construct symmetric cubature rules on the square by imposing the moment equations on symmetric node configurations and counts how many node parameters those equations require, i.e. provides the method to determine the minimal number of symmetric nodes needed for a given exactness degree [maxwell-1877]. The 1D orthogonality results of Jacobi and Legendre explain why node placement (zeros of orthogonal polynomials) minimizes node counts in one dimension and why moment/orthogonality conditions control exactness [jacobi-1826, legendre-1785]. Once nodes are fixed by symmetry and the moment equations, Lagrange interpolation yields the corresponding weights by integrating the basis polynomials [lagrange-1795].\"\n}",
+  "prompt_tokens": 1009,
+  "completion_tokens": 739,
+  "latency_s": 13.469257340999775,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.00173025
+ }
+}

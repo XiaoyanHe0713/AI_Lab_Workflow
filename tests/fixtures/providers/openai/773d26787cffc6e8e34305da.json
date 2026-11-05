@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:16:15+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard quadrature, section triangle, entry:\n{\n \"id\": \"triangle-d5\",\n \"degree\": 5,\n \"best_known\": 7,\n \"status\": \"solved\",\n \"method\": \"Radon's 7-point degree-5 rule (positive, interior)\",\n \"source\": \"Radon (1948); Dunavant (1985) rule 5; minimality 7 by Moller's lower bound for degree 5 (Moller 1976), see Cools (1997).\\n\"\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [gatermann-1988] 1988: The construction of symmetric cubature formulas for the square and the triangle. Uses invariant theory to reduce the moment equations of symmetric cubature and finds a 12-point degree-7 rule on the triangle with positive weights and interior nodes, one point fewer than Dunavant's degree-7 rule and without a negative weight. Results: a 12-point degree-7 rule on the triangle with positive weights and interior points\n2. [moller-1976] 1976: Kubaturformeln mit minimaler Knotenzahl. A lower bound on the number of nodes of a cubature rule of odd degree 2k+1 on a centrally symmetric region that improves the dim P_k bound: for the square it gives 4 for degree 3, 7 for degree 5 and 12 for degree 7, and the bounds for degrees 3, 5 and 7 are attained. Results: Möller's lower bound for odd degree on centrally symmetric regions; square: at least 4, 7 and 12 nodes for degrees 3, 5 and 7\n3. [radon-1948] 1948: Zur mechanischen Kubatur. Constructs cubature rules of degree 5 with seven nodes for the triangle and for the square, and shows that seven is the fewest nodes a degree-5 rule can have on these regions, using common zeros of orthogonal polynomials in two variables. Results: a 7-point degree-5 rule exists on the triangle and on the square; no degree-5 rule on these regions has fewer than 7 nodes\n4. [stroud-1971] 1971: Approximate Calculation of Multiple Integrals. The compendium of cubature rules for standard regions with their degrees and node counts, the lower bound dim P_k on the number of nodes of a rule of degree 2k, and constructions by symmetry. Includes the four-point degree-3 rule on the square with nodes on the axes (C2:3-1), twelve-point degree-7 rules on the square (C2:7-1) and the four-point degree-3 triangle rule (T2:3-1). Results: a rule exact to degree 2k needs at least dim P_k nodes; catalogue of rules on the square, cube and triangle with degrees and node counts\n5. [cools-1997] 1997: Constructing cubature formulae: the science behind the art. A survey of the theory of cubature: lower bounds on the number of nodes (dim P_k, Möller's bound), the connection with common zeros of orthogonal polynomials, and the methods used to construct rules. Results: survey of lower bounds and construction methods for cubature\n6. [cools-rabinowitz-1993] 1993: Monomial cubature rules since 'Stroud': a compilation. Compiles the cubature rules published after Stroud's book for the standard regions, with for each region and degree the fewest nodes known, whether the known lower bound is attained, and the properties of the rules (positive weights, interior nodes). Results: tables of minimal known node counts by region and degree, with lower bounds\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"inconsistent\",\n  \"reason\": \"The entry's best_known = 7 and the method 'Radon's 7-point degree-5 rule' are supported by Radon, who constructs a 7-point degree-5 rule on the triangle and shows no degree-5 rule on the triangle has fewer than 7 nodes [radon-1948]. However the entry attributes the minimality '7' to Möller's lower bound; the provided summary of Möller (1976) gives the improved odd-degree lower bound for centrally symmetric regions and specifically cites the square for degree 5, not the triangle. Thus minimality for the triangle should be attributed to Radon rather than to Möller. Also the entry cites Dunavant (1985) which is not present in the provided document list and so cannot be verified here.\",\n  \"documents\": [\n    \"radon-1948\",\n    \"moller-1976\",\n    \"cools-1997\",\n    \"cools-rabinowitz-1993\"\n  ],\n  \"suggested_change\": \"Keep best_known = 7 and status = 'solved' and method = 'Radon's 7-point degree-5 rule' (these are supported by [radon-1948]). Change the minimality attribution: cite Radon (1948) for the proof that seven is minimal on the triangle. If a Möller citation is kept, clarify that Möller's bound in [moller-1976] applies to centrally symmetric regions (e.g. the square) and supports minimality = 7 for the square, not the triangle. Note that Dunavant (1985) is not in the provided document list and cannot be verified from these documents.\"\n}",
+  "prompt_tokens": 937,
+  "completion_tokens": 884,
+  "latency_s": 9.104549198999848,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.00200225
+ }
+}

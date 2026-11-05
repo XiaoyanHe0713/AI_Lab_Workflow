@@ -1,0 +1,97 @@
+reviews:
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n8
+  best_known: 120
+  verdict: inconsistent
+  reason: For N = 8 the cited literature gives lower operation counts than 120. Yavne
+    (1968) and Duhamel & Hollmann (1984) (the split-radix result) give 4 N log2 N
+    - 6 N + 8 real operations, which for N=8 evaluates to 56. Johnson & Frigo (2007)
+    gives an improved count around (34/9) N log2 N ≈ 90.7 for N=8. Van Loan (1992)
+    documents radix-2 costing 5 N log2 N = 120, but that is a higher count than the
+    split-radix and modified split-radix results. Therefore the entry's best_known
+    value 120 and its implied sourcing are not consistent with the documents, which
+    record lower known counts.
+  documents:
+  - yavne-1968
+  - duhamel-hollmann-1984
+  - johnson-frigo-2007
+  - van-loan-1992
+  - cooley-tukey-1965
+  suggested_change: Set best_known to 56 (the count 4 N log2 N - 6 N + 8 evaluated
+    at N=8) and mark the entry as solved/closed with sources Yavne (1968) and Duhamel
+    & Hollmann (1984); optionally note the Johnson & Frigo (2007) improved (but larger-for-N=8)
+    flop estimate (~90.7) and that the radix-2 count 120 (van Loan 1992) is not the
+    best-known.
+  harness_attempt_id: att_59940c446f7a41b5
+  provider: openai
+  mode: record
+  api_dollars: 0.0015775
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n16
+  best_known: 320
+  verdict: cannot verify
+  reason: The only provided document [dahlquist-1963] discusses A-stability for linear
+    multistep methods and the Dahlquist barrier; it does not mention operation counts,
+    fast discrete Fourier/cosine transforms, n=16 instances, the value 320, or a 'fast_transforms'
+    scoreboard. Therefore the entry's best-known value, source, and open/solved status
+    cannot be verified from the given documents.
+  documents:
+  - dahlquist-1963
+  suggested_change: Provide documents that specifically report operation counts or
+    benchmarks for DFT/fast transform algorithms (especially for n=16) or change the
+    entry's source to one of those documents. If no such document exists in the list,
+    mark the best_known and source as 'unknown' or supply an appropriate citation.
+  harness_attempt_id: att_b93803f5b3f240fb
+  provider: openai
+  mode: record
+  api_dollars: 0.000592
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n32
+  best_known: 800
+  verdict: cannot verify
+  reason: The only provided document [dahlquist-1963] discusses absolute stability
+    of linear multistep methods and the Dahlquist barrier; it does not mention fast
+    transforms, DFT operation counts, a scoreboard, the value 800, the source 'as
+    above', or the open/solved status for opcount-dft-n32. Therefore the best_known
+    value, source, and status cannot be confirmed from the given documents.
+  documents:
+  - dahlquist-1963
+  suggested_change: Provide one or more supporting documents that specifically address
+    DFT operation counts or the scoreboard entry for n=32 (opcount-dft-n32). If no
+    such document exists, change the entry's status to 'cannot verify' or remove the
+    unsupported best_known value and source.
+  harness_attempt_id: att_2cf94e60663e4212
+  provider: openai
+  mode: record
+  api_dollars: 0.00071
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n64
+  best_known: 1920
+  verdict: cannot verify
+  reason: The only provided document [dahlquist-1963] discusses A-stability for linear
+    multistep methods and the Dahlquist barrier; it contains no information about
+    discrete Fourier transform operation counts, the value 1920, the label 'opcount-dft-n64',
+    or the source string 'as above'. Therefore the best known value, the stated source,
+    and the open/solved status cannot be verified from the available document set.
+  documents:
+  - dahlquist-1963
+  suggested_change: Provide one or more documents that explicitly report operation
+    counts or proven lower/upper bounds for the DFT of size n=64 (or change the entry's
+    source to cite such documents). Until such references are supplied, mark the best_known
+    value and the source as unverified or unknown.
+  harness_attempt_id: att_25e6545499e34859
+  provider: openai
+  mode: record
+  api_dollars: 0.0007202500000000001
+  note: a model's reading of our own summaries; a person checks the source before
+    any change

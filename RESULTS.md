@@ -119,8 +119,8 @@ session (cells 10 and 11 of `colab/serve.ipynb`).
 
 ## Tests
 
-`pytest`: 364 tests; 352 pass and 12 are skipped (the two live-API smoke tests without keys,
-and the harness tests that replay recorded frontier fixtures, per provider, until those are recorded). Known-answer cases:
+`pytest`: 364 tests; 357 pass and 7 are skipped (the two live-API smoke tests without keys, and the
+five harness tests parametrized over Claude until its fixtures are recorded; the five GPT ones replay the recorded fixtures). Known-answer cases:
 convergence order 27, operation count 34, stability and SSP 42 (plus 5 through the judge's sandbox); concurrency and the
 gate 14; the harness base 11; the librarian 4 offline (the retrieval test set of 8 cases, the cutoff, the citations); the
 archive 2; the lesson bank 16; the checker 7.
@@ -150,14 +150,45 @@ default `GATE_TARGETS`.
 
 ## What the ablation harness measured
 
-Offline, under pytest, once the GPT fixtures are recorded: three arms of 16 attempts on quad-d7, the local attempts
-replayed from the synthetic fixtures and the lessons and the gate replayed from the recorded GPT fixtures. Because the
-three arms replay the same 16 synthetic responses, their certified rates are identical by construction (7 of 16 valid,
-4 optimal): the offline run measures that the machinery works end to end (extraction, consolidation under the token
-budget, the gate's lesson and check, the check's outcome logged in every notebook-gate row and never scored, every
-attempt in the ledger with its arm and lesson ids, matched dollars), not the notebook's effect. The ablation against the
-served model, which is the measurement, has not run yet: it is cell 11 of the notebook (needs the Colab secret
-`OPENAI_API_KEY`).
+Offline, from recorded fixtures (`python -m lab.harness.ablation --target quad-d7 --attempts 16 --mode offline
+--harness-mode offline`, run `abl_6b502ff5b0684c64`): three arms of 16 attempts on quad-d7, the local attempts replayed
+from the synthetic fixtures and the lessons and the gate replayed from the GPT fixtures recorded on Colab on 2026-11-05.
 
-Frontier spend this month: nothing yet from this machine (no key set during the build; the recording of the harness
-fixtures is the first live spend and goes into the repository's own ledger).
+| Arm | valid | optimal | pass@1 valid | pass@1 optimal | pass@16 valid | gate checks |
+|---|---|---|---|---|---|---|
+| no notebook | 7 / 16 | 4 | 0.438 | 0.250 | 1.000 | - |
+| notebook (5 lessons, 2000-token budget) | 7 / 16 | 4 | 0.438 | 0.250 | 1.000 | - |
+| notebook with gate | 7 / 16 | 4 | 0.438 | 0.250 | 1.000 | 9 of 11 passed |
+
+The gate chose a process lesson ("self-test the rule on every monomial up to the required degree before submission") and
+wrote the check `abs(sum(weights)-2) < 1e-9 and len(nodes) <= 8`; applied to the 11 attempts that returned a rule, it
+failed exactly the two rules whose weights do not sum to 2 (the wrong-length rule and the perturbed weight), and the
+outcome sat in each row's meta without touching a score. Because the three arms replay the same 16 synthetic responses,
+their certified rates are identical by construction: this run shows the machinery working end to end (extraction,
+consolidation, gating, the check at use time, every attempt in the ledger with its arm and lesson ids, matched dollars),
+not the notebook's effect. The ablation against the served model, which is the measurement, is cell 11 of the notebook
+and has not run yet.
+
+## The librarian's pass over the provisional scoreboard entries
+
+`scoreboard/reviews/*.20261105.openai.yaml` (16 entries, GPT reading the lab's own document summaries; a person
+checks the sources before any change):
+
+| Board | consistent | inconsistent | cannot verify |
+|---|---|---|---|
+| quadrature (7 provisional entries) | 6 | 1: triangle-d5, which credits the minimality of 7 nodes to Möller's bound; the review attributes it to Radon (1948) | 0 |
+| time_integrators (5) | 5 | 0 | 0 |
+| fast_transforms (4) | 0 | 1: opcount-dft-n8, where the literature's split-radix count (56) is below the certified radix-2 value (120); the entry already says the conventions differ | 3: the ranker handed the n = 16, 32, 64 entries an unrelated document (their source field says "as above"), so the review could not read them |
+
+Left for a person: the attribution in triangle-d5 (a value-free wording change, still a reviewed diff). The three
+`source: as above` fields were replaced by the full source text in the same commit, so the next pass can read them.
+
+## Frontier spend
+
+The recording on Colab made 25 GPT (gpt-5-mini) calls for $0.0365 in total: 4 retrievals, 16 reviews, 1 lesson
+extraction, 2 gates, 1 detector proposal, 1 dossier. Every call is an attempt row with role `harness:<name>`, provider
+`openai`, mode `record` and its dollars in the ledger on Drive, where the month's spend is read from. Two recorded
+prompts (the extraction and the detector proposal) named a noise-level "worst monomial" for the passing rules, a detail
+that differs between machines; the digests no longer include it, and those two fixtures were re-keyed under the stable
+prompt with the original request text kept inside the file.
+

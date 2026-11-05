@@ -31,7 +31,10 @@ entries:
     certified_reference: "radix-2, 5 N log2 N = 320"
     literature: "split radix 4 N log2 N - 6 N + 8 = 168 flops, different convention"
     status: open
-    source: as above
+    source: >
+      Cooley & Tukey, "An algorithm for the machine calculation of complex Fourier series", Math. Comp. 19 (1965);
+      Yavne (1968); Duhamel & Hollmann, "Split radix FFT algorithm", Electron. Lett. 20 (1984); Johnson & Frigo,
+      "A modified split-radix FFT with fewer arithmetic operations", IEEE Trans. Signal Process. 55 (2007).
     provenance: provisional
     entered: 2026-11-04
   - id: opcount-dft-n32
@@ -40,7 +43,10 @@ entries:
     certified_reference: "radix-2, 5 N log2 N = 800"
     literature: "split radix 4 N log2 N - 6 N + 8 = 456 flops, different convention"
     status: open
-    source: as above
+    source: >
+      Cooley & Tukey, "An algorithm for the machine calculation of complex Fourier series", Math. Comp. 19 (1965);
+      Yavne (1968); Duhamel & Hollmann, "Split radix FFT algorithm", Electron. Lett. 20 (1984); Johnson & Frigo,
+      "A modified split-radix FFT with fewer arithmetic operations", IEEE Trans. Signal Process. 55 (2007).
     provenance: provisional
     entered: 2026-11-04
   - id: opcount-dft-n64
@@ -49,6 +55,9 @@ entries:
     certified_reference: "radix-2, 5 N log2 N = 1920"
     literature: "split radix 4 N log2 N - 6 N + 8 = 1160 flops, different convention"
     status: open
-    source: as above
+    source: >
+      Cooley & Tukey, "An algorithm for the machine calculation of complex Fourier series", Math. Comp. 19 (1965);
+      Yavne (1968); Duhamel & Hollmann, "Split radix FFT algorithm", Electron. Lett. 20 (1984); Johnson & Frigo,
+      "A modified split-radix FFT with fewer arithmetic operations", IEEE Trans. Signal Process. 55 (2007).
     provenance: provisional
     entered: 2026-11-04

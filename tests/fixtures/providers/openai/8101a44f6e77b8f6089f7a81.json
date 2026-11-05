@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:15:51+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard quadrature, section square, entry:\n{\n \"id\": \"square-d7\",\n \"degree\": 7,\n \"best_known\": 12,\n \"status\": \"solved\",\n \"method\": \"12-point degree-7 rules (e.g. Stroud C2:7-1); Moller's bound 12 is attained\",\n \"source\": \"Stroud (1971), C2:7-1; Moller (1976) lower bound; Cools & Rabinowitz (1993) compilation; Cools, \\\"An encyclopaedia of cubature formulas\\\", J. Complexity 19 (2003).\\n\"\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [cools-2003] 2003: An encyclopaedia of cubature formulas. The online encyclopaedia of cubature formulas with, for each region and degree, the best known rules and their node counts, including the 12-point degree-7 rules on the square that attain Möller's bound. Results: best known cubature rules by region and degree; 12-point degree-7 rules on the square\n2. [cools-rabinowitz-1993] 1993: Monomial cubature rules since 'Stroud': a compilation. Compiles the cubature rules published after Stroud's book for the standard regions, with for each region and degree the fewest nodes known, whether the known lower bound is attained, and the properties of the rules (positive weights, interior nodes). Results: tables of minimal known node counts by region and degree, with lower bounds\n3. [moller-1976] 1976: Kubaturformeln mit minimaler Knotenzahl. A lower bound on the number of nodes of a cubature rule of odd degree 2k+1 on a centrally symmetric region that improves the dim P_k bound: for the square it gives 4 for degree 3, 7 for degree 5 and 12 for degree 7, and the bounds for degrees 3, 5 and 7 are attained. Results: Möller's lower bound for odd degree on centrally symmetric regions; square: at least 4, 7 and 12 nodes for degrees 3, 5 and 7\n4. [stroud-1971] 1971: Approximate Calculation of Multiple Integrals. The compendium of cubature rules for standard regions with their degrees and node counts, the lower bound dim P_k on the number of nodes of a rule of degree 2k, and constructions by symmetry. Includes the four-point degree-3 rule on the square with nodes on the axes (C2:3-1), twelve-point degree-7 rules on the square (C2:7-1) and the four-point degree-3 triangle rule (T2:3-1). Results: a rule exact to degree 2k needs at least dim P_k nodes; catalogue of rules on the square, cube and triangle with degrees and node counts\n5. [cools-1997] 1997: Constructing cubature formulae: the science behind the art. A survey of the theory of cubature: lower bounds on the number of nodes (dim P_k, Möller's bound), the connection with common zeros of orthogonal polynomials, and the methods used to construct rules. Results: survey of lower bounds and construction methods for cubature\n6. [gatermann-1988] 1988: The construction of symmetric cubature formulas for the square and the triangle. Uses invariant theory to reduce the moment equations of symmetric cubature and finds a 12-point degree-7 rule on the triangle with positive weights and interior nodes, one point fewer than Dunavant's degree-7 rule and without a negative weight. Results: a 12-point degree-7 rule on the triangle with positive weights and interior points\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The referenced documents state a 12-node degree-7 rule on the square and that Möller’s lower bound of 12 for degree 7 on the square is attained. Stroud lists 12-point degree-7 rules on the square (C2:7-1) [stroud-1971]; Möller provides the lower bound of 12 for degree 7 on the square and notes the bounds for degrees 3,5,7 are attained [moller-1976]; the compilations/survey confirm the 12-point degree-7 rules as best known (Cools & Rabinowitz 1993) and the encyclopaedia explicitly records the 12-point degree-7 rules on the square that attain Möller’s bound [cools-rabinowitz-1993, cools-2003].\",\n  \"documents\": [\n    \"stroud-1971\",\n    \"moller-1976\",\n    \"cools-rabinowitz-1993\",\n    \"cools-2003\"\n  ],\n  \"suggested_change\": \"\"\n}",
+  "prompt_tokens": 949,
+  "completion_tokens": 373,
+  "latency_s": 6.158330382999793,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.00098325
+ }
+}

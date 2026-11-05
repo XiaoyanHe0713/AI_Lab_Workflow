@@ -265,7 +265,9 @@ def attempt_digest(label: str, a: Attempt, max_lines: int = 40) -> str:
             facts.append(f"{k}={fmt(d[k])}")
     if d.get("max_monomial_error") is not None:
         facts.append(f"max_monomial_error={fmt(d['max_monomial_error'])}")
-    if d.get("worst_monomial") is not None:
+    # the worst monomial is named only when the error is above noise: below 1e-9 it is whichever rounding error
+    # came out largest on this machine, which would make the prompt (and the fixture key) platform-dependent
+    if d.get("worst_monomial") is not None and (d.get("max_monomial_error") or 0.0) > 1e-9:
         facts.append(f"worst_monomial={d['worst_monomial']}")
     status = "PASS" if a.passed else "FAIL"
     score = fmt(a.score) if a.score is not None else "-"

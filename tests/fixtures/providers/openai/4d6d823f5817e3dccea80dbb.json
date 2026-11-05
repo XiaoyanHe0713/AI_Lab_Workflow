@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:18:01+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard time_integrators, section ssp, entry:\n{\n \"id\": \"ssp-s5-p4\",\n \"best_known\": 1.508,\n \"status\": \"open\",\n \"method\": \"SSPRK(5,4) of Spiteri & Ruuth (2002), coefficient 1.508 (optimal to numerical search)\",\n \"source\": \"Spiteri & Ruuth (2002), Table; Ruuth, \\\"Global optimization of explicit strong-stability-preserving Runge-Kutta methods\\\", Math. Comp. 75 (2006) confirms 1.508 as the optimum found by global search, not a proof.\\n\",\n \"stages\": 5,\n \"order\": 4\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [ruuth-2006] 2006: Global optimization of explicit strong-stability-preserving Runge-Kutta methods. A global optimization search for the largest SSP coefficients of explicit methods with given stages and order; confirms the earlier optimal methods and finds new ones for higher order, with the values treated as numerically optimal rather than proved. Results: numerically optimal SSP coefficients for explicit methods; 1.508 confirmed for SSPRK(5,4)\n2. [spiteri-ruuth-2002] 2002: A new class of optimal high-order strong-stability-preserving time discretization methods. SSP Runge-Kutta methods with more stages than their order have larger coefficients: the four-stage third-order method has coefficient 2 and the five-stage fourth-order method coefficient 1.508, both found by numerical optimization and both better per stage than the classical SSP methods. Results: SSPRK(4,3) with coefficient 2; SSPRK(5,4) with coefficient 1.508\n3. [gottlieb-shu-tadmor-2001] 2001: Strong stability-preserving high-order time discretization methods. The survey that names strong stability preservation: SSP Runge-Kutta and multistep methods, the optimal s-stage second-order family with coefficient s - 1, and the use of downwind operators for methods that need negative coefficients. Results: the s-stage second-order SSP family has coefficient s - 1\n4. [ketcheson-2008] 2008: Highly efficient strong stability-preserving Runge-Kutta methods with low-storage implementations. SSP methods with many stages and low storage: the ten-stage fourth-order method with coefficient 6, and the family with n^2 stages of order 3 and coefficient n^2 - n built from Euler steps of size dt/(n^2 - n) and one convex combination, shown optimal among methods with that many stages. Results: SSPRK(10,4) with coefficient 6; SSPRK(n^2,3) with coefficient n^2 - n\n5. [gottlieb-shu-1998] 1998: Total variation diminishing Runge-Kutta schemes. Proves that among two-stage second-order and three-stage third-order methods the Shu-Osher methods have the largest CFL coefficient (one), and that every four-stage fourth-order method needs a negative coefficient in its Shu-Osher form, so classical RK4 is not SSP without a downwind operator. Results: SSPRK(2,2) and SSPRK(3,3) are optimal with coefficient 1; no four-stage fourth-order explicit method has nonnegative Shu-Osher coefficients\n6. [gottlieb-ketcheson-shu-2011] 2011: Strong Stability Preserving Runge-Kutta and Multistep Time Discretizations. The monograph on SSP methods: the theory through the radius of absolute monotonicity, the canonical Shu-Osher form, tables of optimal explicit and implicit methods and their coefficients. Results: tables of optimal SSP coefficients by stages and order\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Both the 2002 paper and the 2006 global optimization study report the SSPRK(5,4) coefficient as 1.508 found by numerical optimization and treat it as a numerically optimal (not proven) value, so the best_known value, its source attribution, and the 'open' status (no proof) are consistent with these documents.\",\n  \"documents\": [\n    \"spiteri-ruuth-2002\",\n    \"ruuth-2006\"\n  ],\n  \"suggested_change\": \"None required: keep best_known = 1.508, source referencing Spiteri & Ruuth (2002) and Ruuth (2006), and status = 'open' (numerically optimal, not proven).\"\n}",
+  "prompt_tokens": 945,
+  "completion_tokens": 303,
+  "latency_s": 3.8598948429998927,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.00084225
+ }
+}

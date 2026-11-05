@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:16:23+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard quadrature, section triangle, entry:\n{\n \"id\": \"triangle-d6\",\n \"degree\": 6,\n \"best_known\": 12,\n \"status\": \"open\",\n \"method\": \"Dunavant's 12-point degree-6 rule (positive, interior); lower bound dim P_3 = 10\",\n \"source\": \"Dunavant (1985); Lyness & Jespersen (1975)\"\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [gatermann-1988] 1988: The construction of symmetric cubature formulas for the square and the triangle. Uses invariant theory to reduce the moment equations of symmetric cubature and finds a 12-point degree-7 rule on the triangle with positive weights and interior nodes, one point fewer than Dunavant's degree-7 rule and without a negative weight. Results: a 12-point degree-7 rule on the triangle with positive weights and interior points\n2. [moller-1976] 1976: Kubaturformeln mit minimaler Knotenzahl. A lower bound on the number of nodes of a cubature rule of odd degree 2k+1 on a centrally symmetric region that improves the dim P_k bound: for the square it gives 4 for degree 3, 7 for degree 5 and 12 for degree 7, and the bounds for degrees 3, 5 and 7 are attained. Results: Möller's lower bound for odd degree on centrally symmetric regions; square: at least 4, 7 and 12 nodes for degrees 3, 5 and 7\n3. [dunavant-1985] 1985: High degree efficient symmetrical Gaussian quadrature rules for the triangle. Symmetric rules on the triangle for degrees 1 to 20 with few nodes, computed by solving the symmetric moment equations: 6 points for degree 4 (positive, interior), 7 points for degree 5, 12 points for degree 6, 13 points for degree 7 (one negative weight), and so on. Results: triangle rules: 6 points degree 4, 7 points degree 5, 12 points degree 6\n4. [stroud-1971] 1971: Approximate Calculation of Multiple Integrals. The compendium of cubature rules for standard regions with their degrees and node counts, the lower bound dim P_k on the number of nodes of a rule of degree 2k, and constructions by symmetry. Includes the four-point degree-3 rule on the square with nodes on the axes (C2:3-1), twelve-point degree-7 rules on the square (C2:7-1) and the four-point degree-3 triangle rule (T2:3-1). Results: a rule exact to degree 2k needs at least dim P_k nodes; catalogue of rules on the square, cube and triangle with degrees and node counts\n5. [lyness-jespersen-1975] 1975: Moderate degree symmetric quadrature rules for the triangle. Fully symmetric rules on the triangle built from orbits of points under the symmetry group, with the moment equations reduced by symmetry; rules of degrees up to 11, with attention to positive weights and interior nodes. Results: symmetric triangle rules by orbit structure; degrees to 11\n6. [cools-2003] 2003: An encyclopaedia of cubature formulas. The online encyclopaedia of cubature formulas with, for each region and degree, the best known rules and their node counts, including the 12-point degree-7 rules on the square that attain Möller's bound. Results: best known cubature rules by region and degree; 12-point degree-7 rules on the square\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Dunavant (1985) explicitly gives a 12-point rule for the triangle of degree 6, supporting the best_known=12 and the Dunavant source [dunavant-1985]. Stroud states the general lower bound dim P_k for degree 2k, which corresponds to dim P_3 for degree 6 and matches the entry's stated lower bound context [stroud-1971]. Lyness & Jespersen provide constructions and tables of symmetric triangle rules up to degree 11 and is a relevant supporting source for triangle rules cited in the entry [lyness-jespersen-1975]. The documents do not, however, assert that the question of minimality (whether 12 is the minimum possible) is resolved; the entry's status 'open' plausibly refers to that minimality question but this is not explicitly stated in the cited documents.\",\n  \"documents\": [\n    \"dunavant-1985\",\n    \"stroud-1971\",\n    \"lyness-jespersen-1975\"\n  ],\n  \"suggested_change\": \"Clarify what 'open' refers to. For example: 'status': 'open (minimality unresolved)' and cite [dunavant-1985] for the 12-point rule and [stroud-1971] for the dim P_3 lower bound.\"\n}",
+  "prompt_tokens": 930,
+  "completion_tokens": 877,
+  "latency_s": 7.755554759000006,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.0019865
+ }
+}

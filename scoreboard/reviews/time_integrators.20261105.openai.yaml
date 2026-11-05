@@ -1,0 +1,108 @@
+reviews:
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p3
+  best_known: 2.0
+  verdict: consistent
+  reason: The provided documents state that the optimal SSP coefficient for SSPRK(4,3)
+    is 2.0 and give the theoretical upper bound matching this value. [spiteri-ruuth-2002]
+    reports SSPRK(4,3) with coefficient 2, and [kraaijevanger-1991] gives the general
+    bound R(K) <= s - p + 1 which for s=4, p=3 equals 2. Together these justify the
+    best_known value, the cited sources, and the 'solved' status.
+  documents:
+  - spiteri-ruuth-2002
+  - kraaijevanger-1991
+  - ruuth-2006
+  suggested_change: none
+  harness_attempt_id: att_fccc39f914494b02
+  provider: openai
+  mode: record
+  api_dollars: 0.00102
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s5-p4
+  best_known: 1.508
+  verdict: consistent
+  reason: Both the 2002 paper and the 2006 global optimization study report the SSPRK(5,4)
+    coefficient as 1.508 found by numerical optimization and treat it as a numerically
+    optimal (not proven) value, so the best_known value, its source attribution, and
+    the 'open' status (no proof) are consistent with these documents.
+  documents:
+  - spiteri-ruuth-2002
+  - ruuth-2006
+  suggested_change: 'None required: keep best_known = 1.508, source referencing Spiteri
+    & Ruuth (2002) and Ruuth (2006), and status = ''open'' (numerically optimal, not
+    proven).'
+  harness_attempt_id: att_0b063604c1474d1e
+  provider: openai
+  mode: record
+  api_dollars: 0.00084225
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s9-p3
+  best_known: 6.0
+  verdict: consistent
+  reason: Ketcheson [ketcheson-2008] presents the SSPRK(n^2,3) family with SSP coefficient
+    n^2 - n and construction from Euler steps of size dt/(n^2 - n) plus one convex
+    combination. For n = 3 this gives s = 9 and coefficient 9 - 3 = 6, matching the
+    entry's best_known = 6.0 and the stated source and method. Ketcheson also shows
+    optimality for s = n^2, supporting the 'solved' status.
+  documents:
+  - ketcheson-2008
+  suggested_change: None
+  harness_attempt_id: att_79c28b7a06154d88
+  provider: openai
+  mode: record
+  api_dollars: 0.0010854999999999999
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s10-p4
+  best_known: 6.0
+  verdict: consistent
+  reason: The listed best-known coefficient 6 for SSPRK(10,4) matches Ketcheson (2008)
+    which presents the ten-stage fourth-order method with coefficient 6 [ketcheson-2008].
+    The entry's source attribution to Ketcheson (2008) is supported. The note that
+    optimality is established by numerical search (i.e., not a strict proof) is consistent
+    with the literature treating such high-stage results as numerically optimal rather
+    than analytically proven; global numerical searches and tables of numerically
+    optimal coefficients are reported in Ruuth (2006) and the monograph [ruuth-2006,
+    gottlieb-ketcheson-shu-2011].
+  documents:
+  - ketcheson-2008
+  - ruuth-2006
+  - gottlieb-ketcheson-shu-2011
+  suggested_change: None
+  harness_attempt_id: att_beaef4a81a8a489d
+  provider: openai
+  mode: record
+  api_dollars: 0.001427
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p2
+  best_known: 3.0
+  verdict: consistent
+  reason: The entry gives best_known = 3.0 for the four-stage, second-order SSP family
+    (SSPRK(s,2) with coefficient s-1). The survey [gottlieb-shu-tadmor-2001] states
+    that the s-stage second-order SSP family has coefficient s-1, which for s=4 equals
+    3.0. The entry's cited literature (Gottlieb et al. and Ketcheson) is present in
+    the reading list and supports this value; the status 'solved' is consistent with
+    these references identifying the optimal s-1 bound.
+  documents:
+  - gottlieb-shu-tadmor-2001
+  - ketcheson-2008
+  - gottlieb-ketcheson-shu-2011
+  suggested_change: None
+  harness_attempt_id: att_1e65003a05ca43a3
+  provider: openai
+  mode: record
+  api_dollars: 0.0010365
+  note: a model's reading of our own summaries; a person checks the source before
+    any change

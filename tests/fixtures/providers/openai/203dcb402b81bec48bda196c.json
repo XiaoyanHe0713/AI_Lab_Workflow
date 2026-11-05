@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:18:44+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard fast_transforms, section entries, entry:\n{\n \"id\": \"opcount-dft-n16\",\n \"best_known\": 320,\n \"status\": \"open\",\n \"source\": \"as above\",\n \"n\": 16\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [dahlquist-1963] 1963: A special stability problem for linear multistep methods. Defines absolute stability through the test equation u' = lambda u: a method is A-stable when its numerical solution decays for every lambda in the left half-plane, and no explicit method and no linear multistep method of order above two can be A-stable. Results: absolute stability on the test equation; A-stability and the second Dahlquist barrier\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"cannot verify\",\n  \"reason\": \"The only provided document [dahlquist-1963] discusses A-stability for linear multistep methods and the Dahlquist barrier; it does not mention operation counts, fast discrete Fourier/cosine transforms, n=16 instances, the value 320, or a 'fast_transforms' scoreboard. Therefore the entry's best-known value, source, and open/solved status cannot be verified from the given documents.\",\n  \"documents\": [\n    \"dahlquist-1963\"\n  ],\n  \"suggested_change\": \"Provide documents that specifically report operation counts or benchmarks for DFT/fast transform algorithms (especially for n=16) or change the entry's source to one of those documents. If no such document exists in the list, mark the best_known and source as 'unknown' or supply an appropriate citation.\"\n}",
+  "prompt_tokens": 304,
+  "completion_tokens": 258,
+  "latency_s": 4.510732088999703,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.000592
+ }
+}

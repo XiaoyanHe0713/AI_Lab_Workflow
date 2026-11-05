@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:18:07+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard time_integrators, section ssp, entry:\n{\n \"id\": \"ssp-s9-p3\",\n \"best_known\": 6.0,\n \"status\": \"solved\",\n \"method\": \"SSPRK(9,3), the n^2-stage third-order family with n = 3: Euler steps of dt/6 and one convex combination\",\n \"source\": \"Ketcheson, \\\"Highly efficient strong stability-preserving Runge-Kutta methods with low-storage implementations\\\", SIAM J. Sci. Comput. 30 (2008): coefficient n^2 - n, shown optimal for s = n^2.\\n\",\n \"stages\": 9,\n \"order\": 3\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [ketcheson-2008] 2008: Highly efficient strong stability-preserving Runge-Kutta methods with low-storage implementations. SSP methods with many stages and low storage: the ten-stage fourth-order method with coefficient 6, and the family with n^2 stages of order 3 and coefficient n^2 - n built from Euler steps of size dt/(n^2 - n) and one convex combination, shown optimal among methods with that many stages. Results: SSPRK(10,4) with coefficient 6; SSPRK(n^2,3) with coefficient n^2 - n\n2. [shu-osher-1988] 1988: Efficient implementation of essentially non-oscillatory shock-capturing schemes. Writes Runge-Kutta methods as convex combinations of forward Euler steps so that any property forward Euler has under a CFL restriction (such as being TVD) carries over with the time step multiplied by the smallest ratio of the combination coefficients. Gives the two-stage second-order and three-stage third-order methods with coefficient one, now called SSPRK(2,2) and SSPRK(3,3). Results: the Shu-Osher form: convex combinations of Euler steps; the CFL coefficient as the minimum ratio alpha/beta; SSPRK(2,2) and SSPRK(3,3) with coefficient 1\n3. [gottlieb-shu-tadmor-2001] 2001: Strong stability-preserving high-order time discretization methods. The survey that names strong stability preservation: SSP Runge-Kutta and multistep methods, the optimal s-stage second-order family with coefficient s - 1, and the use of downwind operators for methods that need negative coefficients. Results: the s-stage second-order SSP family has coefficient s - 1\n4. [spiteri-ruuth-2002] 2002: A new class of optimal high-order strong-stability-preserving time discretization methods. SSP Runge-Kutta methods with more stages than their order have larger coefficients: the four-stage third-order method has coefficient 2 and the five-stage fourth-order method coefficient 1.508, both found by numerical optimization and both better per stage than the classical SSP methods. Results: SSPRK(4,3) with coefficient 2; SSPRK(5,4) with coefficient 1.508\n5. [gottlieb-shu-1998] 1998: Total variation diminishing Runge-Kutta schemes. Proves that among two-stage second-order and three-stage third-order methods the Shu-Osher methods have the largest CFL coefficient (one), and that every four-stage fourth-order method needs a negative coefficient in its Shu-Osher form, so classical RK4 is not SSP without a downwind operator. Results: SSPRK(2,2) and SSPRK(3,3) are optimal with coefficient 1; no four-stage fourth-order explicit method has nonnegative Shu-Osher coefficients\n6. [ruuth-2006] 2006: Global optimization of explicit strong-stability-preserving Runge-Kutta methods. A global optimization search for the largest SSP coefficients of explicit methods with given stages and order; confirms the earlier optimal methods and finds new ones for higher order, with the values treated as numerically optimal rather than proved. Results: numerically optimal SSP coefficients for explicit methods; 1.508 confirmed for SSPRK(5,4)\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Ketcheson [ketcheson-2008] presents the SSPRK(n^2,3) family with SSP coefficient n^2 - n and construction from Euler steps of size dt/(n^2 - n) plus one convex combination. For n = 3 this gives s = 9 and coefficient 9 - 3 = 6, matching the entry's best_known = 6.0 and the stated source and method. Ketcheson also shows optimality for s = n^2, supporting the 'solved' status.\",\n  \"documents\": [\n    \"ketcheson-2008\"\n  ],\n  \"suggested_change\": null\n}",
+  "prompt_tokens": 1014,
+  "completion_tokens": 416,
+  "latency_s": 6.266836288999912,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.0010854999999999999
+ }
+}

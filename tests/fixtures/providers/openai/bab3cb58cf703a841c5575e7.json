@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-05T04:15:32+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Query: symmetric cubature rules for the triangle of degree 7 with positive weights and interior points\n\nCandidate documents (the only ones you may cite):\n1. [gatermann-1988] 1988: The construction of symmetric cubature formulas for the square and the triangle. Uses invariant theory to reduce the moment equations of symmetric cubature and finds a 12-point degree-7 rule on the triangle with positive weights and interior nodes, one point fewer than Dunavant's degree-7 rule and without a negative weight.\n2. [lyness-jespersen-1975] 1975: Moderate degree symmetric quadrature rules for the triangle. Fully symmetric rules on the triangle built from orbits of points under the symmetry group, with the moment equations reduced by symmetry; rules of degrees up to 11, with attention to positive weights and interior nodes.\n3. [dunavant-1985] 1985: High degree efficient symmetrical Gaussian quadrature rules for the triangle. Symmetric rules on the triangle for degrees 1 to 20 with few nodes, computed by solving the symmetric moment equations: 6 points for degree 4 (positive, interior), 7 points for degree 5, 12 points for degree 6, 13 points for degree 7 (one negative weight), and so on.\n4. [witherden-vincent-2015] 2015: On the identification of symmetric quadrature rules for finite element methods. A systematic search for symmetric rules with positive weights and interior points on triangles, quadrilaterals, tetrahedra, prisms, pyramids and hexahedra up to high degree, with tables of the rules found and their node counts.\n5. [xiao-gimbutas-2010] 2010: A numerical algorithm for the construction of efficient quadrature rules in two and higher dimensions. A numerical procedure (node elimination with Gauss-Newton refinement) that constructs efficient rules on triangles, squares and other regions with positive weights and interior nodes up to high degree, matching or improving the best tabulated node counts.\n6. [hammer-marlowe-stroud-1956] 1956: Numerical integration over simplexes and cones. Symmetric integration rules over triangles, tetrahedra and cones with few nodes, including the three-point rules of degree 2 on the triangle (interior points, or the edge midpoints) and rules of degree 3 with a negative centroid weight.\n7. [strang-fix-1973] 1973: An Analysis of the Finite Element Method. Table 8.1 lists quadrature rules on the triangle used in finite element assembly: the three interior points of degree 2, the four-point degree-3 rule with centroid weight -27/48 and three points weighted 25/48, and higher rules.\n8. [cools-rabinowitz-1993] 1993: Monomial cubature rules since 'Stroud': a compilation. Compiles the cubature rules published after Stroud's book for the standard regions, with for each region and degree the fewest nodes known, whether the known lower bound is attained, and the properties of the rules (positive weights, interior nodes).\n9. [cools-2003] 2003: An encyclopaedia of cubature formulas. The online encyclopaedia of cubature formulas with, for each region and degree, the best known rules and their node counts, including the 12-point degree-7 rules on the square that attain Möller's bound.\n10. [radon-1948] 1948: Zur mechanischen Kubatur. Constructs cubature rules of degree 5 with seven nodes for the triangle and for the square, and shows that seven is the fewest nodes a degree-5 rule can have on these regions, using common zeros of orthogonal polynomials in two variables.\n\nChoose up to 4 documents most relevant to the query, most relevant first, and give one short reason each. Then summarize in at most three sentences what these documents establish about the query, citing ids in square brackets. Reply with JSON: {\"selected\": [{\"id\": \"...\", \"why\": \"...\"}], \"summary\": \"...\"}"
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"gatermann-1988\",\n      \"why\": \"Explicitly constructs a 12-point degree-7 symmetric rule on the triangle with positive weights and interior nodes.\"\n    },\n    {\n      \"id\": \"dunavant-1985\",\n      \"why\": \"Well-known catalogue of symmetric triangle rules including a degree-7 rule (13 points) that has a negative weight, providing contrast to the positive-weight construction.\"\n    },\n    {\n      \"id\": \"witherden-vincent-2015\",\n      \"why\": \"Systematic search for symmetric rules with positive weights and interior points on triangles and reports tables of such rules up to high degree.\"\n    },\n    {\n      \"id\": \"xiao-gimbutas-2010\",\n      \"why\": \"Presents a numerical algorithm that constructs efficient triangle quadrature rules with positive weights and interior nodes, applicable to degree 7.\"\n    }\n  ],\n  \"summary\": \"A symmetric degree-7 cubature rule on the triangle with positive weights and interior points is explicitly reported: Gatermann (1988) gives a 12-point rule meeting these properties [gatermann-1988]. Dunavant’s catalogue lists a degree-7 rule with 13 nodes that includes a negative weight, so Gatermann’s 12-point positive-weight rule is an improvement in that respect [dunavant-1985]. Later systematic searches and numerical-construction methods confirm and extend the identification of symmetric positive-weight interior rules for triangles (including degree 7) and provide algorithms and tables for finding such rules [witherden-vincent-2015, xiao-gimbutas-2010].\"\n}",
+  "prompt_tokens": 922,
+  "completion_tokens": 554,
+  "latency_s": 9.64798534900001,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.0013385
+ }
+}
