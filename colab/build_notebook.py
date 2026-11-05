@@ -380,6 +380,8 @@ if RUN_DEMO:
     if UNITS_PER_HOUR:
         argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
     demo_main(argv)
+else:
+    print("RUN_DEMO is False in cell 1: the demo did not run.")
 """)
 
 code("""
@@ -392,6 +394,8 @@ if RUN_GATE:
     if UNITS_PER_HOUR:
         argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
     gate_main(argv)
+else:
+    print("RUN_GATE is False in cell 1: the gate did not run. Set RUN_GATE = True, rerun cell 1, then this cell.")
 """)
 
 code("""
@@ -411,6 +415,8 @@ if RUN_ABLATION:
         ablation_main(argv)
     else:
         print("no OPENAI_API_KEY secret: the ablation needs a frontier provider for its lessons; add the secret and rerun this cell")
+else:
+    print("RUN_ABLATION is False in cell 1: the ablation did not run. Set RUN_ABLATION = True, rerun cell 1, then this cell.")
 """)
 
 code("""
@@ -444,6 +450,8 @@ if RECORD_FIXTURES:
         if os.path.isdir(src):
             shutil.copytree(src, dst, dirs_exist_ok=True)
     print("exported to", out, ": copy its three folders into the repository (same relative paths) and commit them")
+else:
+    print("RECORD_FIXTURES is False in cell 1: nothing was recorded. Set RECORD_FIXTURES = True, rerun cell 1, then this cell.")
 """)
 
 code("""
