@@ -95,6 +95,13 @@ def test_apply_check_on_a_rule():
     crash = {"expression": "weights[9] > 0", "valid": True}
     assert apply_check(crash, gauss4)["ok"] is None and "IndexError" in apply_check(crash, gauss4)["error"]
     assert apply_check({"expression": "1 < 2", "valid": False}, gauss4) is None and apply_check(None, gauss4) is None
+    # a comprehension that calls a function must see the namespace (the gate on Colab wrote exactly this check)
+    colab = {"expression": "len(nodes)==4 and len(weights)==4 and n==4 and abs(sum(weights)-2) < 1e-12 and "
+                           "all((-1-1e-12) <= x <= (1+1e-12) for x in nodes) and all(abs(w) < 1e6 for w in weights)", "valid": True}
+    assert validate_expression(colab["expression"])[0] and apply_check(colab, gauss4) == {"ok": True, "expression": colab["expression"], "error": None}
+    three = ([-0.7745966692414834, 0.0, 0.7745966692414834], [5 / 9, 8 / 9, 5 / 9])
+    assert apply_check(colab, three)["ok"] is False
+    assert apply_check({"expression": "all(abs(w) > 0 for w in weights) and any(x < 0 for x in nodes)", "valid": True}, gauss4)["ok"] is True
 
 
 def test_extraction_and_gate_replay_per_provider(frontier, tmp_path):

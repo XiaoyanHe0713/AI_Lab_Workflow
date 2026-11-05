@@ -245,7 +245,9 @@ def apply_check(check: dict | None, result: Any) -> dict | None:
     elif isinstance(result, dict):
         ns.update({k: v for k, v in result.items() if k in ("nodes", "weights", "n")})
     try:
-        ok = bool(eval(compile(ast.parse(check["expression"].strip(), mode="eval"), "<check>", "eval"), {"__builtins__": {}}, ns))
+        # names go in the globals: a comprehension inside the expression runs in its own scope and sees globals,
+        # not the locals of eval, so `all(abs(w) < 1 for w in weights)` must find abs and weights there
+        ok = bool(eval(compile(ast.parse(check["expression"].strip(), mode="eval"), "<check>", "eval"), {"__builtins__": {}, **ns}))
         return {"ok": ok, "expression": check["expression"], "error": None}
     except Exception as e:
         return {"ok": None, "expression": check["expression"], "error": f"{type(e).__name__}: {e}"}

@@ -232,3 +232,36 @@ Three corrections, all fixed in the code after this run:
    `GATE_MAX_TOKENS`, default 8192), because at thinking 0 most triangle attempts hit the 4,096-token cap before any code.
 
 Session cost for the four groups: about 50 minutes of G4 time, 9.7 units at the unconfirmed 11.77 units per hour.
+
+## The ablation against the served model (cell 11, second Colab session, 2026-11-05, G4, bf16)
+
+`python -m lab.harness.ablation --target quad-d7 --attempts 16 --harness-provider openai --harness-mode online`,
+16 parallel requests, 4096 answer tokens, thinking off, seeds 0 to 15 in every arm; GPT (gpt-5-mini) wrote the lessons
+and the gate (2 calls, $0.0045). Run `abl_10601f5e6f104d3a`; groups grp_1643ddad076f4ccd, grp_fe7600b8ff714c16,
+grp_6172f576c0974b49 in the ledger on Drive.
+
+| Arm | valid | optimal | pass rate | failures | GPU cost (corrected) |
+|---|---|---|---|---|---|
+| no notebook | 13 / 16 | 13 | 0.812 | a derivation whose weights sum to 7.45, non-finite nodes, no code block | $0.03 |
+| notebook (5 lessons) | 14 / 16 | 14 | 0.875 | two self-check snippets that compare a list with a number and crash | $0.03 |
+| notebook with gate | 11 / 16 | 11 | 0.688 | three without a code block, a failed assert of the model's own, 4 nodes with 16 weights | $0.03 |
+
+Read this as a machinery run, not as the notebook's effect, for three reasons. With 16 attempts per arm the standard
+error of a pass rate near 0.8 is about 0.1, and the differences (+0.06, -0.12) sit inside it. quad-d7 is a verification
+target: the lessons were extracted from the model's own certified attempts on it, and the gate chose the approach
+lesson "use 4-point Gauss-Legendre", which names the known result; on a rediscovery target the notebook is a channel
+for the answer, so a gain here would prove nothing. The measurement the proposal asks for puts experience from one
+family to work on another (E1), which is week 4 and later. And the gate check never evaluated: "applied 12, passed 0,
+failed 0" means all twelve returned an error, because the check namespace was passed as the locals of `eval`, which a
+generator expression inside the check cannot see (the gate's own check calls `abs` inside `all(... for w in weights)`).
+Fixed on 2026-11-05 with that exact expression as a test; the twelve outcomes of this run are lost (their rows hold the
+error string in `meta.gate_check`).
+
+What the run does show: the three-arm loop, the lesson extraction and consolidation, the gate and its check, and the
+ledger rows with their arm and lesson ids all work against the served model; and the lessons changed the model's
+behaviour in a visible way, as every valid notebook attempt carried self-verification code (asserts on the weight sum,
+the node interval and the monomials), which is also what the two new failures in the notebook arm were.
+
+Costs: the printed per-arm dollars ($0.32, $0.28, $0.25) are inflated by the concurrent-latency defect described above;
+the arms' wall times were 88, 77 and 78 s, about 0.8 units or $0.08 in all at the table rate. Session total for cells
+10 and 11: about 54 minutes of G4 time, 10.5 units.
