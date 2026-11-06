@@ -46,7 +46,7 @@ SESSION_T0 = time.time()
 
 LAB_ROOT = "/content/drive/MyDrive/ai_lab"      #@param {type:"string"}
 REPO_URL = "https://github.com/XiaoyanHe0713/AI_Lab_Workflow.git"  #@param {type:"string"}
-REPO_BRANCH = "build/week-4-loop"               #@param {type:"string"}
+REPO_BRANCH = "build/week-5-diagnosis-controls"  #@param {type:"string"}
 SERVER = "vllm"                                 #@param ["vllm", "sglang"]
 QUANT_METHOD = "awq"                            #@param ["awq", "bnb"]
 UNITS_PER_HOUR = 0                              #@param {type:"number"}
