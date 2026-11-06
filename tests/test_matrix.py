@@ -82,7 +82,7 @@ def test_carrier_prompts(state):
         apply_carrier("nope", target, exp, bank=bank)
     tiny, ids = lessons_block([(l, l.text) for l in (bank.get(i) for i in exp.lesson_ids)], token_budget=30)
     assert len(ids) <= 1
-    assert CARRIERS == ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated")
+    assert CARRIERS == ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated", "diagnosis_only", "second_try")
 
 
 def test_redaction_removes_content_and_keeps_craft():

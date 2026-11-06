@@ -25,11 +25,12 @@ from typing import Any
 
 from ..ledger import Attempt, Ledger
 from .base import Harness
-from .tables import ensure_all
+from .tables import JSON_COLUMNS, ensure_all
 
 LEVELS = ("approach", "implementation", "process")
 EVIDENCE_TAGS = ("observed", "derived", "proposed")
 _TAG_RANK = {"observed": 2, "derived": 1, "proposed": 0}
+LESSON_JSON = JSON_COLUMNS["lessons"]
 
 
 def estimate_tokens(text: str) -> int:
@@ -66,6 +67,7 @@ class Lesson:
     contradictions: list[str] = field(default_factory=list)
     family: str = ""
     targets: list[str] = field(default_factory=list)
+    detectors: list[str] = field(default_factory=list)       # week 5: names of the kept detectors the lesson addresses
     tokens: int = 0
     created: str = ""
     source_group: str | None = None
@@ -86,7 +88,7 @@ class Lesson:
     @classmethod
     def from_row(cls, row: dict) -> "Lesson":
         d = {k: row.get(k) for k in cls.__dataclass_fields__}
-        for k in ("conditions", "support", "contradictions", "targets"):
+        for k in ("conditions", "support", "contradictions", "targets", "detectors"):
             d[k] = list(d.get(k) or [])
         d["provenance"] = dict(d.get("provenance") or {})
         d["retired"] = int(d.get("retired") or 0)
@@ -105,11 +107,11 @@ class LessonBank:
         if not lesson.created:
             lesson.created = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
         lesson.tokens = lesson.tokens or estimate_tokens(lesson.text)
-        self.ledger.insert("lessons", asdict(lesson), json_columns=("conditions", "support", "contradictions", "targets", "provenance"))
+        self.ledger.insert("lessons", asdict(lesson), json_columns=LESSON_JSON)
         return lesson
 
     def get(self, lid: str) -> Lesson | None:
-        rows = self.ledger.rows("lessons", "id = ?", (lid,), json_columns=("conditions", "support", "contradictions", "targets", "provenance"))
+        rows = self.ledger.rows("lessons", "id = ?", (lid,), json_columns=LESSON_JSON)
         return Lesson.from_row(rows[0]) if rows else None
 
     def active(self, family: str | None = None, level: str | None = None) -> list[Lesson]:
@@ -121,19 +123,19 @@ class LessonBank:
             where.append("level = ?")
             args.append(level)
         rows = self.ledger.rows("lessons", " AND ".join(where), args,
-                                json_columns=("conditions", "support", "contradictions", "targets", "provenance"), order="created, id")
+                                json_columns=LESSON_JSON, order="created, id")
         lessons = [Lesson.from_row(r) for r in rows]
         return sorted(lessons, key=lambda l: l.rank_key(), reverse=True)
 
     def all(self) -> list[Lesson]:
-        return [Lesson.from_row(r) for r in self.ledger.rows("lessons", json_columns=("conditions", "support", "contradictions", "targets", "provenance"), order="created, id")]
+        return [Lesson.from_row(r) for r in self.ledger.rows("lessons", json_columns=LESSON_JSON, order="created, id")]
 
     def retire(self, lid: str, reason: str, replaced_by: str | None = None) -> None:
         l = self.get(lid)
         if l is None:
             raise KeyError(lid)
         l.retired, l.retired_at, l.retired_reason, l.replaced_by = 1, datetime.now(timezone.utc).isoformat(timespec="milliseconds"), reason, replaced_by
-        self.ledger.insert("lessons", asdict(l), json_columns=("conditions", "support", "contradictions", "targets", "provenance"))
+        self.ledger.insert("lessons", asdict(l), json_columns=LESSON_JSON)
 
     def total_tokens(self, family: str | None = None) -> int:
         return sum(l.tokens for l in self.active(family))
@@ -161,6 +163,7 @@ class LessonBank:
                 if cand.rank_key()[:2] >= twin.rank_key()[:2]:
                     cand.support = sorted(set(cand.support) | set(twin.support))
                     cand.contradictions = sorted(set(cand.contradictions) | set(twin.contradictions))
+                    cand.detectors = sorted(set(cand.detectors) | set(twin.detectors))
                     if cand.id == twin.id:
                         self.add(cand)
                         log.append({"action": "replace", "lesson": cand.id, "replaced": twin.id, "reason": "same rule, merged support"})
@@ -279,6 +282,42 @@ def attempt_digest(label: str, a: Attempt, max_lines: int = 40) -> str:
             (f"\ncode:\n```python\n{excerpt}\n```" if excerpt else "\n(no code block in the output)"))
 
 
+def extraction_prompt(target, rows: list[Attempt], *, max_lessons: int = 5, detectors: list[dict] | None = None) -> tuple[str, dict]:
+    """The lesson writer's prompt (a deterministic function of the attempts, so a recording replays) and, when the target's
+    kept detectors are given, the block that names the failure: each detector, its hypothesis and the labels of the
+    attempts it fired on. Returns the prompt and the detectors by name (empty without detectors, and then the prompt is
+    the week-3 text unchanged)."""
+    labels = {f"attempt {i + 1}": a for i, a in enumerate(rows)}
+    digest = "\n\n".join(attempt_digest(lab, a) for lab, a in labels.items())
+    passed = sum(1 for a in rows if a.passed)
+    det_block, det_json, known = "", "", {}
+    if detectors:
+        from .checker import firing_table   # the checker imports this module's digest: import here, not at the top
+
+        table = firing_table(detectors, rows)
+        by_id = {a.id: lab for lab, a in labels.items()}
+        lines = []
+        for d in table["detectors"]:
+            fired = [by_id[i] for i in d["attempt_ids"] if i in by_id]
+            lines.append(f"- {d['name']}: {d['hypothesis'] or d['name'].replace('_', ' ')}; fired on "
+                         + (", ".join(fired) if fired else "none of these attempts"))
+            known[d["name"]] = d
+        det_block = ("\n\nDetectors (programs the checker verified on attempts it had not seen; each fires only on failed attempts). "
+                     "A lesson may name the detectors it addresses in its \"detectors\" list, by these names:\n" + "\n".join(lines))
+        det_json = ", \"detectors\": [\"detector_name\"]"
+    user = (f"Target {target.id}: {target.title}.\nThe certificate: {target.certifier_name}; best known value {fmt(target.best_known)}.\n"
+            f"Task prompt given to the model:\n---\n{target.prompt}\n---\n\n"
+            f"{len(rows)} attempts, {passed} certified:\n\n{digest}{det_block}\n\n"
+            f"Write at most {max_lessons} lessons that would raise the certified rate next time, each at one level: "
+            f"approach (what method or structure to use), implementation (how to write it so the certificate passes), or "
+            f"process (how to work: verify, self-check). Each lesson: a rule of at most 40 words, one to three conditions under "
+            f"which it applies, an evidence tag (observed: seen in the cited attempts; derived: follows from the task contract; "
+            f"proposed: a guess), and the labels of the attempts that support it. Reply with JSON: "
+            f"{{\"lessons\": [{{\"level\": \"...\", \"rule\": \"...\", \"conditions\": [\"...\"], \"evidence\": \"observed|derived|proposed\", "
+            f"\"attempts\": [\"attempt 3\"]{det_json}}}]}}")
+    return user, known
+
+
 class LessonHarness(Harness):
     name = "lessons"
     system_prompt = ("You extract lessons for an automated numerical-analysis lab from its own attempts. A lesson is a short rule "
@@ -289,23 +328,19 @@ class LessonHarness(Harness):
         super().__init__(provider, ledger, cfg=cfg, **kw)
         self.bank = bank or LessonBank(ledger)
 
-    def extract(self, target, attempts: list[Attempt], *, max_lessons: int = 5, group_id: str | None = None) -> list[Lesson]:
-        """Lessons from a group of attempts on a target (the language part), validated and tagged by the program."""
+    def extract(self, target, attempts: list[Attempt], *, max_lessons: int = 5, group_id: str | None = None,
+                detectors: list[dict] | None = None) -> list[Lesson]:
+        """Lessons from a group of attempts on a target (the language part), validated and tagged by the program. With the
+        target's kept `detectors` (week 5) the prompt names the failure first: each detector with the attempts it fired on,
+        and a lesson may name the detectors it addresses, which the program checks against the kept names. Without
+        detectors the prompt is the week-3 one byte for byte, so the recorded fixtures replay."""
         rows = sorted(attempts, key=lambda a: (a.seed if a.seed is not None else 0, a.id))
         labels = {f"attempt {i + 1}": a for i, a in enumerate(rows)}
-        digest = "\n\n".join(attempt_digest(lab, a) for lab, a in labels.items())
-        passed = sum(1 for a in rows if a.passed)
-        user = (f"Target {target.id}: {target.title}.\nThe certificate: {target.certifier_name}; best known value {fmt(target.best_known)}.\n"
-                f"Task prompt given to the model:\n---\n{target.prompt}\n---\n\n"
-                f"{len(rows)} attempts, {passed} certified:\n\n{digest}\n\n"
-                f"Write at most {max_lessons} lessons that would raise the certified rate next time, each at one level: "
-                f"approach (what method or structure to use), implementation (how to write it so the certificate passes), or "
-                f"process (how to work: verify, self-check). Each lesson: a rule of at most 40 words, one to three conditions under "
-                f"which it applies, an evidence tag (observed: seen in the cited attempts; derived: follows from the task contract; "
-                f"proposed: a guess), and the labels of the attempts that support it. Reply with JSON: "
-                f"{{\"lessons\": [{{\"level\": \"...\", \"rule\": \"...\", \"conditions\": [\"...\"], \"evidence\": \"observed|derived|proposed\", "
-                f"\"attempts\": [\"attempt 3\"]}}]}}")
-        reply = self.ask("extract", user, target=target.id, context={"group_id": group_id, "n_attempts": len(rows), "labels": {k: v.id for k, v in labels.items()}})
+        user, known = extraction_prompt(target, rows, max_lessons=max_lessons, detectors=detectors)
+        context = {"group_id": group_id, "n_attempts": len(rows), "labels": {k: v.id for k, v in labels.items()}}
+        if known:
+            context["detectors"] = sorted(known)
+        reply = self.ask("extract", user, target=target.id, context=context)
         data = reply.data if isinstance(reply.data, dict) else {}
         out: list[Lesson] = []
         for item in (data.get("lessons") or [])[:max_lessons]:
@@ -319,6 +354,7 @@ class LessonHarness(Harness):
                 level = "implementation"
             conds = [" ".join(str(c).split())[:200] for c in (item.get("conditions") or []) if str(c).strip()][:3]
             cited = [labels[str(x).strip().lower()].id for x in (item.get("attempts") or []) if str(x).strip().lower() in labels]
+            named = [str(x).strip() for x in (item.get("detectors") or []) if str(x).strip() in known] if isinstance(item.get("detectors"), list) else []
             claimed = str(item.get("evidence", "proposed")).lower().strip()
             if cited:
                 tag = "observed"
@@ -327,7 +363,7 @@ class LessonHarness(Harness):
             else:
                 tag = "proposed"
             lesson = Lesson(id=lesson_id(rule, level, target.family), level=level, rule=rule, conditions=conds, evidence_tag=tag,
-                            support=cited, family=target.family, targets=[target.id], source_group=group_id,
+                            support=cited, family=target.family, targets=[target.id], detectors=sorted(set(named)), source_group=group_id,
                             provenance={"harness_attempt_id": reply.attempt_id, "provider": self.provider.name, "mode": self.provider.mode,
                                         "model": self.provider.model, "claimed_evidence": claimed})
             lesson.tokens = estimate_tokens(lesson.text)

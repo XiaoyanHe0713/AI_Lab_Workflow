@@ -152,6 +152,116 @@ def detector_id(target: str, spec: dict) -> str:
     return "det_" + hashlib.sha256(json.dumps({"t": target, "s": spec}, sort_keys=True).encode()).hexdigest()[:12]
 
 
+def store_detectors(ledger: Ledger, target, candidates: list[dict], heldout: list[Attempt], *, mining_n: int, proposed: int,
+                    harness_attempt_id: str | None, provider: str, mode: str, min_fires: int = 2, min_right: float = 0.9) -> dict:
+    """Verify every candidate on the held-out pool and store it (kept or not) in the detectors table; the report."""
+    now = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
+    results = []
+    for c in candidates:
+        if not c["valid"]:
+            results.append({**c, "kept": False, "verification": None})
+            continue
+        ver = verify_detector(c["spec"], heldout, min_fires=min_fires, min_right=min_right)
+        did = detector_id(target.id, c["spec"])
+        ledger.insert("detectors", {
+            "id": did, "target": target.id, "family": target.family, "name": c["name"], "hypothesis": c["hypothesis"], "spec": c["spec"],
+            "origin": c["origin"], "harness_attempt_id": harness_attempt_id if c["origin"] == "model" else None, "heldout_n": ver["heldout_n"],
+            "fires": ver["fires"], "right": ver["right"], "precision": ver["precision"], "accuracy": ver["accuracy"],
+            "kept": int(ver["kept"]), "created": now, "provider": provider, "mode": mode}, json_columns=("spec",))
+        results.append({**c, "id": did, "kept": ver["kept"], "verification": ver})
+    return {"target": target.id, "mining_n": mining_n, "heldout_n": len(heldout), "proposed": proposed,
+            "kept": [r for r in results if r["kept"]], "rejected": [r for r in results if not r["kept"]],
+            "harness_attempt_id": harness_attempt_id, "min_fires": min_fires, "min_right": min_right}
+
+
+def mine_builtin(ledger: Ledger, target, attempts: list[Attempt], *, seed: int = 0, min_fires: int = 2, min_right: float = 0.9) -> dict:
+    """Mining without a harness (week 5): the built-in detectors alone, verified on the held-out pool exactly as a model's
+    proposals would be, and stored with provider `program`. A program end to end; the loop and the matrix use it when no
+    checker runs, so the diagnosis of a base group never waits for a frontier call."""
+    ensure_all(ledger)
+    mining, heldout = split_pools(attempts, seed)
+    candidates = [{**b, "valid": True, "error": None, "origin": "builtin"} for b in BUILTIN_DETECTORS]
+    return store_detectors(ledger, target, candidates, heldout, mining_n=len(mining), proposed=0, harness_attempt_id=None,
+                           provider="program", mode="program", min_fires=min_fires, min_right=min_right)
+
+
+# --- the diagnosis as a program's object (week 5): kept detectors, the firing table, the query, the control text -----------
+def kept_detectors(ledger: Ledger, target: str) -> list[dict]:
+    """The detectors the program kept for a target (the loop's, the matrix's or the command's mining), oldest first."""
+    try:
+        return ledger.rows("detectors", "target = ? AND kept = 1", (target,), json_columns=("spec",), order="created, id")
+    except Exception:
+        return []
+
+
+def firing_table(detectors: list[dict], attempts: list[Attempt]) -> dict:
+    """Which kept detectors fire on which attempts of a group: per detector its firings (most frequent first), per attempt the
+    names that fire. A program's measurement of the symptoms; nothing here is a score."""
+    rows = sorted(attempts, key=lambda a: (a.seed if a.seed is not None else 0, a.id))
+    views = [(a, attempt_view(a)) for a in rows]
+    by_attempt: dict[str, list[str]] = {a.id: [] for a in rows}
+    out = []
+    for d in detectors:
+        fired = []
+        for a, v in views:
+            try:
+                hit = evaluate_detector(d["spec"], v)
+            except Exception:
+                hit = False
+            if hit:
+                fired.append(a.id)
+                by_attempt[a.id].append(d["name"])
+        fired_set = set(fired)
+        out.append({"id": d.get("id"), "name": d["name"], "hypothesis": d.get("hypothesis") or "", "origin": d.get("origin"),
+                    "fires": len(fired), "failures_fired": sum(1 for a in rows if a.id in fired_set and not a.passed),
+                    "rate": (len(fired) / len(rows)) if rows else None, "attempt_ids": fired})
+    out.sort(key=lambda x: (-x["fires"], x["name"]))
+    return {"n": len(rows), "failed": sum(1 for a in rows if not a.passed), "detectors": out, "by_attempt": by_attempt}
+
+
+def symptom_rates(detectors: list[dict], attempts: list[Attempt]) -> dict:
+    """Per kept detector: how often it fires on a group (the symptom rate the matrix and the loop compare across groups)."""
+    table = firing_table(detectors, attempts)
+    return {d["name"]: {"fires": d["fires"], "n": table["n"], "rate": d["rate"]} for d in table["detectors"]}
+
+
+def diagnosis_query(target, table: dict | None, max_detectors: int = 3) -> str:
+    """The librarian's query named by the diagnosis: the target's title and family, then the hypotheses of the detectors that
+    fired on the base group, most frequent first. Without a firing detector it is the plain query the week-4 loop used."""
+    base = f"{target.title} {target.family}"
+    fired = [d for d in (table or {}).get("detectors", []) if d["fires"] > 0][:max_detectors]
+    if not fired:
+        return base
+    return base + " " + " ".join(d["hypothesis"] or d["name"].replace("_", " ") for d in fired)
+
+
+def diagnosis_text(target, table: dict | None) -> str:
+    """The diagnosis-only control's text (the matrix's target-side row): the failure modes a program measured on the target's
+    own baseline attempts, with their counts, and no remedy. If this row matches the lessons row, the model held the
+    knowledge and lacked the diagnosis; if it matches the baseline, knowledge is the barrier."""
+    n = int((table or {}).get("n", 0) or 0)
+    fired = [d for d in (table or {}).get("detectors", []) if d["fires"] > 0]
+    head = ("What went wrong in earlier attempts on this target, as measured by a program's detectors (each line is a symptom "
+            "seen on failed attempts; no remedy is given):")
+    if not fired or not n:
+        return head + "\n- no detector fired on the earlier attempts"
+    return head + "\n" + "\n".join(f"- {d['fires']} of {n} attempts: {d['hypothesis'] or d['name'].replace('_', ' ')}" for d in fired)
+
+
+def base_groups(ledger: Ledger, target: str, *, reportable_only: bool = False) -> list[tuple[str, list[Attempt]]]:
+    """The plain-prompt builder groups of a target (no lessons, no prompt override, not derived from a proposal), oldest
+    first: the groups a diagnosis is mined from."""
+    rows = [r for r in ledger.attempts(target=target, role="builder")
+            if not (r.context or {}).get("lesson_ids") and not (r.context or {}).get("prompt_override")
+            and not (r.context or {}).get("derived_from_proposal")]
+    if reportable_only:
+        rows = [r for r in rows if r.mode not in ("offline", None) and r.precision == "bf16"]
+    groups: dict[str, list[Attempt]] = {}
+    for r in rows:
+        groups.setdefault(r.group_id or "", []).append(r)
+    return sorted(groups.items(), key=lambda kv: min(x.timestamp for x in kv[1]))
+
+
 # --- dossiers -------------------------------------------------------------------------------------------------
 DOSSIER_SCHEMA = {
     "claim": str, "conditions": list, "evidence": dict,
@@ -270,23 +380,8 @@ class Checker(Harness):
         candidates = list(proposed)
         if include_builtin:
             candidates += [{**b, "valid": True, "error": None, "origin": "builtin"} for b in BUILTIN_DETECTORS]
-        now = datetime.now(timezone.utc).isoformat(timespec="milliseconds")
-        results = []
-        for c in candidates:
-            if not c["valid"]:
-                results.append({**c, "kept": False, "verification": None})
-                continue
-            ver = verify_detector(c["spec"], heldout, min_fires=self.min_fires, min_right=self.min_right)
-            did = detector_id(target.id, c["spec"])
-            self.ledger.insert("detectors", {
-                "id": did, "target": target.id, "family": target.family, "name": c["name"], "hypothesis": c["hypothesis"], "spec": c["spec"],
-                "origin": c["origin"], "harness_attempt_id": hid if c["origin"] == "model" else None, "heldout_n": ver["heldout_n"],
-                "fires": ver["fires"], "right": ver["right"], "precision": ver["precision"], "accuracy": ver["accuracy"],
-                "kept": int(ver["kept"]), "created": now, "provider": self.provider.name, "mode": self.provider.mode}, json_columns=("spec",))
-            results.append({**c, "id": did, "kept": ver["kept"], "verification": ver})
-        return {"target": target.id, "mining_n": len(mining), "heldout_n": len(heldout), "proposed": len(proposed),
-                "kept": [r for r in results if r["kept"]], "rejected": [r for r in results if not r["kept"]],
-                "harness_attempt_id": hid, "min_fires": self.min_fires, "min_right": self.min_right}
+        return store_detectors(self.ledger, target, candidates, heldout, mining_n=len(mining), proposed=len(proposed), harness_attempt_id=hid,
+                               provider=self.provider.name, mode=self.provider.mode, min_fires=self.min_fires, min_right=self.min_right)
 
     def detectors(self, target: str | None = None, kept_only: bool = True) -> list[dict]:
         where, args = [], []
@@ -346,8 +441,56 @@ class Checker(Harness):
         return dossier
 
 
+def mine_from_ledger(ledger: Ledger, target_ids: list[str], *, group_ids: list[str] | None = None, all_groups: bool = False,
+                     reportable_only: bool = False, checker: "Checker | None" = None, seed: int = 0) -> list[dict]:
+    """Mine detectors on the base groups a ledger already holds (week 5: the loop's plain-prompt groups on Drive, after the
+    fact and with no GPU). Per target: the latest base group (or every one with `all_groups`, or the given group ids);
+    the checker proposes detectors when one is given, the built-in detectors alone otherwise; every candidate is verified
+    on the held-out half; the kept detectors' firing table over the group is reported."""
+    from ..targets import get_target
+
+    ensure_all(ledger)
+    reports = []
+    for tid in target_ids:
+        target = get_target(tid)
+        if group_ids:
+            groups = [(g, ledger.attempts(group_id=g)) for g in group_ids]
+            groups = [(g, [r for r in rows if r.target == tid]) for g, rows in groups]
+            groups = [(g, rows) for g, rows in groups if rows]
+        else:
+            groups = base_groups(ledger, tid, reportable_only=reportable_only)
+            if groups and not all_groups:
+                groups = groups[-1:]
+        for gid, rows in groups:
+            rep = checker.mine(target, rows, seed=seed) if checker is not None else mine_builtin(ledger, target, rows, seed=seed)
+            kept = kept_detectors(ledger, tid)
+            table = firing_table(kept, rows)
+            reports.append({"target": tid, "group_id": gid, "attempts": len(rows), "failed": table["failed"], "mining": "checker" if checker else "builtin",
+                            "proposed": rep["proposed"], "kept": [{"name": d["name"], "origin": d["origin"], "heldout_fires": d["verification"]["fires"],
+                                                                   "precision": d["verification"]["precision"]} for d in rep["kept"]],
+                            "rejected": [d["name"] for d in rep["rejected"]], "harness_attempt_id": rep.get("harness_attempt_id"),
+                            "firing": [{k: d[k] for k in ("name", "origin", "fires", "failures_fired", "rate")} for d in table["detectors"]],
+                            "query": diagnosis_query(target, table), "diagnosis_text": diagnosis_text(target, table)})
+    return reports
+
+
+def mining_markdown(reports: list[dict]) -> str:
+    lines = ["| target | group | attempts | failed | mining | kept detectors (fires on the group) | rejected |", "|---|---|---|---|---|---|---|"]
+    for r in reports:
+        fires = {f["name"]: f["fires"] for f in r["firing"]}
+        kept = "; ".join(f"{k['name']} ({fires.get(k['name'], 0)} of {r['attempts']})" for k in r["kept"]) or "none"
+        lines.append(f"| {r['target']} | {r['group_id']} | {r['attempts']} | {r['failed']} | {r['mining']} | {kept} | {len(r['rejected'])} |")
+    for r in reports:
+        lines += ["", f"{r['target']} ({r['group_id']}): librarian query \"{r['query']}\"", r["diagnosis_text"]]
+    lines += ["", "A detector is kept only if, on attempts the proposer never saw, it fires at least twice and every firing is a failure. "
+                  "The firing table is a program's measurement; nothing here is a score."]
+    return "\n".join(lines) + "\n"
+
+
 def main(argv=None) -> int:
-    """python -m lab.harness.checker --baseline [--targets quad-d7 ...]: the frozen baseline record from the ledger."""
+    """python -m lab.harness.checker --baseline [--targets quad-d7 ...]: the frozen baseline record from the ledger.
+    python -m lab.harness.checker --mine --targets quad-square-d5 ... [--provider openai --mode online]: detectors mined on
+    the base groups the ledger holds (built-in detectors alone without a provider), stored, and their firing tables."""
     import argparse
     import json as _json
     from pathlib import Path
@@ -356,12 +499,39 @@ def main(argv=None) -> int:
 
     ap = argparse.ArgumentParser(prog="python -m lab.harness.checker")
     ap.add_argument("--baseline", action="store_true", help="write the baseline record from the ledger's groups")
+    ap.add_argument("--mine", action="store_true", help="mine detectors on the base groups of --targets already in the ledger (no GPU)")
     ap.add_argument("--targets", nargs="*", default=None)
+    ap.add_argument("--groups", nargs="*", default=None, help="with --mine: these group ids instead of the latest base group per target")
+    ap.add_argument("--all-groups", action="store_true", help="with --mine: every base group of each target, not only the latest")
+    ap.add_argument("--provider", default=None, help="with --mine: openai | anthropic proposes detectors (default: built-in detectors only)")
+    ap.add_argument("--mode", default=None, choices=["offline", "online", "record"])
+    ap.add_argument("--seed", type=int, default=0, help="with --mine: the pool split's seed")
     ap.add_argument("--reportable-only", action="store_true", help="leave out offline replays and quantized rows")
     ap.add_argument("--ledger", default=None)
+    ap.add_argument("--fixtures", default=None)
     args = ap.parse_args(argv)
     cfg = lab_config()
     ledger = Ledger(args.ledger or cfg["storage"]["ledger"])
+    if args.mine:
+        if not args.targets:
+            ap.error("--mine needs --targets")
+        checker = None
+        if args.provider:
+            from .base import harness_provider
+
+            checker = Checker(harness_provider(cfg, name=args.provider, mode=args.mode, ledger=ledger, fixtures_root=args.fixtures), ledger, cfg=cfg)
+        reports = mine_from_ledger(ledger, args.targets, group_ids=args.groups, all_groups=args.all_groups, reportable_only=args.reportable_only,
+                                   checker=checker, seed=args.seed)
+        out = Path(ledger.path).resolve().parent / "detectors"
+        out.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        path = out / f"mining-{stamp}"
+        path.with_suffix(".json").write_text(_json.dumps(reports, indent=1, default=str), encoding="utf-8")
+        path.with_suffix(".md").write_text(mining_markdown(reports), encoding="utf-8")
+        print(mining_markdown(reports))
+        print(f"mining report written to {path.with_suffix('.md')}" + (f" (harness spend ${checker.spent:.4f})" if checker else ""))
+        ledger.close()
+        return 0
     if args.baseline:
         rec = Checker.baseline_record(ledger, targets=args.targets, reportable_only=args.reportable_only)
         out = Path(ledger.path).resolve().parent / "baselines"

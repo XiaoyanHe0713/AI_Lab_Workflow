@@ -183,9 +183,9 @@ FIXTURES = ROOT / "tests" / "fixtures" / "providers"
 def sequence_items():
     items = []
     for text in RESPONSES:
-        items.append({"text": text, "prompt_tokens": 410, "completion_tokens": 40 + len(text) // 4,
+        items.append({"text": text, "rounds": [text, text], "prompt_tokens": 410, "completion_tokens": 40 + len(text) // 4,
                       "latency_s": round(1.5 + 0.02 * len(text) / 4, 2), "model": "synthetic-fixture",
-                      "finish_reason": "stop", "note": "synthetic, hand-written; not a recorded model output"})
+                      "finish_reason": "stop", "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)"})
     return items
 
 
@@ -262,7 +262,9 @@ def main() -> None:
         "  `tests/fixtures_week4.py`), not model outputs: the week-2 quad-d7 sequence (16 responses: 7 valid rules, 4 of\n"
         "  them optimal), one per ablation notebook arm per recorded provider, and the week-4 sequences for the loop\n"
         "  (builder rungs on the square and the triangle; theorist proposals and breaker replies with a `rounds` list,\n"
-        "  one reply per tool round, keyed by the opening prompt; builders derived from proposals) and the matrix cells.\n"
+        "  one reply per tool round, keyed by the opening prompt; builders derived from proposals) and the matrix cells,\n"
+        "  the diagnosis-only control's prompts included (week 5). Every single-round builder item also carries\n"
+        "  `rounds: [text, text]`, so a second try (one certifier dry run and a revision) replays as the model keeping its file.\n"
         "  Regenerate them with `python tests/make_fixtures.py` whenever a prompt text, the recorded lessons or the\n"
         "  synthetic responses change; delete stale ones first (git clean on the local directory) so no orphan stays.\n", encoding="utf-8")
 

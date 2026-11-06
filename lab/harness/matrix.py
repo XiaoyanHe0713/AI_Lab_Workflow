@@ -15,6 +15,13 @@ target's family key (certificate family and structure class, lab/targets.py) is 
 The `none` carrier is the baseline of every row and is run once per target and seed. Gain in a cell is the certified
 pass rate (and optimal rate, and best score) with the carrier minus without, paired by seed, with a percentile
 bootstrap interval over seeds (over attempts when there is one seed). Open targets carry their flag in every cell.
+
+Week 5 adds two target-side control rows that carry no experience and are never refused: `second_try` (one certifier
+dry run and a revision, no lesson: the floor every lesson gain is read against) and `diagnosis_only` (the program's
+diagnosis of the target's own `none` cell, the kept detectors that fired with their counts and no remedy, which
+separates knowing the fix from seeing the problem). The built-in detectors are mined on the `none` cell when the
+diagnosis-only row runs. Every cell also reports its symptom rates, how often each kept detector of the target fires,
+and every gain the symptom change against the baseline: the evidence that a carrier removed the failure it addresses.
 """
 from __future__ import annotations
 
@@ -35,7 +42,8 @@ from ..roles import KINDS, MODES
 from ..targets import get_target, transfer_setting
 from .archive import Archive
 from .base import harness_provider
-from .carriers import CARRIERS, CONTENT_CARRIERS, apply_carrier
+from .carriers import CARRIERS, CONTENT_CARRIERS, CONTROL_CARRIERS, apply_carrier
+from .checker import base_groups, firing_table, kept_detectors, mine_builtin, symptom_rates
 from .lessons import LessonBank, LessonHarness
 
 
@@ -138,7 +146,12 @@ def unrelated_control(ledger: Ledger, archive: Archive, bank: LessonBank, target
 
 
 def check_transfer(experience: ExperienceSet, target_id: str, carrier: str, *, allow_same_family: bool = False) -> dict:
-    """The setting of a cell, and the rule that lessons are never measured on the family they came from."""
+    """The setting of a cell, and the rule that lessons are never measured on the family they came from. The two
+    target-side controls carry no experience, so the rule has nothing to refuse: they are reported as controls with a flag."""
+    if carrier in CONTROL_CARRIERS:
+        t = get_target(target_id).transfer
+        flag = "diagnosis of the target's own baseline, no remedy" if carrier == "diagnosis_only" else "one dry run and a revision, no lesson"
+        return {"setting": "control", "same_family": False, "open": t.open, "target": t.to_dict(), "allowed": True, "flag": flag}
     if carrier == "none" or experience is None or not experience.source_targets:
         setting = {"setting": "baseline" if carrier == "none" else "no_sources", "same_family": False,
                    "open": get_target(target_id).transfer.open, "target": get_target(target_id).transfer.to_dict()}
@@ -158,15 +171,20 @@ def check_transfer(experience: ExperienceSet, target_id: str, carrier: str, *, a
 def run_cell(*, experience: ExperienceSet | None, carrier: str, target_id: str, seeds: int, attempts: int, cfg: dict, ledger: Ledger,
              bank: LessonBank, archive: Archive, harness: LessonHarness | None = None, matrix_id: str, budget_usd: float | None = None,
              baseline_dollars: dict | None = None, allow_same_family: bool = False, token_budget: int | None = None, run_kw: dict | None = None,
-             quiet: bool = True, seed0: int = 0, seed_stride: int = 1000) -> dict:
+             quiet: bool = True, seed0: int = 0, seed_stride: int = 1000, tool_calls: int = 0, diagnosis_table: dict | None = None) -> dict:
     """One cell: `seeds` groups of `attempts` with the carrier applied from the experience set, each group a seed block
     (seed0 + k * seed_stride), stopped at the matched budget when one is given. Every attempt row carries the matrix id,
-    the cell id, the experience, the carrier, the setting and the seed index."""
+    the cell id, the experience, the carrier, the setting and the seed index. `tool_calls` gives the builder that many
+    certifier dry runs (the second-try control fixes it at one; a content carrier with dry runs is a cell of its own);
+    `diagnosis_table` is the firing table the diagnosis-only control is written from."""
     target = get_target(target_id)
     setting = check_transfer(experience, target_id, carrier, allow_same_family=allow_same_family)
     token_budget = int(token_budget or cfg.get("harness", {}).get("lesson_token_budget", 2000))
-    app = apply_carrier(carrier, target, experience, bank=bank, archive=archive, harness=harness, token_budget=token_budget)
-    cell_id = "cell_" + hashlib.sha256(f"{matrix_id}|{experience.id if experience else 'none'}|{carrier}|{target_id}".encode()).hexdigest()[:12]
+    app = apply_carrier(carrier, target, experience, bank=bank, archive=archive, harness=harness, token_budget=token_budget,
+                        diagnosis_table=diagnosis_table)
+    tool_calls = max(int(tool_calls or 0), int(app.get("tool_calls", 0)))
+    key = f"{matrix_id}|{experience.id if experience else 'none'}|{carrier}|{target_id}" + (f"|t{tool_calls}" if tool_calls else "")
+    cell_id = "cell_" + hashlib.sha256(key.encode()).hexdigest()[:12]
     kw = dict(run_kw or {})
     groups = []
     for k in range(seeds):
@@ -181,22 +199,46 @@ def run_cell(*, experience: ExperienceSet | None, carrier: str, target_id: str, 
                "seed_index": k, "open_target": setting.get("open", False), "transfer_flag": setting.get("flag")}
         s = run_group(target_id=target_id, attempts=attempts, seed=seed, provider_name=kw.pop("provider_name", "local"), role_name="builder",
                       ledger=ledger, ledger_path=ledger.path, cfg=cfg, quiet=quiet, stop_at_dollars=stop, prompt=app["prompt"] if app["prompt_override"] else None,
-                      context_extra=ctx, post_check=app["post_check"], **kw)
+                      context_extra=ctx, post_check=app["post_check"], tool_calls=tool_calls, **kw)
         groups.append({"seed_index": k, "seed": seed, "group_id": s["group_id"], "attempts": s["attempts"], "passed": s["passed"], "optimal": s["optimal"],
                        "pass_rate": s["pass_rate"], "optimal_rate": s["optimal_rate"], "best_score": s["best_score"], "dollars": s["dollars"],
                        "stopped_at": s.get("stopped_at"), "gate_checks": s.get("gate_checks")})
     return {"cell_id": cell_id, "matrix_id": matrix_id, "experience": experience.to_dict() if experience else None, "carrier": carrier,
             "target": target_id, "setting": setting, "lesson_ids": app["context"].get("lesson_ids", []), "skill_ids": app["context"].get("skill_ids", []),
-            "redacted": app["context"].get("redacted", False), "groups": groups, "dollars": sum(g["dollars"] for g in groups),
+            "redacted": app["context"].get("redacted", False), "tool_calls": tool_calls, "detectors_named": app["context"].get("detectors_named"),
+            "groups": groups, "dollars": sum(g["dollars"] for g in groups),
             "gate": ({"lesson_id": app["gate"]["lesson"].id if app["gate"].get("lesson") else None, "check": app["gate"].get("check")} if app.get("gate") else None)}
+
+
+def diagnosis_for(ledger: Ledger, target_id: str, none_cell: dict | None, *, seed: int = 0) -> tuple[dict, dict]:
+    """The firing table the diagnosis-only row is written from: the built-in detectors are mined on the target's `none`
+    cell of this matrix (or, without one, on the latest base group the ledger holds), then every detector the program
+    has kept for the target, the loop's included, is run over those attempts. Returns the table and a record of it."""
+    target = get_target(target_id)
+    if none_cell is not None:
+        rows = [a for g in none_cell["groups"] for a in ledger.attempts(group_id=g["group_id"])]
+        source = {"from": "none cell", "cell_id": none_cell["cell_id"]}
+    else:
+        groups = base_groups(ledger, target_id)
+        rows = groups[-1][1] if groups else []
+        source = {"from": "ledger base group", "group_id": groups[-1][0] if groups else None}
+    if rows:
+        mine_builtin(ledger, target, rows, seed=seed)
+    kept = kept_detectors(ledger, target_id)
+    table = firing_table(kept, rows)
+    rec = {**source, "attempts": table["n"], "failed": table["failed"], "kept": [d["name"] for d in kept],
+           "firing": [{k: d[k] for k in ("name", "origin", "fires", "failures_fired", "rate")} for d in table["detectors"]]}
+    return table, rec
 
 
 def run_matrix(*, sources: list[ExperienceSet], carriers: list[str], targets: list[str], seeds: int, attempts: int, cfg: dict, ledger: Ledger,
                bank: LessonBank, archive: Archive, harness: LessonHarness | None = None, match: str = "attempts", budget_usd: float | None = None,
                allow_same_family: bool = False, token_budget: int | None = None, run_kw: dict | None = None, quiet: bool = True,
-               out_dir: str | Path | None = None, matrix_id: str | None = None, controls: bool = True, seed0: int = 0) -> dict:
-    """Rows: the experience sets (and, with controls, the process-only and unrelated controls); columns: the targets in
-    their settings; the `none` carrier once per target. Cells that would leak are skipped and listed."""
+               out_dir: str | Path | None = None, matrix_id: str | None = None, controls: bool = True, seed0: int = 0, tool_calls: int = 0) -> dict:
+    """Rows: the experience sets (and, with controls, the process-only and unrelated controls, and the two target-side
+    controls of week 5); columns: the targets in their settings; the `none` carrier once per target. `tool_calls` gives
+    every content carrier that many certifier dry runs (a lessons-plus-second-try cell). Cells that would leak are
+    skipped and listed."""
     matrix_id = matrix_id or new_id("mtx")
     for c in carriers:
         if c not in CARRIERS:
@@ -204,24 +246,37 @@ def run_matrix(*, sources: list[ExperienceSet], carriers: list[str], targets: li
     rows: list[tuple[ExperienceSet | None, str]] = []
     for e in sources:
         for c in carriers:
-            if c in ("none", "process_only", "unrelated"):
+            if c in ("none", "process_only", "unrelated") or c in CONTROL_CARRIERS:
                 continue
             rows.append((e, c))
         if controls and "process_only" in carriers:
             rows.append((process_only_control(e), "process_only"))
     record: dict = {"id": matrix_id, "sources": [e.to_dict() for e in sources], "carriers": carriers, "targets": targets, "seeds": seeds,
-                    "attempts": attempts, "match": match, "budget_usd": budget_usd, "cells": [], "skipped": [], "baselines": {},
-                    "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+                    "attempts": attempts, "match": match, "budget_usd": budget_usd, "tool_calls": tool_calls, "cells": [], "skipped": [],
+                    "baselines": {}, "diagnoses": {}, "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}
     for tid in targets:
         base_dollars = None
+        none_cell = None
         if "none" in carriers:
-            cell = run_cell(experience=None, carrier="none", target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg, ledger=ledger, bank=bank,
-                            archive=archive, harness=harness, matrix_id=matrix_id, budget_usd=budget_usd, token_budget=token_budget, run_kw=run_kw,
-                            quiet=quiet, seed0=seed0)
-            record["cells"].append(cell)
-            record["baselines"][tid] = cell["cell_id"]
+            none_cell = run_cell(experience=None, carrier="none", target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg, ledger=ledger, bank=bank,
+                                 archive=archive, harness=harness, matrix_id=matrix_id, budget_usd=budget_usd, token_budget=token_budget, run_kw=run_kw,
+                                 quiet=quiet, seed0=seed0)
+            record["cells"].append(none_cell)
+            record["baselines"][tid] = none_cell["cell_id"]
             if match == "dollars" and budget_usd is None:
-                base_dollars = {g["seed_index"]: g["dollars"] for g in cell["groups"]}
+                base_dollars = {g["seed_index"]: g["dollars"] for g in none_cell["groups"]}
+        # the target-side controls (week 5): no experience, never refused
+        if "second_try" in carriers:
+            record["cells"].append(run_cell(experience=None, carrier="second_try", target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg, ledger=ledger,
+                                            bank=bank, archive=archive, harness=harness, matrix_id=matrix_id, budget_usd=budget_usd,
+                                            baseline_dollars=base_dollars, token_budget=token_budget, run_kw=run_kw, quiet=quiet, seed0=seed0))
+        if "diagnosis_only" in carriers:
+            table, diag = diagnosis_for(ledger, tid, none_cell, seed=seed0)
+            record["diagnoses"][tid] = diag
+            record["cells"].append(run_cell(experience=None, carrier="diagnosis_only", target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg,
+                                            ledger=ledger, bank=bank, archive=archive, harness=harness, matrix_id=matrix_id, budget_usd=budget_usd,
+                                            baseline_dollars=base_dollars, token_budget=token_budget, run_kw=run_kw, quiet=quiet, seed0=seed0,
+                                            diagnosis_table=table))
         trows = list(rows)
         if controls and "unrelated" in carriers:
             trows.append((unrelated_control(ledger, archive, bank, tid), "unrelated"))
@@ -229,7 +284,7 @@ def run_matrix(*, sources: list[ExperienceSet], carriers: list[str], targets: li
             try:
                 cell = run_cell(experience=e, carrier=c, target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg, ledger=ledger, bank=bank, archive=archive,
                                 harness=harness, matrix_id=matrix_id, budget_usd=budget_usd, baseline_dollars=base_dollars, allow_same_family=allow_same_family,
-                                token_budget=token_budget, run_kw=run_kw, quiet=quiet, seed0=seed0)
+                                token_budget=token_budget, run_kw=run_kw, quiet=quiet, seed0=seed0, tool_calls=tool_calls)
             except TransferLeak as err:
                 record["skipped"].append({"experience": e.name, "carrier": c, "target": tid, "reason": str(err)})
                 continue
@@ -253,7 +308,8 @@ CELL_SQL = """
            json_extract(context, '$.experience_id') AS experience_id, json_extract(context, '$.experience_kind') AS experience_kind,
            json_extract(context, '$.source_targets') AS source_targets, json_extract(context, '$.setting') AS setting,
            json_extract(context, '$.same_family') AS same_family, json_extract(context, '$.seed_index') AS seed_index,
-           json_extract(context, '$.open_target') AS open_target, json_extract(context, '$.transfer_flag') AS transfer_flag
+           json_extract(context, '$.open_target') AS open_target, json_extract(context, '$.transfer_flag') AS transfer_flag,
+           json_extract(context, '$.tool_calls') AS tool_calls
     FROM attempts WHERE json_extract(context, '$.matrix_id') = ? AND role = 'builder' ORDER BY timestamp, id
 """
 
@@ -291,9 +347,19 @@ def bootstrap_gain_over_attempts(with_rows: list[dict], without_rows: list[dict]
     return (gains[int(0.025 * n_boot)], gains[min(n_boot - 1, int(0.975 * n_boot))])
 
 
+def cell_symptoms(ledger: Ledger, target: str, group_ids: list[str], kept: list[dict] | None = None) -> dict:
+    """The symptom rates of a cell: how often each detector the program kept for the target fires over the cell's attempts."""
+    kept = kept_detectors(ledger, target) if kept is None else kept
+    if not kept:
+        return {}
+    rows = [a for g in group_ids for a in ledger.attempts(group_id=g)]
+    return symptom_rates(kept, rows)
+
+
 def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
     """Certified gain per cell from the ledger: the carrier's cell minus the target's `none` cell, paired by seed index,
-    mean over seeds with a percentile bootstrap interval (over attempts when there is a single seed)."""
+    mean over seeds with a percentile bootstrap interval (over attempts when there is a single seed); and, per cell, the
+    symptom rates of the target's kept detectors, with the change against the baseline inside every gain."""
     rows = ledger.query(CELL_SQL, (matrix_id,))
     for r in rows:
         cert = json.loads(r["certificate"]) if isinstance(r["certificate"], str) and r["certificate"] else {}
@@ -306,7 +372,10 @@ def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
     for cid, rs in cells.items():
         if rs[0]["carrier"] == "none":
             baselines[rs[0]["target"]] = cid
-    out = {"matrix_id": matrix_id, "cells": [], "n_rows": len(rows)}
+    kept_by_target = {t: kept_detectors(ledger, t) for t in {r["target"] for r in rows}}
+    symptoms_by_cell = {cid: cell_symptoms(ledger, rs[0]["target"], sorted({r["group_id"] for r in rs}), kept_by_target[rs[0]["target"]])
+                        for cid, rs in cells.items()}
+    out = {"matrix_id": matrix_id, "cells": [], "n_rows": len(rows), "detectors": {t: [d["name"] for d in k] for t, k in kept_by_target.items()}}
     for cid, rs in cells.items():
         first = rs[0]
         by_seed = {}
@@ -317,9 +386,9 @@ def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
         entry = {"cell_id": cid, "target": first["target"], "carrier": first["carrier"], "experience_id": first["experience_id"],
                  "experience_kind": first["experience_kind"], "source_targets": json.loads(first["source_targets"]) if first["source_targets"] else [],
                  "setting": first["setting"], "same_family": bool(first["same_family"]), "open": bool(first["open_target"]), "flag": first["transfer_flag"],
-                 "seeds": len(seeds), "attempts": len(rs), "dollars": sum(r["dollars"] or 0.0 for r in rs),
+                 "tool_calls": int(first["tool_calls"] or 0), "seeds": len(seeds), "attempts": len(rs), "dollars": sum(r["dollars"] or 0.0 for r in rs),
                  "pass_rate": sum(s["pass_rate"] for s in per_seed.values()) / len(per_seed), "optimal_rate": sum(s["optimal_rate"] for s in per_seed.values()) / len(per_seed),
-                 "best_score": None, "per_seed": per_seed, "gain": None}
+                 "best_score": None, "per_seed": per_seed, "symptoms": symptoms_by_cell[cid], "gain": None}
         scores = [s["best_score"] for s in per_seed.values() if s["best_score"] is not None]
         lower = per_seed[seeds[0]]["lower_is_better"]
         entry["best_score"] = (min(scores) if lower else max(scores)) if scores else None
@@ -342,13 +411,25 @@ def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
                     method = "percentile bootstrap over attempts (one seed)"
                 bb = [s for s in (_stats(base_by_seed[k])["best_score"] for k in common) if s is not None]
                 base_best = (min(bb) if lower else max(bb)) if bb else None
+                base_sym = symptoms_by_cell.get(base_id, {})
+                names = sorted(set(entry["symptoms"]) | set(base_sym))
                 entry["gain"] = {"pass_rate": sum(gains_p) / len(gains_p), "pass_rate_ci": ci_p, "optimal_rate": sum(gains_o) / len(gains_o),
                                  "optimal_rate_ci": ci_o, "best_score_gain": ((base_best - entry["best_score"]) if lower else (entry["best_score"] - base_best))
                                  if (base_best is not None and entry["best_score"] is not None) else None,
                                  "seeds": len(common), "method": method, "baseline_cell": base_id,
-                                 "matched_dollars_spread": abs(entry["dollars"] - sum(r["dollars"] or 0.0 for r in cells[base_id]))}
+                                 "matched_dollars_spread": abs(entry["dollars"] - sum(r["dollars"] or 0.0 for r in cells[base_id])),
+                                 "symptom_change": {n: ((entry["symptoms"].get(n) or {}).get("rate") or 0.0) - ((base_sym.get(n) or {}).get("rate") or 0.0)
+                                                    for n in names}}
         out["cells"].append(entry)
     return out
+
+
+def symptom_text(changes: dict | None, k: int = 3) -> str:
+    """The largest symptom changes of a cell, as a short cell of the markdown table (negative is a symptom removed)."""
+    if not changes:
+        return "-"
+    top = sorted(changes.items(), key=lambda kv: (-abs(kv[1]), kv[0]))[:k]
+    return "; ".join(f"{n} {v:+.2f}" for n, v in top)
 
 
 def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
@@ -358,8 +439,8 @@ def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
         lines += [f"Sources: {', '.join(s['name'] for s in record['sources'])}; carriers {', '.join(record['carriers'])}; targets {', '.join(record['targets'])}; "
                   f"{record['seeds']} seed(s) x {record['attempts']} attempts per cell; matched by {record['match']}"
                   + (f" at ${record['budget_usd']}" if record.get('budget_usd') else "") + ".", ""]
-    lines += ["| experience (row) | carrier | target | setting | open | gain in pass rate [95% CI] | gain in optimal rate [95% CI] | best score gain | seeds | $ | flag |",
-              "|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines += ["| experience (row) | carrier | target | setting | open | gain in pass rate [95% CI] | gain in optimal rate [95% CI] | best score gain | symptom change | seeds | $ | flag |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for c in sorted(cells, key=lambda c: (c["experience_kind"] or "", ",".join(c["source_targets"]), c["carrier"], c["target"])):
         g = c.get("gain")
         if g:
@@ -368,18 +449,27 @@ def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
             gp = f"{g['pass_rate']:+.3f} [{ci[0]:+.3f}, {ci[1]:+.3f}]" if ci else f"{g['pass_rate']:+.3f}"
             go = f"{g['optimal_rate']:+.3f} [{cio[0]:+.3f}, {cio[1]:+.3f}]" if cio else f"{g['optimal_rate']:+.3f}"
             bs = f"{g['best_score_gain']:+g}" if g["best_score_gain"] is not None else "-"
+            sy = symptom_text(g.get("symptom_change"))
         else:
             gp = go = bs = "no baseline"
-        row = f"{c['experience_kind']}: {'+'.join(c['source_targets']) or '(empty)'}"
-        lines.append(f"| {row} | {c['carrier']} | {c['target']} | {c['setting']} | {'yes' if c['open'] else 'no'} | {gp} | {go} | {bs} | {c['seeds']} | {c['dollars']:.4f} | {c['flag'] or ''} |")
+            sy = "-"
+        row = f"{c['experience_kind'] or 'control'}: {'+'.join(c['source_targets']) or ('(target-side)' if c['carrier'] in CONTROL_CARRIERS else '(empty)')}"
+        carrier = c["carrier"] + (" (+dry run)" if c.get("tool_calls") and c["carrier"] != "second_try" else "")
+        lines.append(f"| {row} | {carrier} | {c['target']} | {c['setting']} | {'yes' if c['open'] else 'no'} | {gp} | {go} | {bs} | {sy} | {c['seeds']} | {c['dollars']:.4f} | {c['flag'] or ''} |")
     base = [c for c in analysis["cells"] if c["carrier"] == "none"]
     if base:
         lines += ["", "Baselines (carrier none): " + "; ".join(f"{c['target']}: pass rate {c['pass_rate']:.3f}, optimal rate {c['optimal_rate']:.3f}, best {c['best_score']}" for c in base)]
+        sym = [f"{c['target']}: " + ", ".join(f"{n} {s['rate']:.2f}" for n, s in sorted(c["symptoms"].items())) for c in base if c.get("symptoms")]
+        if sym:
+            lines += ["", "Symptom rates of the baselines (how often each kept detector fires; a detector is a program verified on held-out attempts): "
+                          + "; ".join(sym)]
     if record and record.get("skipped"):
         lines += ["", "Cells refused by the program (lessons are never measured on the family they came from):"]
         lines += [f"- {s['experience']} / {s['carrier']} on {s['target']}: {s['reason']}" for s in record["skipped"]]
     lines += ["", "A cell is the certified gain with the experience minus without, paired by seed; the interval is a percentile bootstrap. "
-                  "Every number is a certificate; nothing a carrier adds to a prompt is scored."]
+                  "The symptom change is the firing rate of a kept detector with the carrier minus without (negative: the failure it names went away). "
+                  "The two target-side controls carry no experience: diagnosis_only names the failure and no remedy, second_try is one dry run and no lesson. "
+                  "Every number is a certificate or a detector's firing; nothing a carrier adds to a prompt is scored."]
     return "\n".join(lines) + "\n"
 
 
@@ -394,6 +484,7 @@ def main(argv=None) -> int:
     ap.add_argument("--match", default="attempts", choices=["attempts", "dollars"])
     ap.add_argument("--budget-usd", type=float, default=None)
     ap.add_argument("--allow-same-family", action="store_true", help="run same-family cells anyway (they are marked and unreported)")
+    ap.add_argument("--tool-calls", type=int, default=0, help="certifier dry runs for every content carrier (a lessons-plus-second-try cell); the second_try control always has one")
     ap.add_argument("--provider", default="local", choices=list(KINDS))
     ap.add_argument("--mode", default=None, choices=list(MODES))
     ap.add_argument("--harness-provider", default=None)
@@ -437,7 +528,7 @@ def main(argv=None) -> int:
                   concurrency=args.concurrency, thinking_budget=args.thinking)
     rec = run_matrix(sources=sources, carriers=args.carriers, targets=args.targets, seeds=args.seeds, attempts=args.attempts, cfg=cfg, ledger=ledger,
                      bank=bank, archive=archive, harness=harness, match=args.match, budget_usd=args.budget_usd, allow_same_family=args.allow_same_family,
-                     token_budget=args.token_budget, run_kw=run_kw, quiet=args.json, out_dir=args.out)
+                     token_budget=args.token_budget, run_kw=run_kw, quiet=args.json, out_dir=args.out, tool_calls=args.tool_calls)
     ledger.close()
     if args.json:
         print(json.dumps(rec, indent=1, default=str))

@@ -11,18 +11,23 @@ experience the transfer matrix (lab/harness/matrix.py) draws on.
 
 Per target, in the order given (the curriculum rungs):
   1. the gate chooses lessons for the target when the bank holds any (a frontier call; without a harness the
-     notebook text stands in), and the theorist proposes: lemmas checked by computer algebra, structure, hypotheses;
+     notebook text stands in);
   2. the builder runs its gate group from the plain prompt (the frozen base's record, from which the gate memo is
-     written), a lesson group when lessons exist, and a proposal group where each attempt is derived from one of the
-     theorist's checked proposals (the delayed credit);
-  3. the judge certifies every attempt inside its episode; the distinct certified candidates, best first, are the
+     written), and the diagnosis is mined on it (week 5): the checker's detectors when it runs, the built-in detectors
+     alone otherwise, each kept only if it holds on the held-out half; their firing table names the failure;
+  3. the theorist proposes, lemmas checked by computer algebra, structure, hypotheses, with the librarian's retrieval
+     under the cutoff asked the question the diagnosis names;
+  4. the builder runs a lesson group when lessons exist, and a proposal group where each attempt is derived from one of
+     the theorist's checked proposals (the delayed credit); the symptom rate of every kept detector is recorded per group;
+  5. the judge certifies every attempt inside its episode; the distinct certified candidates, best first, are the
      survivors;
-  4. the breaker attacks each survivor with a group of attempts; a confirmed break voids the candidate and raises an
+  6. the breaker attacks each survivor with a group of attempts; a confirmed break voids the candidate and raises an
      exploit alarm (on quadrature a certificate covers the whole class, so a confirmed break means the certifier is wrong);
-  5. the survivors enter the archive with their certificate, dossier, witness record, lesson ids, citations and
-     reading-list snapshot; the lesson harness extracts lessons from the gate group and the bank consolidates them
-     under the token budget;
-  6. the gate memo is written (lab/gate.py) and the delayed credit of every proposal computed.
+  7. the survivors enter the archive with their certificate, dossier, witness record, lesson ids, citations and
+     reading-list snapshot; the lesson harness extracts lessons from the gate group, told which detectors fired on
+     which attempts so that a lesson can name the failure it addresses, and the bank consolidates them under the
+     token budget;
+  8. the gate memo is written (lab/gate.py) and the delayed credit of every proposal computed.
 Every attempt of every role is a ledger row with its role, adapter version, prompt hash, context (lesson ids, skill
 ids, reading-list snapshot, citation ids, proposal or candidate), output, tool log, certificate, diagnosis, cost and
 seed. Concurrency as in the demo: waves of parallel requests.
@@ -44,7 +49,7 @@ from .gate import gate_record, memo_markdown
 from .harness.ablation import gate_prompt, notebook_prompt
 from .harness.archive import Archive
 from .harness.base import harness_provider
-from .harness.checker import Checker
+from .harness.checker import Checker, diagnosis_query, firing_table, kept_detectors, mine_builtin, symptom_rates
 from .harness.lessons import LessonBank, LessonHarness, apply_check
 from .harness.librarian import Librarian, ReadingList
 from .ledger import Attempt, Ledger, new_id
@@ -78,13 +83,15 @@ def template_dossier(row: Attempt, target) -> dict:
                          "code_sha256": hashlib.sha256(code.encode("utf-8")).hexdigest(), "summary": "written by the program from the certificate"}}
 
 
-def theorist_retrieval(librarian: Librarian | None, target) -> dict:
+def theorist_retrieval(librarian: Librarian | None, target, query: str | None = None) -> dict:
     """The theorist's retrieval tool: the librarian's lexical ranking under the target's cutoff (no model), every
-    returned document a citation row; the snapshot and citation ids go into the episode's context."""
+    returned document a citation row; the snapshot and citation ids go into the episode's context. The query is the
+    one the diagnosis names (lab/harness/checker.py, diagnosis_query) or, without a firing detector, the target's title."""
     if librarian is None:
-        return {"snapshot": None, "citation_ids": [], "documents": []}
-    ret = librarian.retrieve(f"{target.title} {target.family}", target=target, use_model=False, k=3, purpose="theorist")
-    return {"snapshot": ret["snapshot"], "citation_ids": ret["citation_ids"], "documents": ret["documents"]}
+        return {"snapshot": None, "citation_ids": [], "documents": [], "query": query}
+    query = query or f"{target.title} {target.family}"
+    ret = librarian.retrieve(query, target=target, use_model=False, k=3, purpose="theorist")
+    return {"snapshot": ret["snapshot"], "citation_ids": ret["citation_ids"], "documents": ret["documents"], "query": query}
 
 
 def survivors_of(rows: list[Attempt], k: int) -> list[Attempt]:
@@ -133,7 +140,8 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
                    units_per_hour: float | None = None, max_tokens: int | None = 8192, thinking_budget: int | None = 0,
                    timeout_s: float | None = None, concurrency: int = 1, judge_concurrency: int = 4, fixtures_root=None,
                    cache_dir=None, seed: int = 0, token_budget: int | None = None, out_dir: str | Path | None = None,
-                   generation_id: str | None = None, quiet: bool = True, reading_list: ReadingList | None = None) -> dict:
+                   generation_id: str | None = None, quiet: bool = True, reading_list: ReadingList | None = None,
+                   mine_detectors: bool = True) -> dict:
     if carrier not in CARRIERS:
         raise ValueError(f"carrier must be one of {CARRIERS}")
     gen_id = generation_id or new_id("gen")
@@ -167,8 +175,8 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
                     "precision": builder["precision"], "gpu": builder["gpu"], "adapters": "none (frozen base)",
                     "harness": ({"provider": harness.provider.name, "mode": harness.provider.mode, "model": harness.provider.model}
                                 if harness else None),
-                    "checker": bool(checker), "token_budget": token_budget, "seed": seed, "rungs": [], "exploit_alarms": [],
-                    "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+                    "checker": bool(checker), "mine_detectors": bool(mine_detectors), "token_budget": token_budget, "seed": seed, "rungs": [],
+                    "exploit_alarms": [], "started": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
     def run(role_setup: dict, runner_attempt, *, role_name: str, target, n: int, stage: str, label: str, extra: dict | None = None,
             prompt_override: bool = False, post_check_used: bool = False, tool_calls_n: int = 0) -> dict:
@@ -205,18 +213,49 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
                                                         "check": gate_info.get("check"), "reason": gate_info.get("reason"),
                                                         "harness_attempt_id": gate_info.get("harness_attempt_id")} if gate_info else None),
                            "sources": sorted({t for lid in lesson_ids for t in ((bank.get(lid).targets if bank.get(lid) else []))})}
+        # 2. the builder's gate group from the plain prompt (the frozen base's record), then the diagnosis (week 5): the
+        #    detectors mined on this group, the checker's proposals when it runs and the built-in ones otherwise, each kept
+        #    only if it holds on the held-out half, and their firing table, which names the failure before the theorist,
+        #    the lesson writer and the matrix see it
+        groups_rows: list[Attempt] = []
+        base_runner = BuilderRunner(builder["role"], target, builder["judge"], tool_calls=tool_calls, judge_gate=gate)
+        s_base = run(builder, base_runner.attempt, role_name="builder", target=target, n=attempts, stage="base", label="gate group, plain prompt",
+                     tool_calls_n=tool_calls)
+        base_rows = ledger.attempts(group_id=s_base["group_id"])
+        groups_rows += base_rows
+        rung["groups"]["base"] = {k: s_base[k] for k in ("group_id", "attempts", "passed", "optimal", "pass_rate", "optimal_rate", "best_score",
+                                                           "dollars", "gpu_seconds", "capped", "no_code", "wall_s")}
+        rung["groups"]["base"]["verify_first_found"] = s_base["verify_first"]["found"]
+        mining = None
+        if mine_detectors:
+            try:
+                mining = checker.mine(target, base_rows, seed=seed) if checker is not None else mine_builtin(ledger, target, base_rows, seed=seed)
+            except Exception as e:
+                rung["mining_error"] = f"{type(e).__name__}: {e}"
+        kept = kept_detectors(ledger, tid)
+        table = firing_table(kept, base_rows)
+        rung["detectors"] = {"mining": ("checker" if checker is not None else "builtin") if mining is not None else "off",
+                             "proposed": mining["proposed"] if mining else 0, "kept": [d["name"] for d in kept],
+                             "origins": {d["name"]: d.get("origin") for d in kept},
+                             "firing": [{k: d[k] for k in ("name", "fires", "failures_fired", "rate")} for d in table["detectors"]],
+                             "attempts": table["n"], "failed": table["failed"],
+                             "harness_attempt_id": mining.get("harness_attempt_id") if mining else None}
+        # 3. the theorist: the librarian's retrieval under the cutoff, asked the question the diagnosis names, then the proposals
         proposals: list[dict] = []
         snapshot, citation_ids, docs = None, [], []
+        query = diagnosis_query(target, table)
+        rung["retrieval_query"] = query
         if librarian is not None:
             try:
-                ret = theorist_retrieval(librarian, target)
+                ret = theorist_retrieval(librarian, target, query=query)
                 snapshot, citation_ids, docs = ret["snapshot"], ret["citation_ids"], ret["documents"]
             except Exception as e:
                 rung["librarian_error"] = f"{type(e).__name__}: {e}"
         if theorist is not None:
             prompt = theorist_prompt(target, lessons_text=lesson_text, docs=docs)
             runner = TheoristRunner(theorist["role"], target, theorist["judge"], prompt=prompt, tool_calls=theorist_tool_calls, judge_gate=gate,
-                                    context={"lesson_ids": lesson_ids, "citation_ids": citation_ids, "reading_list_snapshot": snapshot},
+                                    context={"lesson_ids": lesson_ids, "citation_ids": citation_ids, "reading_list_snapshot": snapshot,
+                                             "retrieval_query": query},
                                     timeout_s=timeout_s)
             s_th = run(theorist, runner.attempt, role_name="theorist", target=target, n=theorist_attempts, stage="theorist",
                        label="theorist proposals", tool_calls_n=theorist_tool_calls)
@@ -226,17 +265,7 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
                                           "pass_rate": s_th["pass_rate"], "proposals": len(proposals), "dollars": s_th["dollars"],
                                           "lemmas_proposed": sum((r.certificate or {}).get("details", {}).get("proposed", 0) for r in th_rows),
                                           "lemmas_passed": sum((r.certificate or {}).get("details", {}).get("passed", 0) for r in th_rows)}
-        # 2. the builder: the gate group from the plain prompt, the lesson group, the proposal group
-        groups_rows: list[Attempt] = []
-        base_runner = BuilderRunner(builder["role"], target, builder["judge"], tool_calls=tool_calls, judge_gate=gate,
-                                    context={"citation_ids": citation_ids, "reading_list_snapshot": snapshot})
-        s_base = run(builder, base_runner.attempt, role_name="builder", target=target, n=attempts, stage="base", label="gate group, plain prompt",
-                     tool_calls_n=tool_calls)
-        base_rows = ledger.attempts(group_id=s_base["group_id"])
-        groups_rows += base_rows
-        rung["groups"]["base"] = {k: s_base[k] for k in ("group_id", "attempts", "passed", "optimal", "pass_rate", "optimal_rate", "best_score",
-                                                           "dollars", "gpu_seconds", "capped", "no_code", "wall_s")}
-        rung["groups"]["base"]["verify_first_found"] = s_base["verify_first"]["found"]
+        # 4. the builder's lesson group and proposal group
         if lesson_prompt is not None and lesson_attempts > 0:
             les_runner = BuilderRunner(builder["role"], target, builder["judge"], prompt=lesson_prompt, tool_calls=tool_calls, judge_gate=gate,
                                        post_check=post_check, context={"citation_ids": citation_ids, "reading_list_snapshot": snapshot})
@@ -261,7 +290,18 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
                                                                    "best_score", "dollars", "gpu_seconds", "wall_s")}
             lower = all((r.certificate or {}).get("lower_is_better", True) for r in prop_rows if r.passed) if prop_rows else True
             rung["delayed_credit"] = delayed_credit(proposals, prop_rows, s_base, lower)
-        # 3. survivors and 4. the breaker
+        # the symptoms per group (week 5): how often each kept detector fires with the plain prompt, with lessons and with
+        # proposals. The loop uses the family's own lessons by design, so this is recorded here and never reported as transfer;
+        # the matrix (lab/harness/matrix.py) reports the same quantity across families.
+        if kept:
+            stage_rows = {"base": base_rows}
+            for stage in ("lessons", "proposals"):
+                if stage in rung["groups"]:
+                    stage_rows[stage] = ledger.attempts(group_id=rung["groups"][stage]["group_id"])
+            rung["symptoms"] = {stage: symptom_rates(kept, rows) for stage, rows in stage_rows.items()}
+        else:
+            rung["symptoms"] = {}
+        # 5. survivors and 6. the breaker
         survivors = survivors_of(groups_rows, breaker_candidates)
         rung["survivors"] = [{"attempt_id": r.id, "score": r.score, "optimal": (r.certificate or {}).get("optimal"), "stage": (r.context or {}).get("stage")}
                              for r in survivors]
@@ -293,7 +333,7 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
                     voided.add(cand_row.id)
                     record["exploit_alarms"].append({"target": tid, "candidate_attempt_id": cand_row.id, "breaks": confirmed,
                                                      "note": "a certified candidate was broken inside its class: the certifier or the class definition needs review"})
-        # 5. the archive and the lesson bank
+        # 7. the archive and the lesson bank
         rung["archived"] = []
         for r in survivors:
             if r.id in voided:
@@ -316,13 +356,14 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
         rung["voided"] = sorted(voided)
         if harness is not None:
             try:
-                lessons = harness.extract(target, base_rows, group_id=s_base["group_id"])
+                lessons = harness.extract(target, base_rows, group_id=s_base["group_id"], detectors=kept)
                 actions = bank.consolidate(lessons, token_budget, family=target.family)
-                rung["lessons_extracted"] = [{"id": l.id, "level": l.level, "evidence": l.evidence_tag, "rule": l.rule} for l in lessons]
+                rung["lessons_extracted"] = [{"id": l.id, "level": l.level, "evidence": l.evidence_tag, "rule": l.rule, "detectors": l.detectors}
+                                             for l in lessons]
                 rung["consolidation"] = actions
             except Exception as e:
                 rung["lessons_extracted"], rung["lesson_error"] = [], f"{type(e).__name__}: {e}"
-        # 6. the gate memo from the base group
+        # 8. the gate memo from the base group
         gate_rec = gate_record(s_base)
         gate_rec["generation_id"] = gen_id
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -352,8 +393,8 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
     record["cost"] = {"by_role": gen_rows, "dollars": sum(r["dollars"] for r in gen_rows), "api_dollars": sum(r["api_dollars"] for r in gen_rows),
                       "gpu_seconds": sum(r["gpu_seconds"] for r in gen_rows), "harness_dollars": harness.spent if harness else 0.0,
                       "checker_dollars": checker.spent if checker else 0.0, "wall_s": time.perf_counter() - t_gen}
-    record["lesson_bank"] = {"active": [{"id": l.id, "level": l.level, "evidence": l.evidence_tag, "family": l.family, "targets": l.targets, "rule": l.rule}
-                                        for fam in families for l in bank.active(fam)]}
+    record["lesson_bank"] = {"active": [{"id": l.id, "level": l.level, "evidence": l.evidence_tag, "family": l.family, "targets": l.targets, "rule": l.rule,
+                                         "detectors": l.detectors} for fam in families for l in bank.active(fam)]}
     record["finished"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     (gens_dir / f"{gen_id}.json").write_text(json.dumps(record, indent=1, default=str), encoding="utf-8")
     (gens_dir / f"{gen_id}.md").write_text(generation_markdown(record), encoding="utf-8")
@@ -389,6 +430,22 @@ def generation_markdown(r: dict) -> str:
               f"Lesson bank: {len(r.get('lesson_bank', {}).get('active', []))} active lessons."]
     if r.get("exploit_alarms"):
         lines += ["", "Exploit alarms: " + "; ".join(f"{a['target']}: candidate {a['candidate_attempt_id']} broken by {a['breaks']}" for a in r["exploit_alarms"])]
+    det_lines = []
+    for g in r["rungs"]:
+        d = g.get("detectors") or {}
+        if not d.get("kept"):
+            continue
+        parts = []
+        for f in d["firing"]:
+            s = f"{f['name']} {f['fires']}/{d['attempts']}"
+            les = (g.get("symptoms") or {}).get("lessons", {}).get(f["name"])
+            if les:
+                s += f" -> {les['fires']}/{les['n']} with lessons"
+            parts.append(s)
+        det_lines.append(f"- {g['target']} ({d['mining']} mining, {d['proposed']} proposed, query \"{g.get('retrieval_query', '')}\"): " + "; ".join(parts))
+    if det_lines:
+        lines += ["", "Detectors kept per rung (fires on the base group, then on the lesson group where one ran; the loop uses the family's "
+                      "own lessons by design, so these symptom rates are recorded, never reported as transfer):"] + det_lines
     for g in r["rungs"]:
         if g.get("delayed_credit"):
             lines += ["", f"Delayed credit on {g['target']} (best score among builds derived from each proposal minus the base group's best; "
@@ -421,6 +478,7 @@ def main(argv=None) -> int:
     ap.add_argument("--harness-mode", default=None, choices=list(MODES))
     ap.add_argument("--no-harness", action="store_true", help="no lesson extraction (search only; the notebook text stands in for the gate)")
     ap.add_argument("--no-checker", action="store_true", help="dossiers written by the program's template instead of the checker")
+    ap.add_argument("--no-mine", action="store_true", help="no detector mining on the base groups (the diagnosis then names nothing)")
     ap.add_argument("--ledger", default=None)
     ap.add_argument("--gpu", default=None)
     ap.add_argument("--precision", default=None)
@@ -455,7 +513,7 @@ def main(argv=None) -> int:
                          breaker_tool_calls=args.breaker_tool_calls, gpu=args.gpu, precision=args.precision, units_per_hour=args.units_per_hour,
                          max_tokens=args.max_tokens, thinking_budget=args.thinking, timeout_s=args.timeout, concurrency=args.concurrency,
                          judge_concurrency=args.judge_concurrency, fixtures_root=args.fixtures, seed=args.seed, token_budget=args.token_budget,
-                         out_dir=args.out, generation_id=args.generation, quiet=args.json)
+                         out_dir=args.out, generation_id=args.generation, quiet=args.json, mine_detectors=not args.no_mine)
     ledger.close()
     if args.json:
         print(json.dumps(rec, indent=1, default=str))

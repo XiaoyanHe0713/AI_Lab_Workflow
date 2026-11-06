@@ -1,162 +1,226 @@
 [
  {
   "text": "```python\ndef rule():\n    nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]\n    weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538]\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\ndef rule():\n    nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]\n    weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538]\n    return nodes, weights\n```",
+   "```python\ndef rule():\n    nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]\n    weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 100,
   "latency_s": 2.71,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "The nodes are the eigenvalues of the Jacobi matrix of the Legendre recurrence and the weights come from the first components of the eigenvectors.\n\n```python\nimport numpy as np\n\ndef rule():\n    n = 4\n    k = np.arange(1, n)\n    b = k / np.sqrt(4.0 * k * k - 1.0)\n    J = np.diag(b, 1) + np.diag(b, -1)\n    x, V = np.linalg.eigh(J)\n    w = 2.0 * V[0, :] ** 2\n    return x.tolist(), w.tolist()\n```",
+  "rounds": [
+   "The nodes are the eigenvalues of the Jacobi matrix of the Legendre recurrence and the weights come from the first components of the eigenvectors.\n\n```python\nimport numpy as np\n\ndef rule():\n    n = 4\n    k = np.arange(1, n)\n    b = k / np.sqrt(4.0 * k * k - 1.0)\n    J = np.diag(b, 1) + np.diag(b, -1)\n    x, V = np.linalg.eigh(J)\n    w = 2.0 * V[0, :] ** 2\n    return x.tolist(), w.tolist()\n```",
+   "The nodes are the eigenvalues of the Jacobi matrix of the Legendre recurrence and the weights come from the first components of the eigenvectors.\n\n```python\nimport numpy as np\n\ndef rule():\n    n = 4\n    k = np.arange(1, n)\n    b = k / np.sqrt(4.0 * k * k - 1.0)\n    J = np.diag(b, 1) + np.diag(b, -1)\n    x, V = np.linalg.eigh(J)\n    w = 2.0 * V[0, :] ** 2\n    return x.tolist(), w.tolist()\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 138,
   "latency_s": 3.47,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\nimport math\n\ndef rule():\n    n = 4\n\n    def legendre(x):\n        p0, p1 = 1.0, x\n        for k in range(2, n + 1):\n            p0, p1 = p1, ((2 * k - 1) * x * p1 - (k - 1) * p0) / k\n        dp = n * (x * p1 - p0) / (x * x - 1.0)\n        return p1, dp\n\n    nodes, weights = [], []\n    for i in range(1, n + 1):\n        x = math.cos(math.pi * (i - 0.25) / (n + 0.5))\n        for _ in range(100):\n            p, dp = legendre(x)\n            dx = p / dp\n            x -= dx\n            if abs(dx) < 1e-15:\n                break\n        _, dp = legendre(x)\n        nodes.append(x)\n        weights.append(2.0 / ((1.0 - x * x) * dp * dp))\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\nimport math\n\ndef rule():\n    n = 4\n\n    def legendre(x):\n        p0, p1 = 1.0, x\n        for k in range(2, n + 1):\n            p0, p1 = p1, ((2 * k - 1) * x * p1 - (k - 1) * p0) / k\n        dp = n * (x * p1 - p0) / (x * x - 1.0)\n        return p1, dp\n\n    nodes, weights = [], []\n    for i in range(1, n + 1):\n        x = math.cos(math.pi * (i - 0.25) / (n + 0.5))\n        for _ in range(100):\n            p, dp = legendre(x)\n            dx = p / dp\n            x -= dx\n            if abs(dx) < 1e-15:\n                break\n        _, dp = legendre(x)\n        nodes.append(x)\n        weights.append(2.0 / ((1.0 - x * x) * dp * dp))\n    return nodes, weights\n```",
+   "```python\nimport math\n\ndef rule():\n    n = 4\n\n    def legendre(x):\n        p0, p1 = 1.0, x\n        for k in range(2, n + 1):\n            p0, p1 = p1, ((2 * k - 1) * x * p1 - (k - 1) * p0) / k\n        dp = n * (x * p1 - p0) / (x * x - 1.0)\n        return p1, dp\n\n    nodes, weights = [], []\n    for i in range(1, n + 1):\n        x = math.cos(math.pi * (i - 0.25) / (n + 0.5))\n        for _ in range(100):\n            p, dp = legendre(x)\n            dx = p / dp\n            x -= dx\n            if abs(dx) < 1e-15:\n                break\n        _, dp = legendre(x)\n        nodes.append(x)\n        weights.append(2.0 / ((1.0 - x * x) * dp * dp))\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 207,
   "latency_s": 4.86,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\ndef rule():\n    a = 0.5384693101056831\n    b = 0.9061798459386640\n    nodes = [-b, -a, 0.0, a, b]\n    weights = [0.2369268850561891, 0.4786286704993665, 0.5688888888888889, 0.4786286704993665, 0.2369268850561891]\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\ndef rule():\n    a = 0.5384693101056831\n    b = 0.9061798459386640\n    nodes = [-b, -a, 0.0, a, b]\n    weights = [0.2369268850561891, 0.4786286704993665, 0.5688888888888889, 0.4786286704993665, 0.2369268850561891]\n    return nodes, weights\n```",
+   "```python\ndef rule():\n    a = 0.5384693101056831\n    b = 0.9061798459386640\n    nodes = [-b, -a, 0.0, a, b]\n    weights = [0.2369268850561891, 0.4786286704993665, 0.5688888888888889, 0.4786286704993665, 0.2369268850561891]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 103,
   "latency_s": 2.76,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "Simpson's rule integrates cubics exactly, and with symmetry it should handle the odd terms.\n\n```python\ndef rule():\n    return [-1.0, 0.0, 1.0], [1.0 / 3.0, 4.0 / 3.0, 1.0 / 3.0]\n```",
+  "rounds": [
+   "Simpson's rule integrates cubics exactly, and with symmetry it should handle the odd terms.\n\n```python\ndef rule():\n    return [-1.0, 0.0, 1.0], [1.0 / 3.0, 4.0 / 3.0, 1.0 / 3.0]\n```",
+   "Simpson's rule integrates cubics exactly, and with symmetry it should handle the odd terms.\n\n```python\ndef rule():\n    return [-1.0, 0.0, 1.0], [1.0 / 3.0, 4.0 / 3.0, 1.0 / 3.0]\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 85,
   "latency_s": 2.41,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\nfrom numpy.polynomial.legendre import leggauss\n\ndef rule():\n    x, w = leggauss(4)\n    return x.tolist(), w.tolist()\n```",
+  "rounds": [
+   "```python\nfrom numpy.polynomial.legendre import leggauss\n\ndef rule():\n    x, w = leggauss(4)\n    return x.tolist(), w.tolist()\n```",
+   "```python\nfrom numpy.polynomial.legendre import leggauss\n\ndef rule():\n    x, w = leggauss(4)\n    return x.tolist(), w.tolist()\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 72,
   "latency_s": 2.15,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\nfrom scipy.special import roots_legendre\n\ndef rule():\n    x, w = roots_legendre(4)\n    return list(x), list(w)\n```",
+  "rounds": [
+   "```python\nfrom scipy.special import roots_legendre\n\ndef rule():\n    x, w = roots_legendre(4)\n    return list(x), list(w)\n```",
+   "```python\nfrom scipy.special import roots_legendre\n\ndef rule():\n    x, w = roots_legendre(4)\n    return list(x), list(w)\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 71,
   "latency_s": 2.12,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\nimport numpy as np\n\ndef rule():\n    n = 8\n    x = np.linspace(-1.0, 1.0, n)\n    V = np.vander(x, n, increasing=True).T\n    moments = np.array([2.0 / (k + 1) if k % 2 == 0 else 0.0 for k in range(n)])\n    w = np.linalg.solve(V, moments)\n    return x.tolist(), w.tolist()\n```",
+  "rounds": [
+   "```python\nimport numpy as np\n\ndef rule():\n    n = 8\n    x = np.linspace(-1.0, 1.0, n)\n    V = np.vander(x, n, increasing=True).T\n    moments = np.array([2.0 / (k + 1) if k % 2 == 0 else 0.0 for k in range(n)])\n    w = np.linalg.solve(V, moments)\n    return x.tolist(), w.tolist()\n```",
+   "```python\nimport numpy as np\n\ndef rule():\n    n = 8\n    x = np.linspace(-1.0, 1.0, n)\n    V = np.vander(x, n, increasing=True).T\n    moments = np.array([2.0 / (k + 1) if k % 2 == 0 else 0.0 for k in range(n)])\n    w = np.linalg.solve(V, moments)\n    return x.tolist(), w.tolist()\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 110,
   "latency_s": 2.92,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "A rule exact to degree 7 needs at least 4 nodes, because an n-point rule cannot integrate the square of its node polynomial. The Gauss-Legendre rule with 4 nodes achieves it; its nodes are the roots of the fourth Legendre polynomial.",
+  "rounds": [
+   "A rule exact to degree 7 needs at least 4 nodes, because an n-point rule cannot integrate the square of its node polynomial. The Gauss-Legendre rule with 4 nodes achieves it; its nodes are the roots of the fourth Legendre polynomial.",
+   "A rule exact to degree 7 needs at least 4 nodes, because an n-point rule cannot integrate the square of its node polynomial. The Gauss-Legendre rule with 4 nodes achieves it; its nodes are the roots of the fourth Legendre polynomial."
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 98,
   "latency_s": 2.67,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\ndef rule(:\n    return [0.0], [2.0]\n```",
+  "rounds": [
+   "```python\ndef rule(:\n    return [0.0], [2.0]\n```",
+   "```python\ndef rule(:\n    return [0.0], [2.0]\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 52,
   "latency_s": 1.74,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\ndef rule():\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\ndef rule():\n    return nodes, weights\n```",
+   "```python\ndef rule():\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 52,
   "latency_s": 1.75,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\ndef rule():\n    return [-0.5, 0.0, 0.5, 1.0], [0.5, 0.5, 0.5]\n```",
+  "rounds": [
+   "```python\ndef rule():\n    return [-0.5, 0.0, 0.5, 1.0], [0.5, 0.5, 0.5]\n```",
+   "```python\ndef rule():\n    return [-0.5, 0.0, 0.5, 1.0], [0.5, 0.5, 0.5]\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 58,
   "latency_s": 1.88,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\ndef rule():\n    nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]\n    weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478558451374538]\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\ndef rule():\n    nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]\n    weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478558451374538]\n    return nodes, weights\n```",
+   "```python\ndef rule():\n    nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]\n    weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478558451374538]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 100,
   "latency_s": 2.71,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\nimport math\n\ndef rule():\n    r = math.sqrt(3.0 / 7.0)\n    nodes = [-1.0, -r, 0.0, r, 1.0]\n    weights = [1.0 / 10.0, 49.0 / 90.0, 32.0 / 45.0, 49.0 / 90.0, 1.0 / 10.0]\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\nimport math\n\ndef rule():\n    r = math.sqrt(3.0 / 7.0)\n    nodes = [-1.0, -r, 0.0, r, 1.0]\n    weights = [1.0 / 10.0, 49.0 / 90.0, 32.0 / 45.0, 49.0 / 90.0, 1.0 / 10.0]\n    return nodes, weights\n```",
+   "```python\nimport math\n\ndef rule():\n    r = math.sqrt(3.0 / 7.0)\n    nodes = [-1.0, -r, 0.0, r, 1.0]\n    weights = [1.0 / 10.0, 49.0 / 90.0, 32.0 / 45.0, 49.0 / 90.0, 1.0 / 10.0]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 91,
   "latency_s": 2.54,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "```python\nimport math\n\ndef rule():\n    r = math.sqrt(3.0 / 5.0)\n    return [-r, 0.0, r], [5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0]\n```",
+  "rounds": [
+   "```python\nimport math\n\ndef rule():\n    r = math.sqrt(3.0 / 5.0)\n    return [-r, 0.0, r], [5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0]\n```",
+   "```python\nimport math\n\ndef rule():\n    r = math.sqrt(3.0 / 5.0)\n    return [-r, 0.0, r], [5.0 / 9.0, 8.0 / 9.0, 5.0 / 9.0]\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 71,
   "latency_s": 2.13,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  },
  {
   "text": "We need the 4-point Gauss-Legendre rule. The nodes are the roots of P_4(x) = (35x^4 - 30x^2 + 3)/8, which solve 35t^2 - 30t + 3 = 0 in t = x^2: t = (15 +- 2 sqrt(30))/35.\n\n```python\nimport math\n\ndef rule():\n    t1 = (15.0 - 2.0 * math.sqrt(30.0)) / 35.0\n    t2 = (15.0 + 2.0 * math.sqrt(30.0)) / 35.0\n    x1, x2 = math.sqrt(t1), math.sqrt(t2)\n    w1 = (18.0 + math.sqrt(30.0)) / 36.0\n    w2 = (18.0 - math.sqrt(30.0)) / 36.0\n    return [-x2, -x1, x1, x2], [w2, w1, w1, w2]\n```\n\nBoth pairs of weights sum to 2.",
+  "rounds": [
+   "We need the 4-point Gauss-Legendre rule. The nodes are the roots of P_4(x) = (35x^4 - 30x^2 + 3)/8, which solve 35t^2 - 30t + 3 = 0 in t = x^2: t = (15 +- 2 sqrt(30))/35.\n\n```python\nimport math\n\ndef rule():\n    t1 = (15.0 - 2.0 * math.sqrt(30.0)) / 35.0\n    t2 = (15.0 + 2.0 * math.sqrt(30.0)) / 35.0\n    x1, x2 = math.sqrt(t1), math.sqrt(t2)\n    w1 = (18.0 + math.sqrt(30.0)) / 36.0\n    w2 = (18.0 - math.sqrt(30.0)) / 36.0\n    return [-x2, -x1, x1, x2], [w2, w1, w1, w2]\n```\n\nBoth pairs of weights sum to 2.",
+   "We need the 4-point Gauss-Legendre rule. The nodes are the roots of P_4(x) = (35x^4 - 30x^2 + 3)/8, which solve 35t^2 - 30t + 3 = 0 in t = x^2: t = (15 +- 2 sqrt(30))/35.\n\n```python\nimport math\n\ndef rule():\n    t1 = (15.0 - 2.0 * math.sqrt(30.0)) / 35.0\n    t2 = (15.0 + 2.0 * math.sqrt(30.0)) / 35.0\n    x1, x2 = math.sqrt(t1), math.sqrt(t2)\n    w1 = (18.0 + math.sqrt(30.0)) / 36.0\n    w2 = (18.0 - math.sqrt(30.0)) / 36.0\n    return [-x2, -x1, x1, x2], [w2, w1, w1, w2]\n```\n\nBoth pairs of weights sum to 2."
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 167,
   "latency_s": 4.04,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "loop builder derived from a proposal on quad-d7"
  }
 ]

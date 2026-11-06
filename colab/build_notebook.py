@@ -84,9 +84,13 @@ SEARCH_BASELINE_ATTEMPTS = 256                  #@param {type:"integer"}
 RUN_MATRIX = False                              #@param {type:"boolean"}
 MATRIX_SOURCES = "quad-d7"                      #@param {type:"string"}
 MATRIX_TARGETS = "quad-square-d5 quad-triangle-d4"  #@param {type:"string"}
-MATRIX_CARRIERS = "none lessons process_only unrelated skills"  #@param {type:"string"}
+MATRIX_CARRIERS = "none second_try diagnosis_only lessons process_only unrelated skills"  #@param {type:"string"}
 MATRIX_SEEDS = 3                                #@param {type:"integer"}
 MATRIX_ATTEMPTS = 16                            #@param {type:"integer"}
+MATRIX_TOOL_CALLS = 0                           #@param {type:"integer"}
+RUN_MINE = False                                #@param {type:"boolean"}
+MINE_TARGETS = "quad-d7 quad-square-d5 quad-triangle-d2 quad-triangle-d3 quad-triangle-d4"  #@param {type:"string"}
+MINE_ALL_GROUPS = False                         #@param {type:"boolean"}
 
 # RUN_LOOP (week 4): one generation of the loop on LOOP_TARGETS in that order (the curriculum rungs): per rung the theorist
 #   proposes (lemmas checked by SymPy in the sandbox), the builder runs its gate group of LOOP_ATTEMPTS from the plain prompt
@@ -100,6 +104,13 @@ MATRIX_ATTEMPTS = 16                            #@param {type:"integer"}
 #   group: does the 7-point rule ever appear without training?
 # RUN_MATRIX (week 4): transfer-matrix cells from the archive of MATRIX_SOURCES to MATRIX_TARGETS with MATRIX_CARRIERS at
 #   MATRIX_SEEDS seeds x MATRIX_ATTEMPTS attempts (lessons are never measured on the family they came from; the program refuses).
+#   Week 5: the carriers second_try (one certifier dry run, no lesson) and diagnosis_only (the program's diagnosis of the
+#   target's own none cell, no remedy) are the two target-side control rows; MATRIX_TOOL_CALLS gives every content carrier that
+#   many dry runs; every cell reports its symptom rates (how often each kept detector fires) and the change against the baseline.
+# RUN_MINE (week 5, no GPU): mine detectors on the latest plain-prompt group of each MINE_TARGETS target already in the ledger
+#   (the loop's base groups): GPT proposes them when the secret is set, the built-in detectors alone otherwise; every candidate
+#   is verified on the held-out half; the kept detectors' firing tables, the librarian queries they name and the diagnosis-only
+#   texts are printed and written under detectors/ on Drive. MINE_ALL_GROUPS mines every base group, not only the latest.
 # REPO_BRANCH: the branch this notebook was built from; cell 2 clones or checks it out, so the code matches the cells
 #   (empty = the repository's default branch, which may be older than this notebook).
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
@@ -552,14 +563,16 @@ else:
 code("""
 #@title 16. Week 4: transfer-matrix cells from the archive (lessons never measured on the family they came from)
 # Rows: the experience set of MATRIX_SOURCES (its archived methods and the lessons the loop extracted) plus the two controls
-# (process-only lessons with content redacted; unrelated-domain experience); columns: MATRIX_TARGETS in their settings.
+# (process-only lessons with content redacted; unrelated-domain experience) and, from week 5, the two target-side control rows
+# (second_try: one dry run and no lesson; diagnosis_only: the program's diagnosis of the target's own baseline and no remedy);
+# columns: MATRIX_TARGETS in their settings. Every cell reports its symptom rates and the change against the baseline.
 # Needs the loop (cell 13) to have run with GPT so the bank holds lessons; the report lands under matrices/ on Drive.
 from lab.harness.matrix import main as matrix_main
 
 if RUN_MATRIX:
     argv = ["--sources", *MATRIX_SOURCES.split(), "--targets", *MATRIX_TARGETS.split(), "--carriers", *MATRIX_CARRIERS.split(),
             "--seeds", str(MATRIX_SEEDS), "--attempts", str(MATRIX_ATTEMPTS), "--max-tokens", str(GATE_MAX_TOKENS), "--thinking", "0",
-            "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION, "--no-harness"]
+            "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION, "--no-harness", "--tool-calls", str(MATRIX_TOOL_CALLS)]
     if UNITS_PER_HOUR:
         argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
     matrix_main(argv)
@@ -568,7 +581,29 @@ else:
 """)
 
 code("""
-#@title 17. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
+#@title 17. Week 5: mine detectors on the base groups already in the ledger (no GPU) and print their firing tables
+# The loop's plain-prompt groups are on Drive; this names their failures after the fact: a program splits each group, GPT
+# (secret OPENAI_API_KEY) proposes detectors or the built-in ones stand alone, the held-out half keeps or rejects each, and the
+# report (firing table, the librarian query the diagnosis names, the diagnosis-only text) lands under detectors/ on Drive.
+from lab.harness.checker import main as checker_main
+
+if RUN_MINE:
+    argv = ["--mine", "--targets", *MINE_TARGETS.split()]
+    if MINE_ALL_GROUPS:
+        argv.append("--all-groups")
+    key = secret("OPENAI_API_KEY")
+    if key:
+        os.environ["OPENAI_API_KEY"] = key
+        argv += ["--provider", "openai", "--mode", "online"]
+    else:
+        print("no OPENAI_API_KEY secret: the built-in detectors alone are mined")
+    checker_main(argv)
+else:
+    print("RUN_MINE is False in cell 1: no detectors were mined.")
+""")
+
+code("""
+#@title 18. Optional: reach the endpoint from your own machine (cloudflared quick tunnel)
 # The in-notebook path above is the primary one. This exposes the server through a temporary public URL
 # protected only by LAB_ENDPOINT_KEY; close the tunnel when done. The binary is Cloudflare's official release.
 if OPEN_TUNNEL:
@@ -587,7 +622,7 @@ if OPEN_TUNNEL:
 """)
 
 code("""
-#@title 18. Session cost so far
+#@title 19. Session cost so far
 hours = (time.time() - SESSION_T0) / 3600
 units = hours * RATE
 print(f"{hours:.2f} h on {GPU} at {RATE} units/h ({RATE_SOURCE}): about {units:.2f} units = ${meter.units_to_dollars(units):.2f}")

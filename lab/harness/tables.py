@@ -16,6 +16,7 @@ LESSONS = [
     ("evidence_tag", "TEXT"), ("support", "TEXT"), ("contradictions", "TEXT"), ("family", "TEXT"), ("targets", "TEXT"),
     ("tokens", "INTEGER"), ("created", "TEXT"), ("source_group", "TEXT"), ("retired", "INTEGER"), ("retired_at", "TEXT"),
     ("retired_reason", "TEXT"), ("replaced_by", "TEXT"), ("provenance", "TEXT"),
+    ("detectors", "TEXT"),      # week 5: names of the kept detectors the lesson addresses (an older ledger gains the column on open)
 ]
 
 ARTIFACTS = [
@@ -46,7 +47,7 @@ DOSSIERS = [
 TABLES = {"citations": CITATIONS, "lessons": LESSONS, "artifacts": ARTIFACTS, "provenance": PROVENANCE,
           "detectors": DETECTORS, "dossiers": DOSSIERS}
 
-JSON_COLUMNS = {"lessons": ("conditions", "support", "contradictions", "targets", "provenance"),
+JSON_COLUMNS = {"lessons": ("conditions", "support", "contradictions", "targets", "provenance", "detectors"),
                 "artifacts": ("meta",), "provenance": ("lesson_ids", "citation_ids"), "detectors": ("spec",),
                 "dossiers": ("conditions", "evidence", "errors"), "citations": ()}
 

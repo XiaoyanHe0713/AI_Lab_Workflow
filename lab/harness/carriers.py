@@ -6,6 +6,10 @@ that keeps the set's process-level lessons with their content redacted (digits a
 replaced), isolating research craft from domain knowledge; `unrelated` applies another family's experience, which
 separates content from the mere presence of experience. The ablation harness's three arms are `none`, `lessons`
 and `lessons_gate` on one target; the matrix (lab/harness/matrix.py) runs any carrier from any experience set.
+Two target-side controls (week 5) carry no experience at all: `diagnosis_only` puts the program's diagnosis of the
+target's own baseline attempts in the prompt (the detectors that fired, with counts, and no remedy), which separates
+knowing the fix from seeing the problem; `second_try` gives the builder one certifier dry run and a revision with no
+lesson, the floor every lesson gain is read against (ADSD's self-improvement control).
 Nothing a carrier adds to a prompt enters a reward: the certificate is the only score.
 """
 from __future__ import annotations
@@ -15,8 +19,9 @@ from typing import Any
 
 from .lessons import Lesson, LessonBank, LessonHarness, apply_check, estimate_tokens
 
-CARRIERS = ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated")
+CARRIERS = ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated", "diagnosis_only", "second_try")
 CONTENT_CARRIERS = ("lessons", "lessons_gate", "skills", "process_only", "unrelated")
+CONTROL_CARRIERS = ("diagnosis_only", "second_try")      # target-side: no experience set, never refused by the transfer rule
 
 _DIGITS = re.compile(r"\d+(?:\.\d+)?")
 
@@ -70,6 +75,11 @@ def gate_prompt(target, gate: dict) -> str:
     return target.prompt + "\n\n" + text
 
 
+def diagnosis_only_prompt(target, text: str) -> str:
+    """The diagnosis-only control: the target's prompt plus the program's diagnosis of its baseline attempts, no remedy."""
+    return target.prompt + "\n\n" + text
+
+
 def skills_prompt(target, skills: list[dict]) -> str:
     if not skills:
         return target.prompt + "\n\n(No skills are available from the archive for this target.)"
@@ -108,28 +118,40 @@ def skills_from_archive(archive, artifact_ids: list[str], max_skills: int = 3, m
 
 
 def apply_carrier(carrier: str, target, experience, *, bank: LessonBank, archive=None, harness: LessonHarness | None = None,
-                  token_budget: int = 2000) -> dict:
+                  token_budget: int = 2000, diagnosis_table: dict | None = None) -> dict:
     """The prompt, the context fields, the post-check and the ids a carrier puts to work on a target.
 
-    `experience` is an ExperienceSet (lab/harness/matrix.py) or None for `none`. Returns a dict with `prompt`,
-    `context` (carrier, lesson_ids, skill_ids, redacted, experience id), `post_check`, `gate`."""
+    `experience` is an ExperienceSet (lab/harness/matrix.py) or None for `none` and the two target-side controls;
+    `diagnosis_table` is the firing table of the target's own baseline attempts (lab/harness/checker.py) that the
+    diagnosis-only control is written from. Returns a dict with `prompt`, `context` (carrier, lesson_ids, skill_ids,
+    redacted, experience id), `post_check`, `gate`, and `tool_calls` (1 for the second-try control, 0 otherwise)."""
     if carrier not in CARRIERS:
         raise ValueError(f"carrier must be one of {CARRIERS}")
     ctx: dict[str, Any] = {"carrier": carrier, "lesson_ids": [], "skill_ids": [], "redacted": False,
                            "experience_id": getattr(experience, "id", None) if experience is not None else None}
+    if carrier == "second_try":
+        ctx["control"] = "second_try"
+        return {"prompt": target.prompt, "context": ctx, "post_check": None, "gate": None, "prompt_override": False, "tool_calls": 1}
+    if carrier == "diagnosis_only":
+        from .checker import diagnosis_text   # the checker imports the lesson module: import here, not at the top
+
+        fired = [d["name"] for d in (diagnosis_table or {}).get("detectors", []) if d.get("fires", 0) > 0]
+        ctx.update({"control": "diagnosis_only", "detectors_named": fired, "diagnosis_attempts": int((diagnosis_table or {}).get("n", 0) or 0)})
+        return {"prompt": diagnosis_only_prompt(target, diagnosis_text(target, diagnosis_table)), "context": ctx, "post_check": None, "gate": None,
+                "prompt_override": True, "tool_calls": 0}
     if carrier == "none" or experience is None:
-        return {"prompt": target.prompt, "context": ctx, "post_check": None, "gate": None, "prompt_override": carrier != "none"}
+        return {"prompt": target.prompt, "context": ctx, "post_check": None, "gate": None, "prompt_override": carrier != "none", "tool_calls": 0}
     lessons = [l for l in (bank.get(lid) for lid in experience.lesson_ids) if l is not None and not l.retired]
     if carrier in ("lessons", "unrelated"):
         text, ids = lessons_block([(l, l.text) for l in lessons], token_budget)
         ctx["lesson_ids"] = ids
-        return {"prompt": notebook_prompt(target, text), "context": ctx, "post_check": None, "gate": None, "prompt_override": True}
+        return {"prompt": notebook_prompt(target, text), "context": ctx, "post_check": None, "gate": None, "prompt_override": True, "tool_calls": 0}
     if carrier == "process_only":
         terms = list(experience.content_terms)
         entries = process_only_lessons(lessons, terms)
         text, ids = lessons_block(entries, token_budget)
         ctx.update({"lesson_ids": ids, "redacted": True, "redaction_terms": len(terms)})
-        return {"prompt": notebook_prompt(target, text), "context": ctx, "post_check": None, "gate": None, "prompt_override": True}
+        return {"prompt": notebook_prompt(target, text), "context": ctx, "post_check": None, "gate": None, "prompt_override": True, "tool_calls": 0}
     if carrier == "lessons_gate":
         if harness is None:
             raise ValueError("the lessons_gate carrier needs the lesson harness (a frontier provider) to choose the lesson and write the check")
@@ -137,11 +159,11 @@ def apply_carrier(carrier: str, target, experience, *, bank: LessonBank, archive
         lesson, check = gate.get("lesson"), gate.get("check")
         ctx.update({"lesson_ids": [lesson.id] if lesson else [], "gate_check": check, "gate_harness_attempt_id": gate.get("harness_attempt_id")})
         post = (lambda result, meta, _c=check: apply_check(_c, result)) if check and check.get("valid") else None  # noqa: E731
-        return {"prompt": gate_prompt(target, gate), "context": ctx, "post_check": post, "gate": gate, "prompt_override": True}
+        return {"prompt": gate_prompt(target, gate), "context": ctx, "post_check": post, "gate": gate, "prompt_override": True, "tool_calls": 0}
     if carrier == "skills":
         if archive is None:
             raise ValueError("the skills carrier needs the archive")
         skills = skills_from_archive(archive, list(experience.artifact_ids))
         ctx["skill_ids"] = [s["artifact_id"] for s in skills]
-        return {"prompt": skills_prompt(target, skills), "context": ctx, "post_check": None, "gate": None, "prompt_override": True}
+        return {"prompt": skills_prompt(target, skills), "context": ctx, "post_check": None, "gate": None, "prompt_override": True, "tool_calls": 0}
     raise ValueError(carrier)

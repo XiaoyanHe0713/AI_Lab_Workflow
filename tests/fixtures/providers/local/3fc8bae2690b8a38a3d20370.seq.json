@@ -1,82 +1,114 @@
 [
  {
   "text": "Three interior points at the barycentric orbit (2/3, 1/6, 1/6) with equal weights integrate quadratics exactly on the reference triangle of area 1/2.\n\n```python\ndef rule():\n    nodes = [[2.0 / 3.0, 1.0 / 6.0], [1.0 / 6.0, 2.0 / 3.0], [1.0 / 6.0, 1.0 / 6.0]]\n    weights = [1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0]\n    return nodes, weights\n```",
+  "rounds": [
+   "Three interior points at the barycentric orbit (2/3, 1/6, 1/6) with equal weights integrate quadratics exactly on the reference triangle of area 1/2.\n\n```python\ndef rule():\n    nodes = [[2.0 / 3.0, 1.0 / 6.0], [1.0 / 6.0, 2.0 / 3.0], [1.0 / 6.0, 1.0 / 6.0]]\n    weights = [1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0]\n    return nodes, weights\n```",
+   "Three interior points at the barycentric orbit (2/3, 1/6, 1/6) with equal weights integrate quadratics exactly on the reference triangle of area 1/2.\n\n```python\ndef rule():\n    nodes = [[2.0 / 3.0, 1.0 / 6.0], [1.0 / 6.0, 2.0 / 3.0], [1.0 / 6.0, 1.0 / 6.0]]\n    weights = [1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 123,
   "latency_s": 3.17,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  },
  {
   "text": "```python\ndef rule():\n    return [[1.0 / 3.0, 1.0 / 3.0]], [0.5]\n```",
+  "rounds": [
+   "```python\ndef rule():\n    return [[1.0 / 3.0, 1.0 / 3.0]], [0.5]\n```",
+   "```python\ndef rule():\n    return [[1.0 / 3.0, 1.0 / 3.0]], [0.5]\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 57,
   "latency_s": 1.84,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  },
  {
   "text": "```python\ndef rule():\n    nodes = [[0.5, 0.0], [0.5, 0.5], [0.0, 0.5]]\n    weights = [1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0]\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\ndef rule():\n    nodes = [[0.5, 0.0], [0.5, 0.5], [0.0, 0.5]]\n    weights = [1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0]\n    return nodes, weights\n```",
+   "```python\ndef rule():\n    nodes = [[0.5, 0.0], [0.5, 0.5], [0.0, 0.5]]\n    weights = [1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 77,
   "latency_s": 2.24,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  },
  {
   "text": "```python\ndef rule():\n    nodes = [[2.0 / 3.0, 1.0 / 6.0], [1.0 / 6.0, 2.0 / 3.0], [1.0 / 6.0, 1.0 / 6.0]]\n    weights = [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\ndef rule():\n    nodes = [[2.0 / 3.0, 1.0 / 6.0], [1.0 / 6.0, 2.0 / 3.0], [1.0 / 6.0, 1.0 / 6.0]]\n    weights = [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]\n    return nodes, weights\n```",
+   "```python\ndef rule():\n    nodes = [[2.0 / 3.0, 1.0 / 6.0], [1.0 / 6.0, 2.0 / 3.0], [1.0 / 6.0, 1.0 / 6.0]]\n    weights = [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 86,
   "latency_s": 2.42,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  },
  {
   "text": "Collapse the square's 2 x 2 Gauss rule onto the triangle with the Duffy map.\n\n```python\nimport math\n\ndef rule():\n    g = 1.0 / math.sqrt(3.0)\n    u = [(1.0 - g) / 2.0, (1.0 + g) / 2.0]\n    wu = [0.5, 0.5]\n    nodes, weights = [], []\n    for i in range(2):\n        for j in range(2):\n            nodes.append([u[i], u[j] * (1.0 - u[i])])\n            weights.append(wu[i] * wu[j] * (1.0 - u[i]))\n    return nodes, weights\n```",
+  "rounds": [
+   "Collapse the square's 2 x 2 Gauss rule onto the triangle with the Duffy map.\n\n```python\nimport math\n\ndef rule():\n    g = 1.0 / math.sqrt(3.0)\n    u = [(1.0 - g) / 2.0, (1.0 + g) / 2.0]\n    wu = [0.5, 0.5]\n    nodes, weights = [], []\n    for i in range(2):\n        for j in range(2):\n            nodes.append([u[i], u[j] * (1.0 - u[i])])\n            weights.append(wu[i] * wu[j] * (1.0 - u[i]))\n    return nodes, weights\n```",
+   "Collapse the square's 2 x 2 Gauss rule onto the triangle with the Duffy map.\n\n```python\nimport math\n\ndef rule():\n    g = 1.0 / math.sqrt(3.0)\n    u = [(1.0 - g) / 2.0, (1.0 + g) / 2.0]\n    wu = [0.5, 0.5]\n    nodes, weights = [], []\n    for i in range(2):\n        for j in range(2):\n            nodes.append([u[i], u[j] * (1.0 - u[i])])\n            weights.append(wu[i] * wu[j] * (1.0 - u[i]))\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 145,
   "latency_s": 3.62,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  },
  {
   "text": "The three edge midpoints with weight 1/6 each give a degree-2 rule; the centroid alone is only degree 1.",
+  "rounds": [
+   "The three edge midpoints with weight 1/6 each give a degree-2 rule; the centroid alone is only degree 1.",
+   "The three edge midpoints with weight 1/6 each give a degree-2 rule; the centroid alone is only degree 1."
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 66,
   "latency_s": 2.02,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  },
  {
   "text": "```python\ndef rule():\n    a, b = 0.445948490915965, 0.108103018168070\n    c, d = 0.091576213509771, 0.816847572980459\n    wa, wc = 0.223381589678011, 0.109951743655322\n    nodes = [[a, a], [a, b], [b, a], [c, c], [c, d], [d, c]]\n    weights = [wa * 0.5, wa * 0.5, wa * 0.5, wc * 0.5, wc * 0.5, wc * 0.5]\n    return nodes, weights\n```",
+  "rounds": [
+   "```python\ndef rule():\n    a, b = 0.445948490915965, 0.108103018168070\n    c, d = 0.091576213509771, 0.816847572980459\n    wa, wc = 0.223381589678011, 0.109951743655322\n    nodes = [[a, a], [a, b], [b, a], [c, c], [c, d], [d, c]]\n    weights = [wa * 0.5, wa * 0.5, wa * 0.5, wc * 0.5, wc * 0.5, wc * 0.5]\n    return nodes, weights\n```",
+   "```python\ndef rule():\n    a, b = 0.445948490915965, 0.108103018168070\n    c, d = 0.091576213509771, 0.816847572980459\n    wa, wc = 0.223381589678011, 0.109951743655322\n    nodes = [[a, a], [a, b], [b, a], [c, c], [c, d], [d, c]]\n    weights = [wa * 0.5, wa * 0.5, wa * 0.5, wc * 0.5, wc * 0.5, wc * 0.5]\n    return nodes, weights\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 123,
   "latency_s": 3.17,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  },
  {
   "text": "```python\ndef rule():\n    return [[0.5, 0.0], [0.5, 0.5], [0.0, 0.5]], [1.0 / 6.0] * len(points)\n```",
+  "rounds": [
+   "```python\ndef rule():\n    return [[0.5, 0.0], [0.5, 0.5], [0.0, 0.5]], [1.0 / 6.0] * len(points)\n```",
+   "```python\ndef rule():\n    return [[0.5, 0.0], [0.5, 0.5], [0.0, 0.5]], [1.0 / 6.0] * len(points)\n```"
+  ],
   "prompt_tokens": 410,
   "completion_tokens": 65,
   "latency_s": 2.0,
   "model": "synthetic-fixture",
   "finish_reason": "stop",
-  "note": "synthetic, hand-written; not a recorded model output",
+  "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)",
   "for": "matrix cell unrelated from unrelated(ssp-s3-p3) on quad-triangle-d2"
  }
 ]

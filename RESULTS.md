@@ -346,3 +346,53 @@ rate and the delayed credit of its proposals, the breaker's rewards on the survi
 any confirmed break is an exploit alarm), the archive snapshot, the lesson bank after GPT's extraction, the frozen
 baseline record over every certifier family (`baselines/` on Drive), the 256-attempt search baseline on `quad-square-d5`
 (verify-first: does the 7-point rule appear?), and the first matrix cells with their intervals.
+
+# Results: week 5
+
+Date: 2026-11-06, the same CPU-only Windows laptop. Nothing in this section ran on a GPU: week 5 (the diagnosis as a program's
+object in the loop and the matrix, and the two target-side control rows) is exercised offline under pytest from the synthetic
+fixtures. Its first use against real attempts is cell 17 of `colab/serve.ipynb` on the ledger that cell 13 wrote, which needs
+no GPU time, and then the matrix with the control rows on the next session.
+
+## Tests
+
+`pytest`: 439 tests; 430 pass and 9 are skipped (the two live-API smoke tests without keys, the six harness and loop tests
+parametrized over Claude until its fixtures are recorded, and the loop's lesson-extraction test over GPT until the notebook's
+recording cell has run on this branch). New known-answer cases (`tests/test_week5.py`): mining without a harness on the demo group,
+the firing table, the query and the diagnosis-only text a diagnosis names, mining from the ledger and its command; the
+extraction prompt with and without detectors and the detectors a lesson addresses through the bank; the two control rows
+and the symptom-change column on the synthetic matrix; the loop mining its base group and recording symptom rates. The
+week-4 loop test also checks that with 8 attempts per rung no detector is kept and the retrieval query is the week-4 one.
+
+## What the offline checks show
+
+The built-in detectors through the held-out gate on the synthetic groups (a detector is kept only if it fires at least twice
+on the half the proposer never saw and every firing is a failure):
+
+| group | attempts | valid | kept (fires on the whole group) | rejected |
+|---|---|---|---|---|
+| quad-d7, the week-2 demo group | 16 | 7 | sandbox_crash (4) | no_code_block, forbidden_import (one held-out firing), weights_do_not_sum_to_volume, too_low_degree |
+| quad-square-d5, the matrix's `none` cell (2 seed blocks of 8) | 16 | 6 | sandbox_crash (4), weights_do_not_sum_to_volume (2) | no_code_block, forbidden_import, too_low_degree |
+| quad-triangle-d2, the same | 16 | 8 | no_code_block (2), sandbox_crash (2), too_low_degree (2), weights_do_not_sum_to_volume (2) | forbidden_import |
+
+* The loop with 8 attempts per rung keeps no detector (nothing fires twice on a held-out half of 4), so the theorist's
+  query stays the target's title as in week 4 and the recorded theorist fixtures replay; with 16 attempts on `quad-d7` it
+  keeps `sandbox_crash` and the query names "the candidate raised or failed to run".
+* The diagnosis-only text on the square reads "4 of 16 attempts: the candidate raised or failed to run; 2 of 16 attempts:
+  the weights do not sum to the domain's volume", and nothing else: no remedy.
+* The control rows replay the same synthetic files as the baseline, so every gain and every symptom change is 0.000 by
+  construction, which is what the check wants: the machinery adds nothing of its own to a score or a symptom rate. A second
+  try replays as the model keeping its file (`revised_after_dry_run` false on every row).
+* The extraction prompt without detectors is byte for byte the week-3 one, and the recorded GPT fixtures of the lesson
+  harness and the ablation replay unchanged.
+* The fixture set: 26 local sequences gained a second round (a second try keeps the file), 2 diagnosis-only sequences were
+  added, the 2 breaker sequences for a fourth `quad-d7` candidate were re-keyed because the generator now mirrors the loop's
+  8 attempts per rung, and 1 orphan from the week-3 re-keying was removed.
+
+## What the first real run should show
+
+Cell 17 on the cell-13 ledger: which detectors are kept per rung, and on the triangle rungs whether the weight-sum detector
+(the area dropped) or the no-code detector (the token cap) carries the failures; the lesson writer on the next generation
+then names the failure each lesson addresses. The matrix with `second_try` and `diagnosis_only` beside `lessons`: if the
+diagnosis-only row matches the lessons row the model held the knowledge and lacked the diagnosis, if it matches the baseline
+knowledge is the barrier, and the second-try row is the floor both are read against.

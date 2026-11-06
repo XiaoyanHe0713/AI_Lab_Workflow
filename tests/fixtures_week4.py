@@ -242,6 +242,7 @@ BR_TRIANGLE_PROBE_R2 = _j({"witness": {"kind": "exactness_error", "input": {"coe
 BREAKER_TRIANGLE_ROUNDS = [(BR_TRIANGLE_INSIDE,), (BR_TRIANGLE_OUTSIDE,), (BR_TRIANGLE_PROBE, BR_TRIANGLE_PROBE_R2), (BR_PROSE,), (BR_LARGE_COEFFICIENTS,)]
 
 LOOP_TARGETS = {"quad-d7": None, "quad-square-d5": SQUARE_RESPONSES, "quad-triangle-d2": TRIANGLE_RESPONSES}
+LOOP_ATTEMPTS = 8      # attempts per rung in the offline loop test (and in the generator, which mirrors the loop)
 THEORIST_BY_TARGET = {"quad-d7": THEORIST_INTERVAL_ROUNDS, "quad-square-d5": THEORIST_ROUNDS, "quad-triangle-d2": THEORIST_TRIANGLE_ROUNDS}
 BREAKER_BY_TARGET = {"quad-d7": BREAKER_INTERVAL_ROUNDS, "quad-square-d5": BREAKER_ROUNDS, "quad-triangle-d2": BREAKER_TRIANGLE_ROUNDS}
 
@@ -259,9 +260,9 @@ def items_from_rounds(rounds_list: list[tuple], note: str) -> list[dict]:
 def items_from_texts(texts: list[str], note: str) -> list[dict]:
     items = []
     for text in texts:
-        items.append({"text": text, "prompt_tokens": 410, "completion_tokens": 40 + len(text) // 4,
+        items.append({"text": text, "rounds": [text, text], "prompt_tokens": 410, "completion_tokens": 40 + len(text) // 4,
                       "latency_s": round(1.5 + 0.02 * len(text) / 4, 2), "model": "synthetic-fixture", "finish_reason": "stop",
-                      "note": "synthetic, hand-written; not a recorded model output", "for": note})
+                      "note": "synthetic, hand-written; not a recorded model output (round 2: a second try keeps the file)", "for": note})
     return items
 
 
@@ -278,12 +279,16 @@ def write_items(messages: list[dict], items: list[dict]) -> Path:
 def write_loop_fixtures(verbose: bool = True) -> list[Path]:
     """The sequences the offline loop test replays: builder rungs, theorist proposals, the builders derived from the
     theorist's checked proposals, and the breaker's attacks on the survivors. The proposal and breaker prompts depend on
-    the replayed outputs, so this runs the theorist and the builder offline (temporary ledger) to compute them."""
+    the replayed outputs, so this runs the builder and the theorist offline (temporary ledger) to compute them, in the
+    loop's own order (week 5): the plain-prompt group first, the built-in detectors mined on it, then the theorist with
+    the retrieval query the diagnosis names (with the test's 8 attempts per rung no detector is kept, so the query is the
+    target's title; the order here keeps the generator honest if that changes)."""
     import tempfile
 
     from lab.config import lab_config
     from lab.demo import prepare, run_group
     from lab.episode import run_episodes
+    from lab.harness.checker import diagnosis_query, firing_table, kept_detectors, mine_builtin
     from lab.harness.librarian import Librarian, ReadingList
     from lab.ledger import Ledger
     from lab.loop import survivors_of, theorist_retrieval
@@ -297,21 +302,33 @@ def write_loop_fixtures(verbose: bool = True) -> list[Path]:
     cfg = lab_config(env={"LAB_ROOT": str(tmp)})
     ledger = Ledger(tmp / "ledger.sqlite")
     try:
-        # 1. the builder rungs (quad-d7's sequence is the week-2 one, written by make_fixtures.main)
+        # 1. the builder rungs (quad-d7's sequence is the week-2 one, written by make_fixtures.main), run as the loop runs
+        #    them (LOOP_ATTEMPTS attempts), then the built-in detectors mined on each group and the diagnosis query computed
+        all_rows: dict[str, list] = {}
+        queries: dict[str, str] = {}
         for tid, responses in LOOP_TARGETS.items():
-            if responses is None:
-                continue
             target = get_target(tid)
-            written.append(write_items([{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": target.prompt}],
-                                       items_from_texts(responses, f"loop builder rung {tid}")))
-        # 2. the theorist, with the librarian's lexical retrieval in the prompt, two rounds per item
+            if responses is not None:
+                written.append(write_items([{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": target.prompt}],
+                                           items_from_texts(responses, f"loop builder rung {tid}")))
+            s = run_group(target_id=tid, attempts=LOOP_ATTEMPTS, seed=0, provider_name="local", role_name="builder", ledger=ledger,
+                          ledger_path=ledger.path, gpu="A100", precision=None, units_per_hour=None, temperature=None, max_tokens=None,
+                          timeout_s=60, cfg=cfg, fixtures_root=ROOT, quiet=True, cache_dir=tmp / "cache", mode="offline", concurrency=4)
+            all_rows[tid] = ledger.attempts(group_id=s["group_id"])
+            mine_builtin(ledger, target, all_rows[tid], seed=0)
+            table = firing_table(kept_detectors(ledger, tid), all_rows[tid])
+            queries[tid] = diagnosis_query(target, table)
+            if verbose:
+                print(f"builder {tid}: {s['passed']}/{s['attempts']} valid, {s['optimal']} optimal; kept detectors "
+                      f"{[d['name'] for d in table['detectors']]}; query {queries[tid]!r}")
+        # 2. the theorist, with the librarian's lexical retrieval (under the diagnosis query) in the prompt, two rounds per item
         theorist = prepare(cfg=cfg, role_name="theorist", provider_name="local", mode="offline", fixtures_root=ROOT, ledger=ledger,
                            gpu="A100", temperature=None, system_prompt=THEORIST_SYSTEM, cache_dir=tmp / "cache", timeout_s=60)
         librarian = Librarian(theorist["provider"], ledger, ReadingList(cfg=cfg), cfg=cfg)
         proposals_by_target: dict[str, list[dict]] = {}
         for tid, rounds in THEORIST_BY_TARGET.items():
             target = get_target(tid)
-            ret = theorist_retrieval(librarian, target)
+            ret = theorist_retrieval(librarian, target, query=queries[tid])
             prompt = theorist_prompt(target, lessons_text="", docs=ret["documents"])
             written.append(write_items([{"role": "system", "content": THEORIST_SYSTEM}, {"role": "user", "content": prompt}],
                                        items_from_rounds(rounds, f"loop theorist {tid}")))
@@ -324,8 +341,7 @@ def write_loop_fixtures(verbose: bool = True) -> list[Path]:
             proposals_by_target[tid] = [p for p in (proposal_from_row(r) for r in rows if r.passed) if p]
             if verbose:
                 print(f"theorist {tid}: {s['passed']}/{s['attempts']} proposals passed their lemma checks")
-        # 3. the builders derived from the proposals (one sequence per distinct proposal prompt), then the survivors
-        all_rows: dict[str, list] = {}
+        # 3. the builders derived from the proposals (one sequence per distinct proposal prompt)
         for tid, responses in LOOP_TARGETS.items():
             target = get_target(tid)
             texts = responses or None
@@ -336,12 +352,6 @@ def write_loop_fixtures(verbose: bool = True) -> list[Path]:
                 prompt = with_proposal(target.prompt, p)
                 written.append(write_items([{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": prompt}],
                                            items_from_texts(texts, f"loop builder derived from a proposal on {tid}")))
-            s = run_group(target_id=tid, attempts=len(texts), seed=0, provider_name="local", role_name="builder", ledger=ledger,
-                          ledger_path=ledger.path, gpu="A100", precision=None, units_per_hour=None, temperature=None, max_tokens=None,
-                          timeout_s=60, cfg=cfg, fixtures_root=ROOT, quiet=True, cache_dir=tmp / "cache", mode="offline", concurrency=4)
-            all_rows[tid] = ledger.attempts(group_id=s["group_id"])
-            if verbose:
-                print(f"builder {tid}: {s['passed']}/{s['attempts']} valid, {s['optimal']} optimal")
         # 4. the breaker: one sequence per surviving candidate's prompt (the loop labels candidates by rank)
         for tid, rounds in BREAKER_BY_TARGET.items():
             target = get_target(tid)
@@ -392,6 +402,14 @@ def seed_bank(bank) -> list[str]:
 MATRIX_SOURCES = ["quad-d7"]
 MATRIX_TARGETS = ["quad-square-d5", "quad-triangle-d2"]
 MATRIX_CARRIERS = ["none", "lessons", "process_only", "unrelated", "skills"]
+CONTROL_CARRIERS_TEST = ["none", "second_try", "diagnosis_only"]   # week 5: the two target-side control rows
+CONTROL_SEEDS, CONTROL_ATTEMPTS = 2, 8                              # seed blocks x attempts of the offline control test
+
+
+def matrix_run_kw(tmp: Path) -> dict:
+    """The run settings of the offline matrix (the test and the generator must agree, or a prompt is not replayed)."""
+    return dict(provider_name="local", mode="offline", gpu="A100", precision=None, units_per_hour=None, temperature=None, max_tokens=None,
+                timeout_s=60, fixtures_root=ROOT, cache_dir=tmp / "cache", concurrency=4)
 
 
 def matrix_state(tmp: Path, ledger, cfg) -> dict:
@@ -446,6 +464,21 @@ def write_matrix_fixtures(verbose: bool = True) -> list[Path]:
                 if verbose:
                     print(f"matrix {carrier} from {e.name} on {tid}: {len(app['context'].get('lesson_ids', []))} lessons, "
                           f"{len(app['context'].get('skill_ids', []))} skills")
+        # the diagnosis-only control (week 5): its prompt is the program's diagnosis of the target's own `none` cell, so that
+        # cell is run here exactly as the offline control test runs it (CONTROL_SEEDS seed blocks of CONTROL_ATTEMPTS) and the
+        # built-in detectors are mined on it; the second-try control replays the plain prompt's sequence (round 2 keeps the file)
+        from lab.harness.matrix import diagnosis_for, run_cell
+
+        for tid in MATRIX_TARGETS:
+            target = get_target(tid)
+            none_cell = run_cell(experience=None, carrier="none", target_id=tid, seeds=CONTROL_SEEDS, attempts=CONTROL_ATTEMPTS, cfg=cfg, ledger=ledger,
+                                 bank=bank, archive=archive, matrix_id="mtx_fixtures", run_kw=matrix_run_kw(tmp), quiet=True, seed0=0)
+            table, diag = diagnosis_for(ledger, tid, none_cell, seed=0)
+            app = apply_carrier("diagnosis_only", target, None, bank=bank, diagnosis_table=table)
+            written.append(write_items([{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": app["prompt"]}],
+                                       items_from_texts(LOOP_TARGETS[tid], f"matrix diagnosis-only control on {tid}")))
+            if verbose:
+                print(f"matrix diagnosis_only on {tid}: kept {diag['kept']}, fired {app['context']['detectors_named']}")
     finally:
         ledger.close()
     return written

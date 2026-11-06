@@ -1,13 +1,16 @@
-# Discovery at 27B: the lab, weeks 1 to 4
+# Discovery at 27B: the lab, weeks 1 to 5
 
 A fully automated numerical lab on one open model, `Qwen/Qwen3.6-27B`, with three roles that will later be
-LoRA adapters and program harnesses around them. This repository holds weeks 1 to 4 of the build plan:
+LoRA adapters and program harnesses around them. This repository holds weeks 1 to 5 of the build plan:
 the model served from Colab, the repository skeleton (ledger, cost meter, role interface), the certifier
 library (seven certifiers), the judge sandbox, the scoreboard files, the demo loop with concurrent attempts,
 the training gate, the three harnesses (librarian, archive and lesson bank, checker) with the ablation
-harness around them, and, from week 4, the three roles (theorist, builder, breaker) with their prompts, tools
+harness around them, from week 4 the three roles (theorist, builder, breaker) with their prompts, tools
 and the episode runner, the loop that runs them end to end on one family, and the transfer-matrix machinery
-(experience sets, the two controls, cells at matched dollars with bootstrap intervals).
+(experience sets, the two controls, cells at matched dollars with bootstrap intervals), and from week 5 the
+diagnosis as a program's object: detectors mined on every base group, the question they name for the
+librarian, lessons that name the failure they address, the symptom rate of every detector per group, and two
+target-side control rows in the matrix (a second try with no lesson; the diagnosis with no remedy).
 
 Rules that never bend: every score comes from a program (a certificate), never from a model's opinion;
 verification of known results comes before any open problem; every attempt is logged with its cost; a
@@ -18,7 +21,7 @@ harness writes enters a reward.
 
 | Path | What it is |
 |---|---|
-| `colab/serve.ipynb` | Drive, weights pinned by hash, 4-bit build, OpenAI-compatible server with LoRA serving, smoke test, demo (parallel requests), the gate runner and the online ablation (week 3 cells), the loop, the family baselines, the 256-attempt search baseline and the matrix cells (week 4 cells 13 to 16). Generated from `colab/build_notebook.py`. |
+| `colab/serve.ipynb` | Drive, weights pinned by hash, 4-bit build, OpenAI-compatible server with LoRA serving, smoke test, demo (parallel requests), the gate runner and the online ablation (week 3 cells), the loop, the family baselines, the 256-attempt search baseline and the matrix cells (week 4 cells 13 to 16), and the mining of detectors on the base groups already in the ledger (week 5 cell 17, no GPU). Generated from `colab/build_notebook.py`. |
 | `config/lab.yaml` | Storage path, endpoint, providers (`local`, `openai`, `anthropic`, each with a mode `offline`, `online` or `record`), the harness settings (provider, token budget of the lesson bank, detector thresholds, reading list), roles, judge limits. `${VAR:-default}` expands from the environment. |
 | `config/model.yaml` | The frozen base (repo, revision, checkpoint hash) and the quantized build. |
 | `config/prices.yaml`, `config/budget.yaml` | The price table; the frontier budget: $200 a month across GPT and Claude, warning at 80 percent, enforced in code. |
@@ -28,8 +31,8 @@ harness writes enters a reward.
 | `lab/roles/theorist.py`, `builder.py`, `breaker.py` | Week 4: the three roles as episode runners (Work package 4). Theorist: the target, its scoreboard entry, the gate's lessons and the librarian's excerpts under the cutoff in the prompt; lemmas with SymPy checks run in the sandbox, structure and hypotheses for the builder; the lemma-check certificate is the immediate reward, a revision round after the checks. Builder: the demo's attempt plus a certifier dry run (unscored) with a revision, lessons and skills from the gate, and the theorist's checked lemmas when an episode is derived from a proposal. Breaker: a certified candidate with its dossier and the class definition; an optional probe of the rule on monomials (the execution tool); a witness checked by `witness_check`: reward one for a confirmed break, zero for anything else. |
 | `lab/episode.py` | Week 4: the episode runner: a role's attempt with its fixed number of tool rounds, priced by its share of the wave's wall time, one ledger row with role, adapter version, prompt hash, context (lesson ids, skill ids, reading-list snapshot, citations, proposal or candidate), output, tool log, certificate, the diagnosis on failure (the certifier's reason plus the kept detectors that fire), cost and seed. `demo.run_group` is the builder's group on it. |
 | `lab/certifiers/lemma.py` | Week 4: `lemma_check`, the theorist's reward: one SymPy expression per lemma over a whitelisted namespace, trivial and symbol-free checks refused, duplicates counted once, run in the sandbox with SymPy allowed for that run only; pass when at least one check passes, the score the fraction that pass. |
-| `lab/loop.py` | Week 4: `python -m lab.loop --targets ...`: one generation on one family (the curriculum rungs in order): the gate's lessons, the theorist's proposals, the builder's gate group (plain prompt, the gate memo), lesson group and proposal group, the judge, the breaker on the distinct certified survivors (a confirmed break voids the candidate and raises an exploit alarm), the archive with dossiers and witness records, lesson extraction and consolidation, the delayed credit of every proposal, and the generation record with the archive snapshot and the ledger pointer. |
-| `lab/harness/carriers.py`, `lab/harness/matrix.py` | Week 4: the context carriers (`none`, `lessons`, `lessons_gate`, `skills`, `process_only` with content redacted, `unrelated`) and the source-target matrix: experience sets from the archive per source family, the two controls, the cell runner (N seeds, matched attempts or dollars), the ledger query and the analysis with a percentile bootstrap interval per cell; the program refuses to measure lessons on the family they came from. The ablation harness is its single-cell version. |
+| `lab/loop.py` | Week 4: `python -m lab.loop --targets ...`: one generation on one family (the curriculum rungs in order): the gate's lessons, the theorist's proposals, the builder's gate group (plain prompt, the gate memo), lesson group and proposal group, the judge, the breaker on the distinct certified survivors (a confirmed break voids the candidate and raises an exploit alarm), the archive with dossiers and witness records, lesson extraction and consolidation, the delayed credit of every proposal, and the generation record with the archive snapshot and the ledger pointer. Week 5: the base group runs first and is mined for detectors (the checker's proposals when it runs, the built-in detectors alone otherwise); the theorist's retrieval asks the question the diagnosis names; the lesson writer is told which detectors fired on which attempts; the symptom rate of every kept detector is recorded per group; `--no-mine` switches it off. |
+| `lab/harness/carriers.py`, `lab/harness/matrix.py` | Week 4: the context carriers (`none`, `lessons`, `lessons_gate`, `skills`, `process_only` with content redacted, `unrelated`) and the source-target matrix: experience sets from the archive per source family, the two controls, the cell runner (N seeds, matched attempts or dollars), the ledger query and the analysis with a percentile bootstrap interval per cell; the program refuses to measure lessons on the family they came from. The ablation harness is its single-cell version. Week 5: two target-side control rows, `second_try` (one certifier dry run and a revision, no lesson) and `diagnosis_only` (the program's diagnosis of the target's own `none` cell, no remedy), a `--tool-calls` option for lessons-plus-second-try cells, and a symptom-change column in every gain (the firing rate of each kept detector with the carrier minus without). |
 | `lab/certifiers/quadrature.py`, `pep.py`, `witness.py` | Weeks 1 to 2: exactness, worst-case rates by performance estimation, the witness check. |
 | `lab/certifiers/order.py` | Week 3: convergence order from a seeded refinement study (manufactured solutions for an ODE, a 1-D Poisson problem and a composite integral), slope with a t-interval and pairwise orders. |
 | `lab/certifiers/opcount.py`, `counted.py` | Week 3: operation count by instrumented arithmetic (an expression DAG of counted scalars; only operations that reach an output count) with the outputs checked against the exact transform, and cost models checked against instrumented runs. |
@@ -41,8 +44,8 @@ harness writes enters a reward.
 | `lab/harness/base.py` | The harness base: every language call goes through the provider and the budget guard and into the ledger as role `harness:<name>` with provider, mode and API dollars. |
 | `lab/harness/librarian.py`, `reading_list/*.yaml` | The librarian: the reading list with dates, retrieval under a per-target date cutoff (lexical ranking by a program, selection and summary by the provider), every citation logged, and the pass over `provenance: provisional` scoreboard entries. |
 | `lab/harness/archive.py` | The archive: a content-addressed store of certified methods with witnesses and dossiers, linked to the attempt, reading-list snapshot, lessons, citations and cost; `trace()` is one SQL query. |
-| `lab/harness/lessons.py` | The lesson bank: lessons at three levels (approach, implementation, process), each a rule with conditions and an evidence tag (observed, derived, proposed); consolidation under a token budget by add, replace and retire; the gate that selects one lesson and writes a concrete, validated check applied at use time. |
-| `lab/harness/checker.py` | The checker: the frozen baseline record from ledger groups; hypotheses turned into deterministic detectors kept only when right on more than nine of ten held-out cases; method dossiers with claim, conditions and evidence, schema-validated. |
+| `lab/harness/lessons.py` | The lesson bank: lessons at three levels (approach, implementation, process), each a rule with conditions and an evidence tag (observed, derived, proposed); consolidation under a token budget by add, replace and retire; the gate that selects one lesson and writes a concrete, validated check applied at use time. Week 5: a lesson names the detectors it addresses (checked against the kept names; a `detectors` column an older ledger gains on open), and the extraction prompt lists the detectors with the attempts they fired on only when detectors are given, so the recorded fixtures replay. |
+| `lab/harness/checker.py` | The checker: the frozen baseline record from ledger groups; hypotheses turned into deterministic detectors kept only when right on more than nine of ten held-out cases; method dossiers with claim, conditions and evidence, schema-validated. Week 5: mining without a harness (the built-in detectors alone through the same held-out gate), the firing table of a group, the librarian query and the diagnosis-only text a diagnosis names, and `python -m lab.harness.checker --mine --targets ...`, which mines the base groups a ledger already holds and writes the report under `detectors/`. |
 | `lab/harness/ablation.py` | `python -m lab.harness.ablation`: three arms on one verification family at matched dollars (no notebook, notebook, notebook with gate), every attempt in the ledger, a report per run. |
 | `scoreboard/*.yaml` | Quadrature node counts, first-order rates, SSP coefficients and stability extents, DFT operation counts, convergence-order verification targets, with sources. |
 | `tests/` | pytest suites: at least 20 known-answer cases per certifier, judge limits, ledger, cost, budget, roles, demo, concurrency, gate, harness base, the harness suites per frontier provider (offline from recorded fixtures), and the week-4 suites: the lemma check, the transfer blocks, the three roles (fixtures and stub endpoints), the loop end to end, the matrix. `tests/make_fixtures.py` writes the synthetic local sequences (`tests/fixtures_week4.py` holds the week-4 ones). Live tests carry the `online` marker. |
@@ -102,6 +105,20 @@ the same-family cells are refused by the program):
 python -m lab.harness.matrix --sources quad-d7 --targets quad-square-d5 quad-triangle-d2 --carriers none lessons process_only unrelated skills --seeds 2 --attempts 8 --mode offline --no-harness --gpu A100 --concurrency 4 --max-tokens 4096
 ```
 
+The same with the two target-side control rows of week 5 (a second try with no lesson; the diagnosis of the target's own
+baseline with no remedy) and the symptom-change column in every gain:
+
+```bash
+python -m lab.harness.matrix --sources quad-d7 --targets quad-square-d5 quad-triangle-d2 --carriers none second_try diagnosis_only lessons process_only unrelated skills --seeds 2 --attempts 8 --mode offline --no-harness --gpu A100 --concurrency 4 --max-tokens 4096
+```
+
+Detectors mined after the fact on the base groups a ledger already holds (no GPU; the built-in detectors alone without
+`--provider openai`), with their firing tables, the librarian queries they name and the diagnosis-only texts:
+
+```bash
+python -m lab.harness.checker --mine --targets quad-d7 quad-square-d5 quad-triangle-d2 quad-triangle-d3 quad-triangle-d4
+```
+
 List targets:
 
 ```bash
@@ -120,7 +137,10 @@ your own machine (Colab pulls read-only). Week 4 (all off by default): cell 13 (
 on `LOOP_TARGETS` (the quadrature curriculum: interval d7, square d5, triangle d2, d3, d4) with 64 attempts per gate group at
 `GATE_MAX_TOKENS` answer tokens and GPT for lessons and dossiers; cell 14 (`RUN_BASELINES`) runs the gate on one target of
 every other certifier family and writes the frozen baseline record; cell 15 (`RUN_SEARCH_BASELINE`) runs 256 attempts of the
-frozen base on `quad-square-d5`; cell 16 (`RUN_MATRIX`) runs matrix cells from the loop's archive.
+frozen base on `quad-square-d5`; cell 16 (`RUN_MATRIX`) runs matrix cells from the loop's archive, with `MATRIX_CARRIERS`
+holding the two control rows of week 5 and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 17
+(`RUN_MINE`, no GPU) mines detectors on the base groups already in the ledger (GPT proposes them with the secret, the built-in
+detectors stand alone without it) and prints their firing tables, the librarian queries they name and the diagnosis-only texts.
 
 ## Providers, modes, fixtures and the frontier budget
 
@@ -281,6 +301,43 @@ case the cell is marked "same family (unreported)". So the experience of the int
 lessons name the answer) is measured on the square and the triangle (a new family under the same certificate) and on the
 time integrators (a new domain), never on `quad-d9`.
 
+## The diagnosis as a program's object, and the two control rows (week 5)
+
+The two papers the lab borrowed its instruments from say the same thing in different words. MUSE's lessons work best when a
+reviewer ties them to the moment the model has just seen its mistake; ADSD's skills work because a verified diagnosis says
+which knowledge to look for, and revision from execution feedback alone helped in four of its nine comparisons and hurt in
+five. Week 5 puts the diagnosis into the loop as a program's object and adds the two control rows without which a lesson's
+gain cannot be read.
+
+* Mining on every base group. After the builder's plain-prompt group on a rung, the checker proposes detectors from half the
+  group when a frontier provider runs, and the built-in detectors stand alone otherwise; every candidate is kept only if, on
+  the other half it never saw, it fires at least twice and every firing is a failure (the week-3 rule). The command
+  `python -m lab.harness.checker --mine --targets ...` does the same on the base groups a ledger already holds, after the
+  fact and with no GPU, and writes the firing tables under `detectors/` next to the ledger.
+* The failure named before the theorist. The firing table of the base group becomes the librarian's query (the target's
+  title, then the hypotheses of the detectors that fired, most frequent first), so the theorist's reading-list excerpts are
+  about what went wrong. The query is in the theorist's context and in the rung record.
+* Lessons that name the failure they address. The lesson writer sees each kept detector with the attempts it fired on and
+  may list the detectors a lesson addresses; the program keeps only names it kept. Without detectors the prompt is the
+  week-3 one byte for byte, so the recorded fixtures replay.
+* Symptom rates per group. For every kept detector, how often it fires with the plain prompt, with lessons and with
+  proposals, in the rung record and the generation markdown. The loop uses the family's own lessons by design, so these
+  rates are recorded there and never reported as transfer.
+* Two target-side control rows in the matrix. `second_try` runs the builder with one certifier dry run and a revision and
+  no lesson: the floor every lesson gain is read against. `diagnosis_only` puts the program's diagnosis of the target's own
+  `none` cell in the prompt, the detectors that fired with their counts and no remedy: if it matches the lessons row, the
+  model held the knowledge and lacked the diagnosis; if it matches the baseline, knowledge is the barrier. Neither carries
+  experience, so the rule that lessons are never measured on the family they came from has nothing to refuse; both are
+  reported with the setting `control` and a flag that says what they are. `--tool-calls 1` gives every content carrier the
+  dry run as well, a lessons-plus-second-try cell of its own.
+* The symptom-change column. Every cell reports the symptom rates of the target's kept detectors, and every gain the change
+  against the baseline: negative means the failure the detector names went away. Passing more often is the goal; the
+  symptom disappearing is the evidence that the carrier did it for the reason it claims.
+
+Nothing here enters a reward: detectors are programs, their firing is a measurement, and the diagnosis and the lessons are
+prompt content. What to read first from a run: the mining report on the loop's ledger (which detectors were kept per rung
+and how often they fire), then the diagnosis-only row beside the lessons row on the next matrix session.
+
 ## The ledger
 
 One row per attempt: `id, role, model, model_version, precision, target, prompt_hash, context, output, tool_log,
@@ -317,3 +374,9 @@ thinking ladder with a real budget, the builder's dry run and the breaker's prob
 Claude provider (no key yet; its harness tests skip until recorded). Scoreboard entries marked `provenance: provisional`
 must be checked by a person against the sources, with the librarian's reviews under `scoreboard/reviews/` as a starting
 point, before any novelty claim.
+
+Week 5 (2026-11-06) is exercised offline under pytest: the built-in detectors mined on the synthetic demo group (one kept,
+`sandbox_crash`), the extraction prompt with and without detectors, the two control rows and the symptom-change column on
+the synthetic matrix (every gain and every symptom change zero by construction, since the controls replay the same files),
+and the loop mining its base groups. Nothing of week 5 has run against the served model. Its first use is cell 17 on the
+ledger that cell 13 wrote, which costs no GPU time, and then the matrix with the control rows on the next session.

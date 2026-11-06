@@ -44,6 +44,9 @@ def test_generation_end_to_end_on_fixtures(tmp_path):
         assert memo.exists() and memo.with_suffix(".json").exists() and r["gate"]["verdict"] == "in the band"
         assert json.loads(memo.with_suffix(".json").read_text())["generation_id"] == rec["id"]
         assert "lessons" not in r["groups"]           # the bank is empty without a harness: no lesson group
+        # week 5: the base group was mined (built-in detectors, no checker); with 8 attempts none holds on the held-out half
+        assert r["detectors"]["mining"] == "builtin" and r["detectors"]["kept"] == [] and r["symptoms"] == {}
+        assert r["retrieval_query"] == f"{get_target(r['target']).title} quadrature"
     # the theorist: proposals checked by computer algebra, builds derived from them, the delayed credit
     sq = rec["rungs"][1]
     assert sq["groups"]["theorist"]["proposals"] == 4 and sq["groups"]["theorist"]["lemmas_passed"] >= 5
