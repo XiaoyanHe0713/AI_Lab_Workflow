@@ -308,12 +308,12 @@ The package and its tests run on a CPU-only machine. The notebook ran end to end
 certifiers, the harnesses and the ablation harness, all exercised offline under pytest; the GPT fixtures were recorded
 on Colab on 2026-11-05 (25 calls, $0.04) and the harness tests replay them; the gate and the ablation ran against the
 served model on 2026-11-05 (cells 10 and 11, `RESULTS.md`). Week 4 adds the three roles, the episode runner, the loop
-and the matrix, all exercised offline under pytest from synthetic fixtures (the loop end to end on three rungs, the
-matrix with its controls); against the served model nothing of week 4 has run yet: cells 13 to 16 of the notebook are
-the verification run (the loop on the quadrature curriculum with gate memos, the frozen baseline for every certifier
-family, the 256-attempt search baseline on `quad-square-d5`, the first matrix cells), and the loop's lesson-extraction
-fixtures are recorded by cell 12 on the next pass. Not yet exercised: the A100/L4 path, SGLang, the tunnel cell, the
-thinking ladder with a real budget, the builder's dry run and the breaker's probe against the live server, and the
-Claude provider (no key yet; its harness tests skip until recorded). Scoreboard entries marked `provenance: provisional`
-must be checked by a person against the sources, with the librarian's reviews under `scoreboard/reviews/` as a starting
-point, before any novelty claim.
+and the matrix, all exercised offline under pytest from synthetic fixtures; the loop ran one generation against the served
+model on 2026-11-06 (cell 13: five quadrature rungs, gate memos, 20 archived methods, the theorist's proposals leading the
+builder to Radon's 7-point rule, the lessons from the interval rung lowering the square's pass rate, see `RESULTS.md`), with
+the 256-attempt search baseline on `quad-square-d5` (cell 15) and the ablation repeated with the fixed gate check (cell
+11); the loop's GPT fixtures were recorded by cell 12 and wait on Drive for a commit. Not yet run: the frozen baseline for
+every certifier family (cell 14) and the matrix cells (cell 16). Not yet exercised: the A100/L4 path, SGLang, the tunnel
+cell, the thinking ladder with a real budget, the builder's dry run against the live server, and the Claude provider (no key
+yet; its harness tests skip until recorded). Scoreboard entries marked `provenance: provisional` must be checked by a person
+against the sources, with the librarian's reviews under `scoreboard/reviews/` as a starting point, before any novelty claim.

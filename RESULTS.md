@@ -338,11 +338,97 @@ ledger with its matrix id, cell id, experience, carrier, setting and seed index;
 Every gain is 0.000 [0.000, 0.000] by construction (the carrier cells replay the same synthetic files as the baseline),
 which is what the check wants: the machinery adds nothing of its own to a score.
 
-## The verification run on Colab (cells 13 to 16): not yet run
+## The verification run on Colab (cells 11 to 13 and 15; 2026-11-06 to 07, G4, bf16)
 
-To be filled from the notebook's output: the gate memo per rung of the quadrature curriculum (interval d7, square d5,
-triangle d2, d3, d4; 64 attempts at 8192 answer tokens, thinking 0, 16 parallel requests), the theorist's lemma-check
-rate and the delayed credit of its proposals, the breaker's rewards on the survivors (0 expected on sound certificates;
-any confirmed break is an exploit alarm), the archive snapshot, the lesson bank after GPT's extraction, the frozen
-baseline record over every certifier family (`baselines/` on Drive), the 256-attempt search baseline on `quad-square-d5`
-(verify-first: does the 7-point rule appear?), and the first matrix cells with their intervals.
+Branch `build/week-4-loop` at 574aeaa; vLLM ready after 785 s with the zero adapter; smoke 23.9 tokens/s base, 21.7
+through the adapter. Session: 6.04 h of G4, 71.1 units, $7.11 at the table rate (unconfirmed). The notebook ran with
+`RUN_ABLATION`, `RECORD_FIXTURES`, `RUN_LOOP` and `RUN_SEARCH_BASELINE` on; `RUN_BASELINES` (the frozen baseline for
+every certifier family) and `RUN_MATRIX` were off and have not run yet.
+
+### The loop, one generation on the quadrature curriculum (cell 13)
+
+`python -m lab.loop --targets quad-d7 quad-square-d5 quad-triangle-d2 quad-triangle-d3 quad-triangle-d4 --attempts 64
+--theorist-attempts 16 --proposal-attempts 16 --breaker-attempts 8 --breaker-candidates 4 --tool-calls 0 --carrier lessons
+--max-tokens 8192 --thinking 0 --concurrency 16 --harness-provider openai --harness-mode online`, generation
+`gen_bcb53faacaa14087`, 4 h 26 min wall, GPU 15,704 s (4.36 h), $5.24; GPT (gpt-5-mini) for the lessons, the gate and
+the dossiers, $0.08 in all; 1,715 rows in the ledger on Drive, 20 methods in the archive snapshot, 28 active lessons.
+The theorist had one revision round after its lemma checks, the breaker one probe round, the builder no dry run.
+
+| rung | target | gate verdict (pass rate, valid / 64) | optimal | lesson group | proposal group (16) | theorist: lemmas passed, proposals certified | breaker: confirmed breaks / attacks | archived |
+|---|---|---|---|---|---|---|---|---|
+| 0 | quad-d7 | above the band (0.859, 55) | 55 | 0.734 (47) | 0.812 (13) | 57/77, 16/16 | 0 / 32 | 4 |
+| 1 | quad-square-d5 | above the band (0.812, 52) | 0 | 0.391 (25) | 0.188 (3), 2 optimal | 51/74, 14/16 | 0 / 32 | 4 |
+| 2 | quad-triangle-d2 | above the band (1.000, 64) | 64 | 0.797 (51) | 1.000 (16) | 42/82, 11/16 | 0 / 32 | 4 |
+| 3 | quad-triangle-d3 | in the band (0.203, 13) | 12 | 0.266 (17) | 0.375 (6) | 24/66, 5/16 | 0 / 32 | 4 |
+| 4 | quad-triangle-d4 | in the band (0.062, 4) | 2 | 0.000 (0) | 0.000 (0) | 13/68, 5/16 | 0 / 32 | 4 |
+
+What the run says, rung by rung, with the standard error of a rate at n = 64 around 0.06:
+
+1. The gate at 8,192 answer tokens. quad-square-d5 passes 52 of 64 (0.812), above the band, where it passed 38 of 64
+   (0.594) at 4,096 tokens on 2026-11-05: the verdict on this target depends on the token cap, and the family sits at the
+   band's upper edge. quad-triangle-d3 (0.203, 25 attempts at the cap) and quad-triangle-d4 (0.062, 4 valid of which 2
+   are the optimal 6-point rule; 27 at the cap, 21 without a code block) are in the band, where d4 was below it at
+   4,096 tokens. quad-d7 (0.859) and quad-triangle-d2 (1.000) are rediscovery targets above the band.
+2. The square. The frozen base's best plain attempt is an 8-node degree-5 rule (four axis points at +-sqrt(7/15), weight
+   40/49, four diagonal points at +-sqrt(7)/3, weight 9/49), one node better than the 9-node tensor product that was the
+   only valid rule on 2026-11-05. Radon's 7-point rule appeared only in the proposal group: 2 of the 16 builds derived from
+   the theorist's proposals wrote exactly it (centre weight 8/7, (0, +-sqrt(14/15)) weight 20/63, (+-sqrt(3/5), +-1/sqrt 3)
+   weight 5/9), solved from the even moment equations in the file, against 0 of 64 in the gate group, 0 of 64 in the lesson
+   group and 0 of 256 in the search baseline. The delayed credit of those two proposals is +1.0 each (best 7 against the gate
+   group's best 8). This is the theorist-to-builder channel working, not a discovery: the proposals name the orbit
+   structure, which the base knows from its training data on a rediscovery target.
+3. The lessons hurt. The lesson group ran with the gate's one lesson and check; on the square, where the bank held only
+   lessons from the interval rung (a new family under the same certificate, the first E1 cell of this kind), the pass rate
+   fell from 0.812 to 0.391, far outside noise. The diagnoses say why: at least 20 of the 39 failures are the model's own
+   assertions on the monomial x^0 y^6 (degree 6, outside the degree-5 class) or on a weight sum of 2.086 against the area 4,
+   so the lesson's self-test prescription, applied beyond the class, killed valid files. On the triangle rungs the lesson
+   groups wrote longer outputs (13, 32 and 43 attempts without a code block against 0, 25 and 21) and d4 fell to 0 of 64,
+   inside noise; d3 rose from 13 to 17, inside noise. Rung 0's lesson group is not a transfer cell: the bank already held the
+   week-3 ablation's lessons on quad-d7 itself, so it measured same-instance lessons (0.734 against 0.859), as the ablation
+   did. The lesson texts and the gate's checks are in the generation record on Drive
+   (`generations/gen_bcb53faacaa14087.json`), not in the notebook output.
+4. The theorist. Lemma checks passed at 74, 69, 51, 36 and 19 percent down the curriculum; 16, 14, 11, 5 and 5 proposals
+   per rung carried at least one checked lemma. On the triangle, 3, 6 and 6 proposals' checks "did not run": the sandbox
+   failed, consistent with the 120 s cap and the judge CPU of 136, 348 and 232 s per theorist group (symbolic double
+   integrals over the triangle are slow in SymPy; one slow lemma stalls the whole file). Four replies held no parsable JSON
+   (trailing text after the object), and the revision round let two attempts run to 16,384 tokens.
+5. The breaker. 160 attacks on 20 certified candidates, 0 confirmed breaks: 80 witnesses inside the class did not reproduce,
+   17 were outside the class (a monomial above the target degree, or coefficients above one), 63 replies held no witness
+   (prose, or a probe where the witness was due). The certificates held; the reward was zero throughout, as a class-covering
+   certificate predicts, and no exploit alarm was raised.
+
+### The search-only baseline, 256 attempts on quad-square-d5 (cell 15)
+
+Group `grp_65174bd48bb1407a`, seeds 0 to 255, 8,192 answer tokens, thinking 0, 16 parallel requests: 197 of 256 valid
+(pass rate 0.770, in the band), 0 optimal; scores 9 on 185 attempts, 8 on 10, 12 and 16 once each; 5 at the token cap,
+5 without a code block; GPU 4,472 s (74.5 min), 14.6 units, $1.46. Verify-first FAIL: the 7-point rule never appears
+without the theorist, and the best search-only rule is again the 8-node axis-and-diagonal rule (seed 11). Seeds 0 to 63
+are the same seeds as the loop's gate group and seed 11 reproduced the same file, so the two runs share their first 64
+samples; a baseline meant to be independent should start at `--seed 64`.
+
+### The ablation repeated with the fixed gate check (cell 11, 2026-11-06)
+
+`python -m lab.harness.ablation --target quad-d7 --attempts 16 --harness-provider openai --harness-mode online`, run
+`abl_8bf88ffd40334802`, 4,096 answer tokens, GPT 2 calls $0.0048: no notebook 13 of 16, notebook 14 of 16, notebook with
+gate 10 of 16; the gate's check (4 nodes, lengths, interval, finite weights, sum 2 within 1e-12) now evaluates and passed on
+all 10 certified attempts, which closes the week-3 defect. The reading is unchanged: same-instance lessons on a
+rediscovery target, differences inside the noise of n = 16.
+
+### Fixtures recorded (cell 12)
+
+Six harness and loop tests recorded against GPT and replayed offline on Colab (the loop's lesson extraction and gate among
+them), the local sequences rebuilt, the provisional-entry reviews rewritten, all exported to
+`exports/recorded-fixtures/` on Drive for a commit from this machine; until that copy lands, the loop's GPT test skips.
+
+### Defects and follow-ups the run exposed
+
+1. One slow lemma check stalls a whole proposal: give the lemma program a per-check time budget inside the file and mark
+   the rest "skipped", so partial verdicts survive the 120 s cap.
+2. A proposal with text after its JSON object fails to parse: take the first balanced object.
+3. The revision round doubles the theorist's token cap: give the revision its own, smaller cap.
+4. Search baselines share seeds with the gate groups: offset the seed.
+5. The loop's lesson group at rung 0 drew on lessons already in the bank from earlier runs: record their source groups
+   (done, in `lesson_sources`) and offer a fresh bank per generation.
+6. The lessons' harm on the square is the first across-structure result and deserves the matrix treatment: the same
+   experience as a row, with the process-only and unrelated controls, at five seeds (cell 16), after the family baselines
+   of cell 14.
