@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-08T02:25:34+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You extract lessons for an automated numerical-analysis lab from its own attempts. A lesson is a short rule with the conditions under which it applies. Never turn a detail of one attempt into a universal rule: cite the attempts that support each lesson by their labels. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Target quad-triangle-d2: exact to degree 2 on the triangle with vertices (0,0), (1,0), (0,1) with the fewest nodes. Certificate: quadrature_exactness; entry point rule().\nTask prompt:\n---\nTask: construct a quadrature rule on the triangle with vertices (0,0), (1,0), (0,1) that integrates every polynomial of total degree at most 2 exactly, with as few nodes as possible.\n\nWrite one complete Python file that defines\n\n    def rule():\n        ...\n        return nodes, weights\n\nwhere nodes is a list of pairs [x_i, y_i] and weights is a list of floats of the same length, so that\n    int over the triangle of p(x, y) dx dy = sum_i weights[i] * p(nodes[i])\nfor every polynomial p of degree <= 2. The judge applies the rule to every monomial of degree <= 2 and to random polynomials; the largest error must be below 1e-9. The score is the number of nodes: fewer is better.\n\nRules: use plain Python and NumPy arithmetic only (numpy.linalg is allowed). Library quadrature, root-finding and optimisation functions are forbidden and fail the attempt: numpy.polynomial, scipy.integrate, scipy.optimize, scipy.special, scipy.interpolate, sympy, mpmath. No files, no network, no printing. Reply with exactly one ```python code block containing the whole file.\n---\n\nActive lessons:\n1. id=les_f011ac877722 level=approach evidence=observed support=3: [approach] Use Gauss–Legendre quadrature (4 nodes) for degree-7 exactness: construct nodes/weights from the symmetric Jacobi matrix eigenproblem or Newton on Legendre polynomial roots.; applies when: Target is exactness degree 7 on [-1,1]; Goal is minimal node count\n2. id=les_c0e9316c812e level=implementation evidence=observed support=3: [implementation] Exploit symmetry: compute positive nodes and mirror them, and derive symmetric weights to halve work and improve numerical stability.; applies when: Interval is symmetric [-1,1] and integrand space is polynomials; You want compact, accurate representations\n3. id=les_09ce176090da level=process evidence=observed support=3: [process] Always verify exactness against monomials up to the target degree and random polynomials, checking max error < 1e-9 before finalizing the rule.; applies when: Certificate requires monomial tests and judge runs random polynomials; Numerical rounding can hide small implementation bugs\n4. id=les_b225a34a015e level=approach evidence=observed support=3: [approach] Prefer analytic symmetric constructions (tensor-product Gauss or known minimal symmetric rules) rather than numeric solving when exactness target is low-degree.; applies when: Target exactness degree is small (e.g. ≤7).; Known closed-form node/weight formulas exist (Gauss, symmetric 7-node rule).\n5. id=les_50f7846cf5a8 level=implementation evidence=observed support=3: [implementation] Avoid forbidden library calls; implement Jacobi-eigen or Newton root-finding with plain NumPy and pure Python to compute nodes/weights (no numpy.polynomial, scipy, sympy, mpmath).; applies when: Submission environment forbids specialized polynomial/quadrature imports; You may use numpy.linalg\n6. id=les_e7ad55bb1b24 level=process evidence=observed support=2: [process] When changing known formulas, compare every weight and node to the reference; a single mistyped coefficient breaks exactness.; applies when: Starting from a known rule and hand-editing weights/nodes.; High exactness tolerance (1e-9) required.\n\nChoose the one lesson most likely to raise the certified rate on this target, say why in one sentence, and write a concrete check to run on the candidate's returned value before it is submitted: a one-line description and a single Python expression over nodes (list of node coordinates), weights (list of floats), n (number of nodes) using only arithmetic, comparisons, abs, sum, min, max, len, sqrt, all, any, pi and list comprehensions (no powers, no imports, no attributes). Reply with JSON: {\"lesson_id\": \"les_...\", \"why\": \"...\", \"check\": {\"description\": \"...\", \"expression\": \"...\"}}"
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"lesson_id\": \"les_b225a34a015e\",\n  \"why\": \"For low-degree exactness targets (degree 2) using a known analytic symmetric construction (rather than numeric solving) yields the minimal-node rule and avoids small nonlinear-solver mistakes that commonly break the 1e-9 tolerance.\",\n  \"check\": {\n    \"description\": \"Quick sanity checks: weights length matches n, each node has 2 coordinates, total weight equals triangle area 0.5 to high tolerance, and number of nodes is small (<=4) as expected for a minimal-degree-2 symmetric rule.\",\n    \"expression\": \"len(weights)==n and all(len(node)==2 for node in nodes) and abs(sum(weights)-0.5)<=1e-12 and n<=4\"\n  }\n}",
+  "prompt_tokens": 1015,
+  "completion_tokens": 497,
+  "latency_s": 4.5528235839999525,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.0012477500000000002
+ }
+}

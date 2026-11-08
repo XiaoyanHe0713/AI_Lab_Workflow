@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:15:32+00:00",
+ "recorded_at": "2026-11-08T02:23:48+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"gatermann-1988\",\n      \"why\": \"Explicitly constructs a 12-point degree-7 symmetric rule on the triangle with positive weights and interior nodes.\"\n    },\n    {\n      \"id\": \"dunavant-1985\",\n      \"why\": \"Well-known catalogue of symmetric triangle rules including a degree-7 rule (13 points) that has a negative weight, providing contrast to the positive-weight construction.\"\n    },\n    {\n      \"id\": \"witherden-vincent-2015\",\n      \"why\": \"Systematic search for symmetric rules with positive weights and interior points on triangles and reports tables of such rules up to high degree.\"\n    },\n    {\n      \"id\": \"xiao-gimbutas-2010\",\n      \"why\": \"Presents a numerical algorithm that constructs efficient triangle quadrature rules with positive weights and interior nodes, applicable to degree 7.\"\n    }\n  ],\n  \"summary\": \"A symmetric degree-7 cubature rule on the triangle with positive weights and interior points is explicitly reported: Gatermann (1988) gives a 12-point rule meeting these properties [gatermann-1988]. Dunavant’s catalogue lists a degree-7 rule with 13 nodes that includes a negative weight, so Gatermann’s 12-point positive-weight rule is an improvement in that respect [dunavant-1985]. Later systematic searches and numerical-construction methods confirm and extend the identification of symmetric positive-weight interior rules for triangles (including degree 7) and provide algorithms and tables for finding such rules [witherden-vincent-2015, xiao-gimbutas-2010].\"\n}",
+  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"gatermann-1988\",\n      \"why\": \"Explicitly constructs a 12-point degree-7 symmetric rule on the triangle with positive weights and interior nodes.\"\n    },\n    {\n      \"id\": \"dunavant-1985\",\n      \"why\": \"Well-known symmetric degree-7 rule (13 points) but noted to include a negative weight, providing a contrast to positive-weight constructions.\"\n    },\n    {\n      \"id\": \"witherden-vincent-2015\",\n      \"why\": \"Systematic search/tables for symmetric rules with positive weights and interior points on triangles up to high degree.\"\n    },\n    {\n      \"id\": \"xiao-gimbutas-2010\",\n      \"why\": \"Presents a numerical algorithm that constructs efficient triangle rules with positive weights and interior nodes up to high degree.\"\n    }\n  ],\n  \"summary\": \"Gatermann (1988) exhibits a symmetric degree-7 cubature rule on the triangle with 12 nodes, all interior, and all weights positive, improving on the commonly cited Dunavant degree-7 rule which uses 13 nodes and includes a negative weight [gatermann-1988; dunavant-1985]. Subsequent systematic searches and numerical construction methods confirm and extend the identification of symmetric positive-weight interior rules for triangles at this degree and higher [witherden-vincent-2015; xiao-gimbutas-2010].\"\n}",
   "prompt_tokens": 922,
-  "completion_tokens": 554,
-  "latency_s": 9.64798534900001,
+  "completion_tokens": 637,
+  "latency_s": 8.019101420000197,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.0013385
+  "api_dollars": 0.0015045
  }
 }

@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:18:07+00:00",
+ "recorded_at": "2026-11-08T02:26:08+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Ketcheson [ketcheson-2008] presents the SSPRK(n^2,3) family with SSP coefficient n^2 - n and construction from Euler steps of size dt/(n^2 - n) plus one convex combination. For n = 3 this gives s = 9 and coefficient 9 - 3 = 6, matching the entry's best_known = 6.0 and the stated source and method. Ketcheson also shows optimality for s = n^2, supporting the 'solved' status.\",\n  \"documents\": [\n    \"ketcheson-2008\"\n  ],\n  \"suggested_change\": null\n}",
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Document [ketcheson-2008] states that the SSPRK(n^2,3) family has SSP coefficient n^2 - n and is shown optimal for s = n^2. For n = 3 this gives 9 - 3 = 6, matching the entry's best_known = 6. The source cited in the entry matches [ketcheson-2008], and that document asserts optimality for the n^2-stage third-order family, supporting the 'solved' status.\",\n  \"documents\": [\n    \"ketcheson-2008\"\n  ],\n  \"suggested_change\": null\n}",
   "prompt_tokens": 1014,
-  "completion_tokens": 416,
-  "latency_s": 6.266836288999912,
+  "completion_tokens": 281,
+  "latency_s": 4.036253163000083,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.0010854999999999999
+  "api_dollars": 0.0008155
  }
 }

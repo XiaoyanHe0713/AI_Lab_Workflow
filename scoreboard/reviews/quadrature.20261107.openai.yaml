@@ -1,0 +1,194 @@
+reviews:
+- board: quadrature
+  section: square
+  entry: square-d3
+  best_known: 4
+  verdict: consistent
+  reason: The entry states a four-point degree-3 rule on the square (Stroud C2:3-1)
+    as best known and marked solved. Stroud's compendium explicitly lists the four-point
+    degree-3 rule on the square (C2:3-1) [stroud-1971]. Möller's lower bound for odd
+    degree on centrally symmetric regions gives a minimum of 4 nodes for degree 3
+    on the square, and that bound is attained [moller-1976]. Cools' survey and compilations
+    confirm these lower-bound/attainment facts and catalogue best-known rules [cools-1997,
+    cools-rabinowitz-1993, cools-2003]. Therefore the best_known value, source attribution,
+    and solved status are consistent with the provided documents.
+  documents:
+  - stroud-1971
+  - moller-1976
+  - cools-1997
+  - cools-rabinowitz-1993
+  - cools-2003
+  suggested_change: none
+  harness_attempt_id: att_fe99888b26c04bab
+  provider: openai
+  mode: offline
+  api_dollars: 0.0
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: quadrature
+  section: square
+  entry: square-d5
+  best_known: 7
+  verdict: consistent
+  reason: Radon (1948) constructs a 7-node degree-5 rule on the square and shows no
+    degree-5 rule on the square has fewer than 7 nodes [radon-1948]. Möller (1976)
+    gives a lower bound of 7 nodes for degree 5 on the square (improving dim P_k)
+    [moller-1976]. Cools & Rabinowitz (1993) compiles such results and lists the fewest
+    known nodes for regions and degrees, consistent with a 7-node minimal, degree-5
+    rule on the square [cools-rabinowitz-1993]. Therefore the entry's best_known =
+    7, its source attribution, and its solved status are supported by these documents.
+  documents:
+  - radon-1948
+  - moller-1976
+  - cools-rabinowitz-1993
+  suggested_change: none
+  harness_attempt_id: att_591fa11fdf5e4542
+  provider: openai
+  mode: offline
+  api_dollars: 0.0
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: quadrature
+  section: square
+  entry: square-d7
+  best_known: 12
+  verdict: consistent
+  reason: The cited documents report a 12-node degree-7 rule on the square and state
+    that Möller's lower bound of 12 for degree 7 is attained. Stroud lists 12-point
+    degree-7 rules on the square (C2:7-1) and Möller gives the lower bound 12 and
+    notes it is attained; the encyclopaedia and compilation confirm the 12-point best-known
+    rules. Thus the entry's best_known value, source attribution, and 'solved' status
+    are supported by the provided documents.
+  documents:
+  - stroud-1971
+  - moller-1976
+  - cools-2003
+  - cools-rabinowitz-1993
+  suggested_change: ''
+  harness_attempt_id: att_6f55bd141b1a4a61
+  provider: openai
+  mode: offline
+  api_dollars: 0.0
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: quadrature
+  section: triangle
+  entry: triangle-d3
+  best_known: 4
+  verdict: inconsistent
+  reason: The documents confirm the existence of the four-point degree-3 triangle
+    rule (centroid with negative weight and three symmetric points) and record 4 nodes
+    as the fewest known (documents [strang-fix-1973], [hammer-marlowe-stroud-1956],
+    [stroud-1971], [cools-rabinowitz-1993]). However, the literature compendium [cools-rabinowitz-1993]
+    presents minimal node counts as "known" or "recorded" values and does not establish
+    a proven lower bound showing 4 is optimal; the entry itself notes this was "flagged
+    provisional." Therefore marking the status as "solved" (implying proven minimality)
+    is not supported by the provided documents.
+  documents:
+  - strang-fix-1973
+  - hammer-marlowe-stroud-1956
+  - stroud-1971
+  - cools-rabinowitz-1993
+  suggested_change: Keep best_known = 4 and source as given, but change status from
+    "solved" to "provisional" or "open (minimality unproven)" to reflect that 4 is
+    the fewest known nodes recorded in the literature but not proven minimal by the
+    cited documents.
+  harness_attempt_id: att_4521a9f6954d4162
+  provider: openai
+  mode: offline
+  api_dollars: 0.0
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: quadrature
+  section: triangle
+  entry: triangle-d5
+  best_known: 7
+  verdict: inconsistent
+  reason: 'The documents confirm that a 7-point degree-5 rule on the triangle exists
+    and that no degree-5 rule on the triangle can have fewer than 7 nodes ([radon-1948]).
+    Thus the best_known = 7 and status = "solved" (minimal) are supported. However,
+    the entry''s citation of Möller (1976) as the source of the minimality for the
+    triangle is not supported by the supplied summaries: Möller (1976) gives improved
+    lower bounds for centrally symmetric regions (examples and bounds are stated for
+    the square) and the summary does not claim Möller''s bound applies to the triangle
+    ([moller-1976]). Also, the provided summaries do not verify the claimed properties
+    "positive, interior" for Radon''s rule nor Dunavant (1985) (Dunavant is not among
+    the provided documents). Therefore the source attribution and the asserted positivity/interiority
+    are not fully supported by the given documents.'
+  documents:
+  - radon-1948
+  - moller-1976
+  - cools-1997
+  - cools-rabinowitz-1993
+  suggested_change: Keep best_known = 7 and status = "solved", cite Radon (1948) as
+    the source of existence and minimality ([radon-1948]) and cite survey/compilations
+    for context ([cools-1997], [cools-rabinowitz-1993]). Remove or correct the claim
+    that Möller (1976) proves minimality for the triangle (Möller addresses centrally
+    symmetric regions such as the square) — if Möller is to be cited, restrict its
+    application to the square as supported by [moller-1976]. Also remove or mark as
+    unverified the statement that Radon's rule is "positive, interior" unless a supporting
+    document (e.g. Dunavant 1985) from the reading list is provided; the provided
+    summaries do not confirm positivity/interiority.
+  harness_attempt_id: att_a02b9499c6754cc6
+  provider: openai
+  mode: offline
+  api_dollars: 0.0
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: quadrature
+  section: triangle
+  entry: triangle-d6
+  best_known: 12
+  verdict: consistent
+  reason: The listed best_known = 12 for degree 6 on the triangle is explicitly given
+    in Dunavant's compilation of triangle rules [dunavant-1985]. The use of Dunavant
+    (1985) and Lyness & Jespersen (1975) as sources is appropriate because Dunavant
+    provides the 12-point degree-6 rule and Lyness & Jespersen document symmetric
+    triangle rules and constructions. The stated lower bound 'dim P_3 = 10' follows
+    the general dim P_k lower bound for degree 2k reported in Stroud's compendium
+    [stroud-1971], so the gap (lower bound 10 vs best known 12) justifies treating
+    attainment of the lower bound as open. While no document explicitly labels the
+    question of attaining 10 nodes as 'open', the cited sources together support the
+    data in the entry.
+  documents:
+  - dunavant-1985
+  - lyness-jespersen-1975
+  - stroud-1971
+  suggested_change: Optionally add [stroud-1971] as an explicit source for the lower
+    bound dim P_3 = 10, and clarify in the status field that 'open' refers to whether
+    the lower bound 10 is attainable (currently best known = 12).
+  harness_attempt_id: att_d09b451e6985412b
+  provider: openai
+  mode: offline
+  api_dollars: 0.0
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: quadrature
+  section: triangle
+  entry: triangle-d7
+  best_known: 12
+  verdict: cannot verify
+  reason: 'The listed documents support that Gatermann constructed a 12-point, positive,
+    interior degree-7 rule on the triangle ([gatermann-1988]) and that the general
+    lower bound dim P_3 = 10 is the standard dim P_k bound for degree 2k ([stroud-1971],
+    [cools-1997]). The source citation (Gatermann 1988 compiled in Cools & Rabinowitz
+    1993) is consistent with the documents ([gatermann-1988], [cools-rabinowitz-1993]).
+    However, the documents do not state whether the 12-node rule is proven minimal
+    for the triangle or whether the problem is resolved; they only record the known
+    rule and lower bounds. Therefore the entry''s "status": "open" (claiming unresolved
+    minimality) cannot be verified from the provided documents.'
+  documents:
+  - gatermann-1988
+  - cools-rabinowitz-1993
+  - stroud-1971
+  - cools-1997
+  suggested_change: 'Keep best_known = 12 and method/source as given (cite [gatermann-1988],
+    [cools-rabinowitz-1993]); change status to clarify that minimality is not established
+    in the cited sources, e.g. "status": "open (12 nodes known; minimality not proven
+    in cited sources)".'
+  harness_attempt_id: att_2a166933b8b049f7
+  provider: openai
+  mode: offline
+  api_dollars: 0.0
+  note: a model's reading of our own summaries; a person checks the source before
+    any change

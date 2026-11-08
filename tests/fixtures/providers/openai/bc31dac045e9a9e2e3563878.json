@@ -1,0 +1,33 @@
+{
+ "provider": "openai",
+ "name": "openai",
+ "recorded_at": "2026-11-08T02:26:47+00:00",
+ "request": {
+  "model": "gpt-5-mini",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are the librarian of an automated numerical-analysis lab. You only ever cite documents from the list you are given, by their ids in square brackets; you never add documents, dates or results from memory. Answer with JSON only."
+   },
+   {
+    "role": "user",
+    "content": "Scoreboard fast_transforms, section entries, entry:\n{\n \"id\": \"opcount-dft-n32\",\n \"best_known\": 800,\n \"status\": \"open\",\n \"source\": \"Cooley & Tukey, \\\"An algorithm for the machine calculation of complex Fourier series\\\", Math. Comp. 19 (1965); Yavne (1968); Duhamel & Hollmann, \\\"Split radix FFT algorithm\\\", Electron. Lett. 20 (1984); Johnson & Frigo, \\\"A modified split-radix FFT with fewer arithmetic operations\\\", IEEE Trans. Signal Process. 55 (2007).\\n\",\n \"n\": 32\n}\n\nDocuments from the reading list (summaries written by the lab; cite only these):\n1. [duhamel-hollmann-1984] 1984: Split radix FFT algorithm. The split-radix FFT combines a radix-2 split of the even samples with a radix-4 split of the odd samples and reaches the operation count 4 N log2 N - 6 N + 8, matching Yavne's count with a clear structure. Results: split-radix FFT with 4 N log2 N - 6 N + 8 real operations\n2. [johnson-frigo-2007] 2007: A modified split-radix FFT with fewer arithmetic operations. Reduces the flop count of the split-radix FFT for the first time since 1968 to about (34/9) N log2 N by rescaling sub-transforms so that some twiddle multiplications become free. Results: a power-of-two FFT with about (34/9) N log2 N flops, the fewest known\n3. [cooley-tukey-1965] 1965: An algorithm for the machine calculation of complex Fourier series. The fast Fourier transform: for N = r1 r2 ... rm the transform costs about N (r1 + ... + rm) operations, N log2 N for N a power of two, against N^2 for the direct sum, with the algorithm stated for general radix. Results: the DFT of length N costs O(N log N) operations when N is highly composite\n4. [yavne-1968] 1968: An economical method for calculating the discrete Fourier transform. An algorithm for N a power of two with the lowest operation count known for over thirty years, 4 N log2 N - 6 N + 8 real additions and multiplications together, later recognized as the split-radix FFT. Results: a power-of-two DFT in 4 N log2 N - 6 N + 8 real operations\n5. [van-loan-1992] 1992: Computational Frameworks for the Fast Fourier Transform. The FFT algorithms as factorizations of the DFT matrix into sparse butterfly and permutation factors, with flop counts: radix-2 costs 5 N log2 N flops with precomputed twiddle factors, radix-4 and split radix fewer. Results: radix-2 FFT costs 5 N log2 N flops; the DFT matrix factors into butterflies\n6. [good-1958] 1958: The interaction algorithm and practical Fourier analysis. Computes Fourier coefficients for N with coprime factors by a multidimensional decomposition, reducing the number of operations below N^2; the prime-factor algorithm. Results: a factorization of the transform for N with coprime factors (prime-factor algorithm)\n\nIs the entry's best known value, its stated source and its solved/open status consistent with these documents? Reply with JSON: {\"verdict\": \"consistent\" | \"inconsistent\" | \"cannot verify\", \"reason\": \"...\", \"documents\": [\"id\", ...], \"suggested_change\": \"...\" }. Say 'cannot verify' when the documents do not state the value; never confirm from memory."
+   }
+  ],
+  "tools": [],
+  "temperature": null,
+  "seed": null,
+  "max_tokens": 4096
+ },
+ "response": {
+  "text": "{\n  \"verdict\": \"inconsistent\",\n  \"reason\": \"For N = 32 the documents in the list give specific flop counts that contradict best_known = 800. Yavne [yavne-1968] and Duhamel & Hollmann [duhamel-hollmann-1984] state the split-radix count 4 N log2 N - 6 N + 8, which for N=32 equals 456. Johnson & Frigo [johnson-frigo-2007] report an asymptotically smaller formula (~(34/9) N log2 N), which evaluates to about 604 for N=32. Van Loan [van-loan-1992] lists the radix-2 cost 5 N log2 N = 800, which matches the entry's best_known value but is not the smallest value given by the cited literature. Therefore the entry's best_known = 800 is not the smallest known value according to the provided documents.\",\n  \"documents\": [\n    \"yavne-1968\",\n    \"duhamel-hollmann-1984\",\n    \"johnson-frigo-2007\",\n    \"van-loan-1992\",\n    \"cooley-tukey-1965\"\n  ],\n  \"suggested_change\": \"Replace best_known = 800 with best_known = 456 (from the split-radix count 4 N log2 N - 6 N + 8 for N=32, see [yavne-1968], [duhamel-hollmann-1984]). Keep status = \\\"open\\\" and include the listed sources (at least Yavne / Duhamel-Hollmann and Johnson & Frigo) in the source field. Optionally note the radix-2 count 800 from [van-loan-1992] as a higher-cost alternative.\"\n}",
+  "prompt_tokens": 862,
+  "completion_tokens": 1418,
+  "latency_s": 12.872890630000029,
+  "model": "gpt-5-mini-2025-08-07",
+  "provider": "openai",
+  "mode": "record",
+  "finish_reason": "stop",
+  "api_dollars": 0.0030515
+ }
+}

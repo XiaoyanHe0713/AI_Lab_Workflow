@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:18:24+00:00",
+ "recorded_at": "2026-11-08T02:26:14+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The listed best-known coefficient 6 for SSPRK(10,4) matches Ketcheson (2008) which presents the ten-stage fourth-order method with coefficient 6 [ketcheson-2008]. The entry's source attribution to Ketcheson (2008) is supported. The note that optimality is established by numerical search (i.e., not a strict proof) is consistent with the literature treating such high-stage results as numerically optimal rather than analytically proven; global numerical searches and tables of numerically optimal coefficients are reported in Ruuth (2006) and the monograph [ruuth-2006, gottlieb-ketcheson-shu-2011].\",\n  \"documents\": [\n    \"ketcheson-2008\",\n    \"ruuth-2006\",\n    \"gottlieb-ketcheson-shu-2011\"\n  ],\n  \"suggested_change\": null\n}",
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Document [ketcheson-2008] explicitly gives an SSPRK(10,4) method with coefficient 6 and describes low-storage implementation; it also characterizes optimality as established by numerical search. Related surveys/optimizations ([ruuth-2006], [gottlieb-ketcheson-shu-2011]) treat SSP coefficients as numerically determined and tabulate optimal values, which is consistent with listing the status as open (optimality not proved analytically).\",\n  \"documents\": [\n    \"ketcheson-2008\",\n    \"ruuth-2006\",\n    \"gottlieb-ketcheson-shu-2011\"\n  ],\n  \"suggested_change\": \"none\"\n}",
   "prompt_tokens": 956,
-  "completion_tokens": 594,
-  "latency_s": 16.093081447999793,
+  "completion_tokens": 553,
+  "latency_s": 5.131598689999919,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.001427
+  "api_dollars": 0.001345
  }
 }

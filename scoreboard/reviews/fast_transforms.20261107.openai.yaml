@@ -1,0 +1,119 @@
+reviews:
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n8
+  best_known: 120
+  verdict: inconsistent
+  reason: 'The entry lists best_known = 120 for n = 8. The provided documents show
+    lower operation counts for power-of-two DFTs: Yavne (1968) and Duhamel & Hollmann
+    (1984) give the split-radix count 4 N log2 N - 6 N + 8, which for N = 8 equals
+    56 real operations. Johnson & Frigo (2007) reports an even lower asymptotic count
+    (~(34/9) N log2 N) than radix-2, and Van Loan (1992) documents that a basic radix-2
+    implementation costs 5 N log2 N = 120 for N = 8. Thus 120 corresponds to a radix-2
+    count but is not the best known according to the cited literature, so the entry''s
+    best_known value and ''open'' status are inconsistent with these documents.'
+  documents:
+  - yavne-1968
+  - duhamel-hollmann-1984
+  - johnson-frigo-2007
+  - van-loan-1992
+  - cooley-tukey-1965
+  suggested_change: Update best_known to the split-radix count 4*N*log2(N) - 6*N +
+    8. For N=8 this equals 56; set status to 'solved' (or at least not 'open') and
+    keep the listed sources (Cooley & Tukey; Yavne; Duhamel & Hollmann; Johnson &
+    Frigo) as relevant references.
+  harness_attempt_id: att_54603a32fdec47b4
+  provider: openai
+  mode: record
+  api_dollars: 0.0018155
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n16
+  best_known: 320
+  verdict: inconsistent
+  reason: For N = 16 the references in the reading list imply lower operation counts
+    than 320. The split-radix count 4 N log2 N - 6 N + 8 (documents [yavne-1968] and
+    [duhamel-hollmann-1984]) gives 168 real operations for N = 16. The modified split-radix
+    of [johnson-frigo-2007] gives a count around (34/9) N log2 N (~242) which is also
+    below 320. The value 320 equals 5 N log2 N (radix-2 count reported in [van-loan-1992]),
+    but that document is not listed among the entry's sources and is not the best-known
+    count according to the provided reading list.
+  documents:
+  - yavne-1968
+  - duhamel-hollmann-1984
+  - johnson-frigo-2007
+  - van-loan-1992
+  suggested_change: Replace best_known = 320 with best_known = 168 (computed from
+    4 N log2 N - 6 N + 8 for N=16) and update source to cite [yavne-1968] and [duhamel-hollmann-1984]
+    (optionally also [johnson-frigo-2007] for the later improved algorithm). Consider
+    marking status to reflect that better counts than 320 are known (e.g., keep status
+    = "open" if minimality is unresolved, or set to "open/known-improvement" to indicate
+    lower counts exist).
+  harness_attempt_id: att_ca58f4bbcdfb44ce
+  provider: openai
+  mode: record
+  api_dollars: 0.0019615
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n32
+  best_known: 800
+  verdict: inconsistent
+  reason: 'The entry''s best_known value 800 matches the radix-2 flop count reported
+    by van Loan [van-loan-1992] (5 N log2 N = 800 for N=32). However the provided
+    documents report lower operation counts for power-of-two DFTs: split-radix / Yavne
+    give 4 N log2 N - 6 N + 8 = 456 for N=32 [duhamel-hollmann-1984] [yavne-1968],
+    and Johnson & Frigo report an even lower (fewest-known) algorithmic flop rate
+    for power-of-two FFTs (about (34/9) N log2 N, which is ≈604 for N=32) [johnson-frigo-2007].
+    Thus 800 is not the best known value according to these documents.'
+  documents:
+  - van-loan-1992
+  - duhamel-hollmann-1984
+  - yavne-1968
+  - johnson-frigo-2007
+  suggested_change: Replace best_known = 800 with best_known = 456 (the split-radix
+    / Yavne count 4 N log2 N - 6 N + 8) and cite [duhamel-hollmann-1984] [yavne-1968].
+    Also include [johnson-frigo-2007] in the sources as it reports the fewest-known
+    flop-rate for power-of-two FFTs (about (34/9) N log2 N) and note that 800 is the
+    radix-2 count from [van-loan-1992]. Keep status = "open" if improvements are still
+    possible.
+  harness_attempt_id: att_4cae7ec5b40e4289
+  provider: openai
+  mode: record
+  api_dollars: 0.0025095
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: fast_transforms
+  section: entries
+  entry: opcount-dft-n64
+  best_known: 1920
+  verdict: inconsistent
+  reason: The entry's best_known value 1920 equals the radix-2 count 5 N log2 N (5*64*6
+    = 1920) reported for radix-2 algorithms [van-loan-1992], but the reading-list
+    documents contain algorithms with lower documented operation counts for N=64.
+    Yavne (1968) and Duhamel & Hollmann (1984) give the split-radix exact count 4
+    N log2 N - 6 N + 8 = 1160 for N=64, which is lower than 1920. Johnson & Frigo
+    (2007) reports an algorithm with about (34/9) N log2 N flops (≈1451 for N=64)
+    and is cited as the fewest-known asymptotic count, but for N=64 the split-radix
+    exact formula yields the smallest value in these documents. Therefore the stated
+    best_known = 1920 is not supported by the provided documents.
+  documents:
+  - yavne-1968
+  - duhamel-hollmann-1984
+  - johnson-frigo-2007
+  - van-loan-1992
+  - cooley-tukey-1965
+  suggested_change: Update best_known to 1160 (the split-radix exact count 4 N log2
+    N - 6 N + 8 evaluated at N=64 = 1160) and adjust the source to cite [yavne-1968]
+    and [duhamel-hollmann-1984]. Keep [johnson-frigo-2007] as a cited reference noting
+    an improved asymptotic algorithm, and remove or reclassify any implication that
+    1920 is the best-known value for N=64.
+  harness_attempt_id: att_9d231f134eda43a4
+  provider: openai
+  mode: record
+  api_dollars: 0.0030577499999999997
+  note: a model's reading of our own summaries; a person checks the source before
+    any change

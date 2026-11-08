@@ -1,0 +1,111 @@
+reviews:
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p3
+  best_known: 2.0
+  verdict: consistent
+  reason: The best-known SSP coefficient 2.0 for SSPRK(4,3) is stated in [spiteri-ruuth-2002].
+    The theoretical upper bound R(K) ≤ s - p + 1 = 4 - 3 + 1 = 2 is given in [kraaijevanger-1991],
+    so the value 2 is attainable and optimal. The cited sources in the entry match
+    these documents.
+  documents:
+  - spiteri-ruuth-2002
+  - kraaijevanger-1991
+  suggested_change: None
+  harness_attempt_id: att_c4cf03650daf49c9
+  provider: openai
+  mode: record
+  api_dollars: 0.000954
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s5-p4
+  best_known: 1.508
+  verdict: consistent
+  reason: The listed best-known value 1.508 for SSPRK(5,4) matches the value reported
+    in Spiteri & Ruuth (2002) and is confirmed as the numerically optimal value (but
+    not a proof) by Ruuth (2006). The entry's characterization of the source and its
+    'open' status (no proof) agrees with these documents.
+  documents:
+  - spiteri-ruuth-2002
+  - ruuth-2006
+  suggested_change: ''
+  harness_attempt_id: att_6b1e03a4910f421c
+  provider: openai
+  mode: record
+  api_dollars: 0.00075625
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s9-p3
+  best_known: 6.0
+  verdict: consistent
+  reason: The entry states SSPRK(9,3) from the n^2-stage third-order family with n=3
+    has SSP coefficient n^2 - n = 6, and cites Ketcheson. Document [ketcheson-2008]
+    reports the SSPRK(n^2,3) family with coefficient n^2 - n and states optimality
+    for s = n^2, which matches the best_known value 6.0, the method description, and
+    the 'solved' status.
+  documents:
+  - ketcheson-2008
+  suggested_change: None
+  harness_attempt_id: att_e33ef04b7f3f4409
+  provider: openai
+  mode: record
+  api_dollars: 0.0009295
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s10-p4
+  best_known: 6.0
+  verdict: consistent
+  reason: The stated best-known SSP coefficient 6 for SSPRK(10,4) and the source 'Ketcheson
+    (2008)' match the reading-list summary which explicitly lists 'the ten-stage fourth-order
+    method with coefficient 6' [ketcheson-2008]. The entry's note that 'optimality
+    [is] by numerical search only' and status 'open' is consistent with other summaries
+    treating such coefficients as numerically (not rigorously) optimal; a global numerical
+    search and numerical-optimal interpretation is reported in [ruuth-2006], and comprehensive
+    tables are given in the monograph [gottlieb-ketcheson-shu-2011]. None of the provided
+    summaries claim a rigorous proof of global optimality for SSPRK(10,4) beyond numerical/constructed
+    optimality, so the entry's value, source, and open status are consistent with
+    the documents.
+  documents:
+  - ketcheson-2008
+  - ruuth-2006
+  - gottlieb-ketcheson-shu-2011
+  suggested_change: No change needed based on the provided documents. If desired,
+    clarify in the entry that Ketcheson (2008) presents the method with coefficient
+    6 and that subsequent works treat its optimality as established by numerical search
+    rather than by a rigorous proof.
+  harness_attempt_id: att_91148d25c92d4e92
+  provider: openai
+  mode: record
+  api_dollars: 0.001735
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p2
+  best_known: 3.0
+  verdict: consistent
+  reason: The listed best_known value 3.0 equals s-1 for s=4, matching the s-stage
+    second-order SSP family coefficient s-1 stated in the cited survey. The sources
+    in the reading list (Gottlieb, Shu & Tadmor 2001) explicitly give the s-stage
+    second-order family with coefficient s-1, and Ketcheson 2008 also discusses and
+    corroborates this family.
+  documents:
+  - gottlieb-shu-tadmor-2001
+  - ketcheson-2008
+  - gottlieb-ketcheson-shu-2011
+  suggested_change: 'None—the best_known value 3.0, the method description, and the
+    solved status are supported by the provided documents. (Note: the entry cites
+    Kraaijevanger (1991) as an additional source; that reference is not in the provided
+    document list but does not conflict with the listed documents.)'
+  harness_attempt_id: att_6a3b053b47e0480c
+  provider: openai
+  mode: record
+  api_dollars: 0.0010904999999999999
+  note: a model's reading of our own summaries; a person checks the source before
+    any change

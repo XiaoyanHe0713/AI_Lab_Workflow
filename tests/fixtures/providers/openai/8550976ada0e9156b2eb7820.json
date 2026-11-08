@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:15:09+00:00",
+ "recorded_at": "2026-11-08T02:23:30+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"gauss-1814\",\n      \"why\": \"Original derivation: chooses n nodes as zeros of the n-th Legendre polynomial and shows exactness up to degree 2n-1 and optimality.\"\n    },\n    {\n      \"id\": \"jacobi-1826\",\n      \"why\": \"Re-derives Gauss's rule via orthogonality and proves the node polynomial must be orthogonal to lower-degree polynomials and degree 2n is impossible.\"\n    },\n    {\n      \"id\": \"legendre-1785\",\n      \"why\": \"Establishes the orthogonality, three-term recurrence, and n distinct real zeros of P_n, which justify using those zeros as nodes.\"\n    },\n    {\n      \"id\": \"trefethen-2013\",\n      \"why\": \"Modern treatment including the proof that an n-point rule cannot be exact for the square of its node polynomial and so cannot reach degree 2n.\"\n    }\n  ],\n  \"summary\": \"Gauss introduced the n-point quadrature rule with nodes at the zeros of the n-th Legendre polynomial and showed it integrates every polynomial up to degree 2n-1 exactly and is optimal among n-node rules [gauss-1814]. Jacobi recast this via orthogonality of the node polynomial to all lower-degree polynomials, identifying the nodes as the Legendre zeros and demonstrating degree 2n cannot be attained [jacobi-1826]; Legendre's work supplies the required orthogonality and zero-location properties of P_n [legendre-1785]. Modern expositions give concise proofs of the impossibility to reach degree 2n by showing the rule annihilates the positive integral of the square of the node polynomial [trefethen-2013].\"\n}",
+  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"gauss-1814\",\n      \"why\": \"Introduces the n‑point rule with nodes at the zeros of the n-th Legendre polynomial and states it is exact for all polynomials up to degree 2n−1.\"\n    },\n    {\n      \"id\": \"jacobi-1826\",\n      \"why\": \"Derives Gauss's rule via orthogonality, shows the nodes must be the Legendre zeros, and proves degree 2n is impossible.\"\n    },\n    {\n      \"id\": \"legendre-1785\",\n      \"why\": \"Establishes the orthogonality and real, interior zeros of the Legendre polynomials that provide the required node polynomial properties.\"\n    },\n    {\n      \"id\": \"trefethen-2013\",\n      \"why\": \"Modern treatment that includes the proof an n-point rule cannot be exact for the square of its node polynomial and so cannot exceed degree 2n−1.\"\n    }\n  ],\n  \"summary\": \"Gauss constructed an n‑point quadrature rule whose nodes are the zeros of the n-th Legendre polynomial and which integrates every polynomial of degree ≤ 2n−1 exactly [gauss-1814]. Jacobi’s orthogonality derivation explains that the node polynomial must be orthogonal to all lower-degree polynomials (hence its zeros are the Legendre zeros) and shows degree 2n cannot be attained by any n‑node rule [jacobi-1826; legendre-1785]. Modern expositions restate and streamline these arguments, including the impossibility of reaching degree 2n because the square of the node polynomial has positive integral yet is annihilated by the rule [trefethen-2013].\"\n}",
   "prompt_tokens": 1057,
-  "completion_tokens": 518,
-  "latency_s": 6.035306707000018,
+  "completion_tokens": 510,
+  "latency_s": 4.810951849000048,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.00130025
+  "api_dollars": 0.00128425
  }
 }

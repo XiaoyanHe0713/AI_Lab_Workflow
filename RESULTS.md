@@ -593,9 +593,21 @@ diagnosis-only text lists the three with their counts and no remedy.
 6. The recorded fixtures of cell 12 wait on Drive for a copy into the repository (`python tests/make_fixtures.py`, pytest,
    commit; grep for keys first).
 
-Items 1 to 5 are fixed in the commit that follows this record: a group with a certifier dry run is not a base group and the
-largest base group is mined by default; cell 2 reads the secret once, says why a read failed, and the later cells reuse the
-copy; the empty unrelated row is reported with the setting `framing`; the second-try summary counts the revisions and the
-revisions that passed; `MATRIX_SEEDS` defaults to 5. Item 6 waits for the copy from Drive. After that commit the mining cell
-moved ahead of the matrix cell (cell 16 mines, cell 17 runs the matrix), so that one GPU session mines with GPT first and the
-diagnosis row uses the detectors the program kept; the cell numbers in this record are the notebook's at the time of the run.
+Items 1 to 5 are fixed in the commit that follows this record: a group with a certifier dry run is not a base group and
+the largest base group is mined by default; cell 2 reads the secret once, says why a read failed, and the later cells
+reuse the copy; the empty unrelated row is reported with the setting `framing`; the second-try summary counts the
+revisions and the revisions that passed; `MATRIX_SEEDS` defaults to 5. Item 6 is done on 2026-11-08 (the paragraph
+below). After that commit the mining cell moved ahead of the matrix cell (cell 16 mines, cell 17 runs the matrix), so
+that one GPU session mines with GPT first and the diagnosis row uses the detectors the program kept; the cell numbers in
+this record are the notebook's at the time of the run.
+
+The export of cell 12 came into the repository on 2026-11-08: the recordings of 2026-11-06, 07 and 08 (20 of the 25
+OpenAI recordings re-recorded with new responses; 18 new calls, the loop test's extraction and gate calls and the
+librarian's review calls behind the reviews of the three days) and the notebook-arm sequences rebuilt from them (two
+replaced). Eleven superseded recordings that no test and no generator reads any more were removed; the review calls stay
+as the reviews' provenance. The loop's lesson test, which replayed on Colab, skipped here: the triangle rung's
+extraction prompt printed `max_monomial_error=0` on Linux where this machine prints `<1e-9` for the same synthetic rule
+(an exact zero against a rounding-sized error). Attempt digests now print `<1e-9` for every value below noise, an exact
+zero included, and that one fixture is re-keyed to the platform-stable request with its original message kept in the
+file, as the week-4 re-keying did. pytest on 2026-11-08: 431 passed, 8 skipped (the Claude provider's six, which wait
+for its recorded fixtures, and the two online tests, which wait for a key).

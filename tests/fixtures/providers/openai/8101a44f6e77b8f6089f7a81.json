@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:15:51+00:00",
+ "recorded_at": "2026-11-08T02:24:05+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,10 +20,10 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The referenced documents state a 12-node degree-7 rule on the square and that Möller’s lower bound of 12 for degree 7 on the square is attained. Stroud lists 12-point degree-7 rules on the square (C2:7-1) [stroud-1971]; Möller provides the lower bound of 12 for degree 7 on the square and notes the bounds for degrees 3,5,7 are attained [moller-1976]; the compilations/survey confirm the 12-point degree-7 rules as best known (Cools & Rabinowitz 1993) and the encyclopaedia explicitly records the 12-point degree-7 rules on the square that attain Möller’s bound [cools-rabinowitz-1993, cools-2003].\",\n  \"documents\": [\n    \"stroud-1971\",\n    \"moller-1976\",\n    \"cools-rabinowitz-1993\",\n    \"cools-2003\"\n  ],\n  \"suggested_change\": \"\"\n}",
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The cited documents state a 12-node degree-7 rule on the square and that Möller’s lower bound of 12 for degree 7 on the centrally symmetric square is attained. Stroud lists 12-point degree-7 rules on the square (C2:7-1) and Möller gives the lower bound 12 and notes it is attained; the compilations/survey confirm these as the best known. Together these support the entry's best_known = 12, the stated sources, and status = solved.\",\n  \"documents\": [\n    \"stroud-1971\",\n    \"moller-1976\",\n    \"cools-rabinowitz-1993\",\n    \"cools-2003\"\n  ],\n  \"suggested_change\": \"\"\n}",
   "prompt_tokens": 949,
   "completion_tokens": 373,
-  "latency_s": 6.158330382999793,
+  "latency_s": 4.565404881999939,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",

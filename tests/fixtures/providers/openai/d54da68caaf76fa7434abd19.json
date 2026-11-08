@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:16:06+00:00",
+ "recorded_at": "2026-11-08T02:24:08+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The provided documents report the same 4-point degree-3 triangle rule with a negative centroid weight (Strang & Fix give centroid weight -27/48 and three orbit weights 25/48) and list the four-point rule in Stroud's compendium. The compilation by Cools & Rabinowitz is cited as the source that records minimality information for known rules. These sources support the entry's best_known = 4, the stated method/weights, and the rule's documented existence.\",\n  \"documents\": [\n    \"strang-fix-1973\",\n    \"stroud-1971\",\n    \"cools-rabinowitz-1993\",\n    \"hammer-marlowe-stroud-1956\"\n  ],\n  \"suggested_change\": null\n}",
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The listed four-point degree-3 triangle rule (centroid weight -27/48 and three symmetric points weight 25/48) is explicitly recorded in Strang & Fix Table 8.1 and in Stroud's compendium as T2:3-1; Hammer/Marlowe/Stroud (1956) also notes a four-point degree-3 rule with a negative centroid weight. The minimality (best_known = 4) is recorded in Cools & Rabinowitz (1993). The status 'solved' and the cited source information are therefore consistent with these documents.\",\n  \"documents\": [\n    \"strang-fix-1973\",\n    \"stroud-1971\",\n    \"hammer-marlowe-stroud-1956\",\n    \"cools-rabinowitz-1993\"\n  ],\n  \"suggested_change\": null\n}",
   "prompt_tokens": 948,
-  "completion_tokens": 629,
-  "latency_s": 15.540576180000244,
+  "completion_tokens": 266,
+  "latency_s": 3.6562131850000696,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.001495
+  "api_dollars": 0.000769
  }
 }

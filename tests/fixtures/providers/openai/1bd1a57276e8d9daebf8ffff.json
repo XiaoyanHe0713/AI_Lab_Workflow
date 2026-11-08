@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:16:34+00:00",
+ "recorded_at": "2026-11-08T02:24:29+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The listed best-known node count (12) for a degree-7 rule on the triangle is reported in Gatermann's work as a 12-point degree-7 rule with positive weights and interior nodes [gatermann-1988]. The compilation of post-Stroud rules also tabulates minimal known nodes and would include such results [cools-rabinowitz-1993]. The stated lower bound dim P_3 = 10 follows the general dim P_k lower bound for exactness to degree 2k cited in Stroud's compendium [stroud-1971]. Because the lower bound (10) is smaller than the best-known 12 nodes, treating minimality as unresolved (status: \\\"open\\\") is consistent with the cited literature.\",\n  \"documents\": [\n    \"gatermann-1988\",\n    \"cools-rabinowitz-1993\",\n    \"stroud-1971\"\n  ],\n  \"suggested_change\": \"No change required. The best_known = 12, the source attribution to Gatermann (with compilation in Cools & Rabinowitz), and the status = \\\"open\\\" (given lower bound dim P_3 = 10) are consistent with the cited documents.\"\n}",
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The documents state a 12-point degree-7 rule on the triangle with positive weights and interior nodes ([gatermann-1988]) and the compilation lists the fewest known nodes for each region and degree ([cools-rabinowitz-1993]). The entry's note that the lower bound is dim P_3 (i.e. 10) and that the rule is one point above that bound is consistent with the standard dim P_k lower bound discussion ([stroud-1971], [cools-1997]). Therefore the best_known = 12, the cited source, and the status 'open' (since the lower bound dim P_3 = 10 is not attained) agree with the provided documents.\",\n  \"documents\": [\n    \"gatermann-1988\",\n    \"cools-rabinowitz-1993\",\n    \"stroud-1971\",\n    \"cools-1997\"\n  ],\n  \"suggested_change\": \"No change required. The entry correctly records the 12-point Gatermann degree-7 rule, its source, and that the problem remains open relative to the dim P_3 = 10 lower bound.\"\n}",
   "prompt_tokens": 929,
-  "completion_tokens": 530,
-  "latency_s": 11.219385160000002,
+  "completion_tokens": 647,
+  "latency_s": 6.34551737799984,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.00129225
+  "api_dollars": 0.00152625
  }
 }

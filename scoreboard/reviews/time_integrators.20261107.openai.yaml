@@ -1,0 +1,105 @@
+reviews:
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p3
+  best_known: 2.0
+  verdict: consistent
+  reason: The listed best known SSP coefficient 2.0 for SSPRK(4,3) matches the value
+    given in [spiteri-ruuth-2002]. The theoretical upper bound R(K) ≤ s - p + 1 from
+    [kraaijevanger-1991] yields 4 - 3 + 1 = 2, consistent with optimality and the
+    cited bound. The provided source attribution (Kraaijevanger for the bound; Spiteri
+    & Ruuth for the method and its optimality) matches the documents.
+  documents:
+  - spiteri-ruuth-2002
+  - kraaijevanger-1991
+  suggested_change: ''
+  harness_attempt_id: att_ff4a0a18c3fa4f5e
+  provider: openai
+  mode: record
+  api_dollars: 0.0008680000000000001
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s5-p4
+  best_known: 1.508
+  verdict: consistent
+  reason: The listed best-known value 1.508 for SSPRK(5,4) is given in Spiteri & Ruuth
+    (2002) as 1.508 and is confirmed as the numerically optimal value by Ruuth (2006),
+    which treats these values as results of global numerical search rather than mathematical
+    proofs. The entry's source text and its 'open' status (i.e., numerically optimal
+    but not proven) match these documents.
+  documents:
+  - spiteri-ruuth-2002
+  - ruuth-2006
+  suggested_change: ''
+  harness_attempt_id: att_52dc929a82f34a2c
+  provider: openai
+  mode: record
+  api_dollars: 0.00078825
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s9-p3
+  best_known: 6.0
+  verdict: consistent
+  reason: Document [ketcheson-2008] states the family SSPRK(n^2,3) has SSP coefficient
+    n^2 - n and is built from Euler steps of size dt/(n^2 - n) and one convex combination,
+    and it reports that this coefficient is shown optimal for s = n^2. For n = 3 this
+    gives a 9-stage method with coefficient 9 - 3 = 6, matching the entry's best_known
+    value and method description; the source and 'solved' status are supported by
+    the same document.
+  documents:
+  - ketcheson-2008
+  suggested_change: ''
+  harness_attempt_id: att_73e4f7928a244df3
+  provider: openai
+  mode: record
+  api_dollars: 0.0009595000000000001
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s10-p4
+  best_known: 6.0
+  verdict: consistent
+  reason: Document [ketcheson-2008] explicitly reports an SSPRK(10,4) (ten-stage,
+    fourth-order) method with SSP coefficient 6 and low-storage implementation. The
+    entry's source and note that optimality was established by numerical search (rather
+    than a formal proof) is consistent with the characterization of numerically determined
+    optimal coefficients in [ruuth-2006]. No cited document contradicts the entry.
+  documents:
+  - ketcheson-2008
+  - ruuth-2006
+  suggested_change: No change required based on the provided documents.
+  harness_attempt_id: att_8b660a9259e74bf8
+  provider: openai
+  mode: record
+  api_dollars: 0.001177
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p2
+  best_known: 3.0
+  verdict: consistent
+  reason: The entry's best_known value 3.0 equals s-1 for s=4. Document [gottlieb-shu-tadmor-2001]
+    states that the s-stage second-order SSP family has coefficient s-1, which for
+    s=4 gives 3. The entry's method description (the s-stage second-order family built
+    from Euler steps) matches the family described in [gottlieb-shu-tadmor-2001].
+    The status 'solved' is consistent with these references treating this as a known/optimal
+    bound.
+  documents:
+  - gottlieb-shu-tadmor-2001
+  - gottlieb-ketcheson-shu-2011
+  - ketcheson-2008
+  suggested_change: The entry cites Kraaijevanger (1991) for the bound; since that
+    document is not in the provided list, consider citing [gottlieb-shu-tadmor-2001]
+    (and/or [gottlieb-ketcheson-shu-2011]) as the supported sources for the s-1 coefficient.
+  harness_attempt_id: att_d15f883c1c9644a9
+  provider: openai
+  mode: record
+  api_dollars: 0.0014085
+  note: a model's reading of our own summaries; a person checks the source before
+    any change

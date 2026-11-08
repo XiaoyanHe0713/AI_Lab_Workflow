@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:15:44+00:00",
+ "recorded_at": "2026-11-08T02:24:00+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Radon (1948) constructs a 7-node degree-5 rule on the square and shows no degree-5 rule on the square can have fewer than 7 nodes [radon-1948]. Möller (1976) gives a lower bound of 7 nodes for degree 5 on the square and notes the bound is attained [moller-1976]. Cools & Rabinowitz (1993) compiles minimal known node counts and lower bounds for regions and degrees, consistent with the entry's citation and best-known value [cools-rabinowitz-1993].\",\n  \"documents\": [\n    \"radon-1948\",\n    \"moller-1976\",\n    \"cools-rabinowitz-1993\"\n  ],\n  \"suggested_change\": \"\"\n}",
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"Radon (1948) constructs 7-node degree-5 rules on the square and shows 7 is the fewest nodes [radon-1948]. Möller (1976) gives a lower bound of 7 nodes for degree 5 on the square and notes the bound is attained [moller-1976]. Cools & Rabinowitz (1993) compiles minimal known node counts and includes these results for the square [cools-rabinowitz-1993]. The entry's best_known value 7, its attribution to Radon's 7-point rule (1948), and its 'solved' status are consistent with these documents.\",\n  \"documents\": [\n    \"radon-1948\",\n    \"moller-1976\",\n    \"cools-rabinowitz-1993\"\n  ],\n  \"suggested_change\": \"none\"\n}",
   "prompt_tokens": 949,
-  "completion_tokens": 379,
-  "latency_s": 4.319764961000146,
+  "completion_tokens": 331,
+  "latency_s": 3.511557390000007,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.00099525
+  "api_dollars": 0.0008992500000000001
  }
 }

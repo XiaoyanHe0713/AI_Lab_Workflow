@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:15:22+00:00",
+ "recorded_at": "2026-11-08T02:23:40+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"maxwell-1877\",\n      \"why\": \"Directly treats symmetric cubature on the square/cube and counts how many nodes the moment equations require.\"\n    },\n    {\n      \"id\": \"jacobi-1826\",\n      \"why\": \"Explains the orthogonality condition that characterizes optimal node placement in one dimension, underpinning why moment conditions control node counts.\"\n    },\n    {\n      \"id\": \"legendre-1785\",\n      \"why\": \"Introduces the orthogonal polynomials (Legendre) whose zeroes are the optimal nodes in the 1D Gauss context that informs multidimensional constructions.\"\n    },\n    {\n      \"id\": \"lagrange-1795\",\n      \"why\": \"Gives the interpolation viewpoint that yields weights once nodes are chosen, relevant to forming cubature weights after solving moment equations.\"\n    }\n  ],\n  \"summary\": \"Maxwell shows how to construct symmetric cubature rules on the square by imposing the moment equations on symmetric node configurations and counts how many node parameters those equations require, i.e. provides the method to determine the minimal number of symmetric nodes needed for a given exactness degree [maxwell-1877]. The 1D orthogonality results of Jacobi and Legendre explain why node placement (zeros of orthogonal polynomials) minimizes node counts in one dimension and why moment/orthogonality conditions control exactness [jacobi-1826, legendre-1785]. Once nodes are fixed by symmetry and the moment equations, Lagrange interpolation yields the corresponding weights by integrating the basis polynomials [lagrange-1795].\"\n}",
+  "text": "{\n  \"selected\": [\n    {\n      \"id\": \"maxwell-1877\",\n      \"why\": \"Direct treatment of cubature on the square using symmetric node configurations, moment equations, and an explicit count of how many nodes are required.\"\n    },\n    {\n      \"id\": \"gauss-1814\",\n      \"why\": \"Gives the sharp univariate node-count bound (degree 2n-1 for n nodes) and the principle of choosing nodes to maximize exactness, which informs multivariate considerations.\"\n    },\n    {\n      \"id\": \"jacobi-1826\",\n      \"why\": \"Reinterprets Gauss's bound via orthogonality and shows why certain higher degrees are unreachable for a given node count, a rationale useful when counting multivariate moment equations.\"\n    },\n    {\n      \"id\": \"legendre-1785\",\n      \"why\": \"Provides the orthogonality and zero-location properties of Legendre polynomials that underlie the one-dimensional optimality results used in multivariate constructions.\"\n    }\n  ],\n  \"summary\": \"Maxwell develops cubature rules on the square by imposing the moment equations on symmetric node configurations and provides a concrete count of how many nodes such symmetric systems require to achieve a given polynomial degree of exactness [maxwell-1877]. The univariate Gauss and Jacobi results (and the Legendre orthogonality behind them) explain the sharp relation between node count and achievable degree in one dimension and supply the theoretical basis for understanding why the multivariate moment equations have the minimal-node constraints they do [gauss-1814, jacobi-1826, legendre-1785]. Consult Maxwell for the explicit minimal-node counts and the symmetric-moment-equation constructions for degree five on the square [maxwell-1877].\"\n}",
   "prompt_tokens": 1009,
-  "completion_tokens": 739,
-  "latency_s": 13.469257340999775,
+  "completion_tokens": 764,
+  "latency_s": 10.156417517000136,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.00173025
+  "api_dollars": 0.0017802500000000001
  }
 }

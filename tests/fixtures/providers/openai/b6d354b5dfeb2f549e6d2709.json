@@ -1,7 +1,7 @@
 {
  "provider": "openai",
  "name": "openai",
- "recorded_at": "2026-11-05T04:17:57+00:00",
+ "recorded_at": "2026-11-08T02:26:00+00:00",
  "request": {
   "model": "gpt-5-mini",
   "messages": [
@@ -20,14 +20,14 @@
   "max_tokens": 4096
  },
  "response": {
-  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The provided documents state that the optimal SSP coefficient for SSPRK(4,3) is 2.0 and give the theoretical upper bound matching this value. [spiteri-ruuth-2002] reports SSPRK(4,3) with coefficient 2, and [kraaijevanger-1991] gives the general bound R(K) <= s - p + 1 which for s=4, p=3 equals 2. Together these justify the best_known value, the cited sources, and the 'solved' status.\",\n  \"documents\": [\n    \"spiteri-ruuth-2002\",\n    \"kraaijevanger-1991\",\n    \"ruuth-2006\"\n  ],\n  \"suggested_change\": \"none\"\n}",
+  "text": "{\n  \"verdict\": \"consistent\",\n  \"reason\": \"The entry's best_known value 2.0 matches the SSP coefficient reported for SSPRK(4,3) in [spiteri-ruuth-2002]. The theoretical upper bound R(K) ≤ s - p + 1 from [kraaijevanger-1991] yields 4 - 3 + 1 = 2, so the value 2 is consistent with the bound. The method's optimality is reported in [spiteri-ruuth-2002], and subsequent numerical-confirmation work is consistent ([ruuth-2006]). Therefore the best_known value, the cited sources, and the 'solved' status are all supported by the provided documents.\",\n  \"documents\": [\n    \"spiteri-ruuth-2002\",\n    \"kraaijevanger-1991\",\n    \"ruuth-2006\"\n  ],\n  \"suggested_change\": null\n}",
   "prompt_tokens": 1080,
-  "completion_tokens": 375,
-  "latency_s": 5.487197731999913,
+  "completion_tokens": 402,
+  "latency_s": 4.163970538000058,
   "model": "gpt-5-mini-2025-08-07",
   "provider": "openai",
   "mode": "record",
   "finish_reason": "stop",
-  "api_dollars": 0.00102
+  "api_dollars": 0.001074
  }
 }

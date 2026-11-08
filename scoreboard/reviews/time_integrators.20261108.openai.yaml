@@ -1,0 +1,107 @@
+reviews:
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p3
+  best_known: 2.0
+  verdict: consistent
+  reason: The entry's best_known value 2.0 matches the SSP coefficient reported for
+    SSPRK(4,3) in [spiteri-ruuth-2002]. The theoretical upper bound R(K) ≤ s - p +
+    1 from [kraaijevanger-1991] yields 4 - 3 + 1 = 2, so the value 2 is consistent
+    with the bound. The method's optimality is reported in [spiteri-ruuth-2002], and
+    subsequent numerical-confirmation work is consistent ([ruuth-2006]). Therefore
+    the best_known value, the cited sources, and the 'solved' status are all supported
+    by the provided documents.
+  documents:
+  - spiteri-ruuth-2002
+  - kraaijevanger-1991
+  - ruuth-2006
+  suggested_change: None
+  harness_attempt_id: att_b9740eb3b01147f5
+  provider: openai
+  mode: record
+  api_dollars: 0.001074
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s5-p4
+  best_known: 1.508
+  verdict: consistent
+  reason: 'The listed best_known value 1.508 and the cited sources match the provided
+    documents: Spiteri & Ruuth (2002) reports SSPRK(5,4) with coefficient 1.508 found
+    by numerical optimization, and Ruuth (2006) confirms 1.508 as the numerically
+    optimal value found by a global search while noting it is not a proof. The entry’s
+    status ''open'' is consistent with these documents because the value is reported
+    as numerically optimal rather than proven optimal.'
+  documents:
+  - spiteri-ruuth-2002
+  - ruuth-2006
+  - gottlieb-ketcheson-shu-2011
+  suggested_change: None
+  harness_attempt_id: att_b686582a09c24918
+  provider: openai
+  mode: record
+  api_dollars: 0.00097025
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s9-p3
+  best_known: 6.0
+  verdict: consistent
+  reason: Document [ketcheson-2008] states that the SSPRK(n^2,3) family has SSP coefficient
+    n^2 - n and is shown optimal for s = n^2. For n = 3 this gives 9 - 3 = 6, matching
+    the entry's best_known = 6. The source cited in the entry matches [ketcheson-2008],
+    and that document asserts optimality for the n^2-stage third-order family, supporting
+    the 'solved' status.
+  documents:
+  - ketcheson-2008
+  suggested_change: None
+  harness_attempt_id: att_2ae3f069c4ea435f
+  provider: openai
+  mode: record
+  api_dollars: 0.0008155
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s10-p4
+  best_known: 6.0
+  verdict: consistent
+  reason: Document [ketcheson-2008] explicitly gives an SSPRK(10,4) method with coefficient
+    6 and describes low-storage implementation; it also characterizes optimality as
+    established by numerical search. Related surveys/optimizations ([ruuth-2006],
+    [gottlieb-ketcheson-shu-2011]) treat SSP coefficients as numerically determined
+    and tabulate optimal values, which is consistent with listing the status as open
+    (optimality not proved analytically).
+  documents:
+  - ketcheson-2008
+  - ruuth-2006
+  - gottlieb-ketcheson-shu-2011
+  suggested_change: none
+  harness_attempt_id: att_007c102c2b4b4300
+  provider: openai
+  mode: record
+  api_dollars: 0.001345
+  note: a model's reading of our own summaries; a person checks the source before
+    any change
+- board: time_integrators
+  section: ssp
+  entry: ssp-s4-p2
+  best_known: 3.0
+  verdict: consistent
+  reason: The listed best_known value 3.0 for a 4-stage, 2nd-order SSPRK method matches
+    the s-stage second-order family coefficient s-1 given in the survey [gottlieb-shu-tadmor-2001]
+    (for s=4, s-1=3). The described method (SSPRK(s,2) with coefficient s-1) and the
+    status 'solved' are consistent with that result. The monograph [gottlieb-ketcheson-shu-2011]
+    provides further compilation of such optimal coefficients.
+  documents:
+  - gottlieb-shu-tadmor-2001
+  - gottlieb-ketcheson-shu-2011
+  suggested_change: none
+  harness_attempt_id: att_efe7f5e2b9774fb8
+  provider: openai
+  mode: record
+  api_dollars: 0.0008825
+  note: a model's reading of our own summaries; a person checks the source before
+    any change

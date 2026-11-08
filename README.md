@@ -375,8 +375,10 @@ and the matrix, all exercised offline under pytest from synthetic fixtures; the 
 model on 2026-11-06 (cell 13: five quadrature rungs, gate memos, 20 archived methods, the theorist's proposals leading the
 builder to Radon's 7-point rule, the lessons from the interval rung lowering the square's pass rate, see `RESULTS.md`), with
 the 256-attempt search baseline on `quad-square-d5` (cell 15) and the ablation repeated with the fixed gate check (cell
-11); the loop's GPT fixtures were recorded by cell 12 and wait on Drive for a commit. Not yet run: the frozen baseline for
-every certifier family (cell 14) and the matrix cells (cell 16). Not yet exercised: the A100/L4 path, SGLang, the tunnel
+11); the loop's GPT fixtures were recorded by cell 12 on 2026-11-06, 07 and 08 and are in the repository since
+2026-11-08 (the current recordings kept, the stale ones removed, the notebook-arm sequences rebuilt). Not yet run: the
+frozen baseline for every certifier family (cell 14); the matrix cells ran on 2026-11-07 (the week-5 paragraph below).
+Not yet exercised: the A100/L4 path, SGLang, the tunnel
 cell, the thinking ladder with a real budget, the builder's dry run against the live server, and the Claude provider (no key
 yet; its harness tests skip until recorded). Scoreboard entries marked `provenance: provisional` must be checked by a person
 against the sources, with the librarian's reviews under `scoreboard/reviews/` as a starting point, before any novelty claim.
