@@ -107,10 +107,11 @@ MINE_ALL_GROUPS = False                         #@param {type:"boolean"}
 #   Week 5: the carriers second_try (one certifier dry run, no lesson) and diagnosis_only (the program's diagnosis of the
 #   target's own none cell, no remedy) are the two target-side control rows; MATRIX_TOOL_CALLS gives every content carrier that
 #   many dry runs; every cell reports its symptom rates (how often each kept detector fires) and the change against the baseline.
-# RUN_MINE (week 5, no GPU): mine detectors on the largest plain-prompt group (dry-run groups excluded) of each MINE_TARGETS target
-#   (the loop's base groups): GPT proposes them when the secret is set, the built-in detectors alone otherwise; every candidate
-#   is verified on the held-out half; the kept detectors' firing tables, the librarian queries they name and the diagnosis-only
-#   texts are printed and written under detectors/ on Drive. MINE_ALL_GROUPS mines every base group, not only the latest.
+# RUN_MINE (week 5; cell 16, ahead of the matrix; any runtime, a GPU session included): mine detectors on the largest
+#   plain-prompt group (dry-run groups excluded) of each MINE_TARGETS target (the loop's base groups): GPT proposes them when the
+#   secret is set, the built-in detectors alone otherwise; every candidate is verified on the held-out half; the kept detectors'
+#   firing tables, the librarian queries they name and the diagnosis-only texts are printed and written under detectors/ on
+#   Drive, and the matrix's diagnosis row then finds them in the ledger. MINE_ALL_GROUPS mines every base group, not only the largest.
 # REPO_BRANCH: the branch this notebook was built from; cell 2 clones or checks it out, so the code matches the cells
 #   (empty = the repository's default branch, which may be older than this notebook).
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
@@ -578,31 +579,13 @@ else:
 """)
 
 code("""
-#@title 16. Week 4: transfer-matrix cells from the archive (lessons never measured on the family they came from)
-# Rows: the experience set of MATRIX_SOURCES (its archived methods and the lessons the loop extracted) plus the two controls
-# (process-only lessons with content redacted; unrelated-domain experience) and, from week 5, the two target-side control rows
-# (second_try: one dry run and no lesson; diagnosis_only: the program's diagnosis of the target's own baseline and no remedy);
-# columns: MATRIX_TARGETS in their settings. Every cell reports its symptom rates and the change against the baseline.
-# Needs the loop (cell 13) to have run with GPT so the bank holds lessons; the report lands under matrices/ on Drive.
-# Run cell 17 first when GPT should propose the detectors the diagnosis row uses (this cell mines the built-in ones itself).
-from lab.harness.matrix import main as matrix_main
-
-if RUN_MATRIX:
-    argv = ["--sources", *MATRIX_SOURCES.split(), "--targets", *MATRIX_TARGETS.split(), "--carriers", *MATRIX_CARRIERS.split(),
-            "--seeds", str(MATRIX_SEEDS), "--attempts", str(MATRIX_ATTEMPTS), "--max-tokens", str(GATE_MAX_TOKENS), "--thinking", "0",
-            "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION, "--no-harness", "--tool-calls", str(MATRIX_TOOL_CALLS)]
-    if UNITS_PER_HOUR:
-        argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
-    matrix_main(argv)
-else:
-    print("RUN_MATRIX is False in cell 1: no matrix cells ran.")
-""")
-
-code("""
-#@title 17. Week 5: mine detectors on the base groups already in the ledger (no GPU) and print their firing tables
+#@title 16. Week 5: mine detectors on the base groups already in the ledger and print their firing tables (any runtime; before the matrix)
 # The loop's plain-prompt groups are on Drive; this names their failures after the fact: a program splits each group, GPT
-# (secret OPENAI_API_KEY) proposes detectors or the built-in ones stand alone, the held-out half keeps or rejects each, and the
-# report (firing table, the librarian query the diagnosis names, the diagnosis-only text) lands under detectors/ on Drive.
+# (secret OPENAI_API_KEY, read once in cell 2) proposes detectors or the built-in ones stand alone, the held-out half keeps or
+# rejects each, and the report (firing table, the librarian query the diagnosis names, the diagnosis-only text) lands under
+# detectors/ on Drive. Nothing here needs the GPU, so a CPU runtime serves as well; in a GPU session the cell comes before the
+# matrix so that the detectors GPT proposed and the program kept are in the ledger when cell 17 writes the diagnosis row
+# (minutes of GPU time, not hours).
 from lab.harness.checker import main as checker_main
 
 if RUN_MINE:
@@ -618,6 +601,28 @@ if RUN_MINE:
     checker_main(argv)
 else:
     print("RUN_MINE is False in cell 1: no detectors were mined.")
+""")
+
+code("""
+#@title 17. Week 4: transfer-matrix cells from the archive (lessons never measured on the family they came from)
+# Rows: the experience set of MATRIX_SOURCES (its archived methods and the lessons the loop extracted) plus the two controls
+# (process-only lessons with content redacted; unrelated-domain experience) and, from week 5, the two target-side control rows
+# (second_try: one dry run and no lesson; diagnosis_only: the program's diagnosis of the target's own baseline and no remedy);
+# columns: MATRIX_TARGETS in their settings. Every cell reports its symptom rates and the change against the baseline.
+# Needs the loop (cell 13) to have run with GPT so the bank holds lessons; the report lands under matrices/ on Drive.
+# Cell 16 (RUN_MINE) runs first so that the detectors GPT proposed and the program kept enter the diagnosis row; this cell
+# mines the built-in ones itself.
+from lab.harness.matrix import main as matrix_main
+
+if RUN_MATRIX:
+    argv = ["--sources", *MATRIX_SOURCES.split(), "--targets", *MATRIX_TARGETS.split(), "--carriers", *MATRIX_CARRIERS.split(),
+            "--seeds", str(MATRIX_SEEDS), "--attempts", str(MATRIX_ATTEMPTS), "--max-tokens", str(GATE_MAX_TOKENS), "--thinking", "0",
+            "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION, "--no-harness", "--tool-calls", str(MATRIX_TOOL_CALLS)]
+    if UNITS_PER_HOUR:
+        argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
+    matrix_main(argv)
+else:
+    print("RUN_MATRIX is False in cell 1: no matrix cells ran.")
 """)
 
 code("""

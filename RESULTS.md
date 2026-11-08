@@ -437,8 +437,8 @@ them), the local sequences rebuilt, the provisional-entry reviews rewritten, all
 
 Date: 2026-11-06, the same CPU-only Windows laptop. Nothing in this section ran on a GPU: week 5 (the diagnosis as a program's
 object in the loop and the matrix, and the two target-side control rows) is exercised offline under pytest from the synthetic
-fixtures. Its first use against real attempts is cell 17 of `colab/serve.ipynb` on the ledger that cell 13 wrote, which needs
-no GPU time, and then the matrix with the control rows on the next session.
+fixtures. Its first use against real attempts is the mining cell of `colab/serve.ipynb` on the ledger that cell 13 wrote, which
+needs no GPU time, and then the matrix with the control rows on the next session (the run recorded below).
 
 ## Tests
 
@@ -596,4 +596,6 @@ diagnosis-only text lists the three with their counts and no remedy.
 Items 1 to 5 are fixed in the commit that follows this record: a group with a certifier dry run is not a base group and the
 largest base group is mined by default; cell 2 reads the secret once, says why a read failed, and the later cells reuse the
 copy; the empty unrelated row is reported with the setting `framing`; the second-try summary counts the revisions and the
-revisions that passed; `MATRIX_SEEDS` defaults to 5. Item 6 waits for the copy from Drive.
+revisions that passed; `MATRIX_SEEDS` defaults to 5. Item 6 waits for the copy from Drive. After that commit the mining cell
+moved ahead of the matrix cell (cell 16 mines, cell 17 runs the matrix), so that one GPU session mines with GPT first and the
+diagnosis row uses the detectors the program kept; the cell numbers in this record are the notebook's at the time of the run.

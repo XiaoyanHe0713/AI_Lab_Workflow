@@ -21,7 +21,7 @@ harness writes enters a reward.
 
 | Path | What it is |
 |---|---|
-| `colab/serve.ipynb` | Drive, weights pinned by hash, 4-bit build, OpenAI-compatible server with LoRA serving, smoke test, demo (parallel requests), the gate runner and the online ablation (week 3 cells), the loop, the family baselines, the 256-attempt search baseline and the matrix cells (week 4 cells 13 to 16), and the mining of detectors on the base groups already in the ledger (week 5 cell 17, no GPU). Generated from `colab/build_notebook.py`. |
+| `colab/serve.ipynb` | Drive, weights pinned by hash, 4-bit build, OpenAI-compatible server with LoRA serving, smoke test, demo (parallel requests), the gate runner and the online ablation (week 3 cells), the loop, the family baselines, the 256-attempt search baseline and the matrix cells (week 4 cells 13 to 15 and 17), and the mining of detectors on the base groups already in the ledger (week 5 cell 16, ahead of the matrix so that its diagnosis row uses the detectors GPT proposed; any runtime). Generated from `colab/build_notebook.py`. |
 | `config/lab.yaml` | Storage path, endpoint, providers (`local`, `openai`, `anthropic`, each with a mode `offline`, `online` or `record`), the harness settings (provider, token budget of the lesson bank, detector thresholds, reading list), roles, judge limits. `${VAR:-default}` expands from the environment. |
 | `config/model.yaml` | The frozen base (repo, revision, checkpoint hash) and the quantized build. |
 | `config/prices.yaml`, `config/budget.yaml` | The price table; the frontier budget: $200 a month across GPT and Claude, warning at 80 percent, enforced in code. |
@@ -138,11 +138,13 @@ your own machine (Colab pulls read-only). Week 4 (all off by default): cell 13 (
 on `LOOP_TARGETS` (the quadrature curriculum: interval d7, square d5, triangle d2, d3, d4) with 64 attempts per gate group at
 `GATE_MAX_TOKENS` answer tokens and GPT for lessons and dossiers; cell 14 (`RUN_BASELINES`) runs the gate on one target of
 every other certifier family and writes the frozen baseline record; cell 15 (`RUN_SEARCH_BASELINE`) runs 256 attempts of the
-frozen base on `quad-square-d5`; cell 16 (`RUN_MATRIX`) runs matrix cells from the loop's archive, with `MATRIX_CARRIERS`
-holding the two control rows of week 5 and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 17
-(`RUN_MINE`, no GPU) mines detectors on the largest base group of each target in the ledger (GPT proposes them with the
-secret, which cell 2 reads once while the browser is attached; the built-in detectors stand alone without it) and prints
-their firing tables, the librarian queries they name and the diagnosis-only texts.
+frozen base on `quad-square-d5`; cell 17 (`RUN_MATRIX`) runs matrix cells from the loop's archive, with `MATRIX_CARRIERS`
+holding the two control rows of week 5 and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 16
+(`RUN_MINE`) mines detectors on the largest base group of each target in the ledger (GPT proposes them with the secret,
+which cell 2 reads once while the browser is attached; the built-in detectors stand alone without it) and prints their
+firing tables, the librarian queries they name and the diagnosis-only texts. It needs no GPU, so a CPU runtime serves; in a
+GPU session it comes before the matrix, so that the detectors the program kept are in the ledger when the diagnosis row is
+written.
 
 ## Providers, modes, fixtures and the frontier budget
 
@@ -381,7 +383,7 @@ against the sources, with the librarian's reviews under `scoreboard/reviews/` as
 
 Week 5 (2026-11-06) is exercised offline under pytest (the built-in detectors mined on the synthetic demo group, the
 extraction prompt with and without detectors, the two control rows and the symptom-change column on the synthetic matrix,
-the loop mining its base groups) and ran once against the served model on 2026-11-07 (cells 16 and 17, see `RESULTS.md`):
+the loop mining its base groups) and ran once against the served model on 2026-11-07 (the matrix and the mining cells, see `RESULTS.md`):
 the matrix with the two control rows on `quad-square-d5` and `quad-triangle-d4` at 3 seeds x 16 attempts, where the second
 try was the only row that moved the optimal count on the square (Radon's rule 3 times in 48), the diagnosis alone was level
 with the baseline, the lessons removed the symptoms they name without moving the pass rate, and the empty-notebook sentence
