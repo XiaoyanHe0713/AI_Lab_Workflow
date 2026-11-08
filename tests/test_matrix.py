@@ -116,7 +116,7 @@ def test_matrix_cells_gains_and_intervals(state):
     po = by[("process_only", "quad-triangle-d2")]
     assert po["experience_kind"] == "process_only" and po["gain"]["optimal_rate"] == pytest.approx(0.0)
     un = by[("unrelated", "quad-square-d5")]
-    assert un["setting"] == "new_domain" and un["source_targets"] == ["ssp-s3-p3"]
+    assert un["setting"] == "new_domain" and un["source_targets"] == ["ssp-s3-p3"] and "gain_vs_framing" not in un and an["framing_rows"] == {}
     sk = by[("skills", "quad-triangle-d2")]
     assert sk["pass_rate"] == pytest.approx(0.5) and sk["gain"]["pass_rate"] == pytest.approx(0.0)
     # every cell row in the ledger carries the matrix fields

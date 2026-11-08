@@ -15,6 +15,10 @@ target's family key (certificate family and structure class, lab/targets.py) is 
 The `none` carrier is the baseline of every row and is run once per target and seed. Gain in a cell is the certified
 pass rate (and optimal rate, and best score) with the carrier minus without, paired by seed, with a percentile
 bootstrap interval over seeds (over attempts when there is one seed). Open targets carry their flag in every cell.
+When a matrix holds a framing row (the unrelated control with no other family in the archive: the plain prompt plus the
+empty-notebook sentence), every other cell of that target also carries the same three gains against the framing row
+(`gain_vs_framing`), since the framing alone can move the pass rate (RESULTS.md, week 5): the framing row is the
+reference a carrier's gain should be read against, and `--analyze` recomputes it for a matrix run before the key existed.
 
 Week 5 adds two target-side control rows that carry no experience and are never refused: `second_try` (one certifier
 dry run and a revision, no lesson: the floor every lesson gain is read against) and `diagnosis_only` (the program's
@@ -49,6 +53,9 @@ from .lessons import LessonBank, LessonHarness
 
 class TransferLeak(ValueError):
     """A content carrier was about to be measured on the family its experience came from."""
+
+
+FRAMING_FLAG = "no other family in the archive: the plain prompt plus the empty-notebook sentence (a framing control)"
 
 
 @dataclass
@@ -158,7 +165,7 @@ def check_transfer(experience: ExperienceSet, target_id: str, carrier: str, *, a
         framing = carrier == "unrelated" and experience is not None and not experience.source_targets
         setting = {"setting": "baseline" if carrier == "none" else ("framing" if framing else "no_sources"), "same_family": False,
                    "open": get_target(target_id).transfer.open, "target": get_target(target_id).transfer.to_dict()}
-        flag = "no other family in the archive: the plain prompt plus the empty-notebook sentence (a framing control)" if framing else None
+        flag = FRAMING_FLAG if framing else None
         return {**setting, "allowed": True, "flag": flag}
     st = transfer_setting(experience.source_targets, target_id)
     if carrier in CONTENT_CARRIERS and experience.kind != "unrelated":
@@ -362,10 +369,61 @@ def cell_symptoms(ledger: Ledger, target: str, group_ids: list[str], kept: list[
     return symptom_rates(kept, rows)
 
 
+def is_framing_row(row: dict) -> bool:
+    """Whether a ledger row (as CELL_SQL returns it) belongs to a framing row: the unrelated control with no other family in
+    the archive. Rows written since the setting `framing` exists carry it; the rows of an earlier matrix (the 2026-11-07
+    one) carry `no_sources` with an empty source list, and the analysis reads them as a framing row all the same."""
+    if row.get("carrier") != "unrelated":
+        return False
+    if row.get("setting") == "framing":
+        return True
+    src = row.get("source_targets")
+    if isinstance(src, str):
+        src = json.loads(src) if src.strip() else []
+    return not src
+
+
+def _paired_gain(entry: dict, per_seed: dict, by_seed: dict, ref_rows: list[dict], ref_symptoms: dict, *, ref_key: str, ref_id: str,
+                 lower: bool, n_boot: int) -> dict | None:
+    """A cell's certified gain against a reference cell of the same target (the `none` baseline, or the framing row): pass
+    rate and optimal rate with the carrier minus the reference's, paired by seed index and averaged over the seeds the two
+    cells share, with a percentile bootstrap interval over seeds (over attempts when there is one seed); the best score
+    against the reference's best; the symptom change per kept detector. None when the cells share no seed."""
+    ref_by_seed: dict[int, list[dict]] = {}
+    for r in ref_rows:
+        ref_by_seed.setdefault(r["seed_index"], []).append(r)
+    common = [k for k in sorted(by_seed) if k in ref_by_seed]
+    if not common:
+        return None
+    ref = {k: _stats(ref_by_seed[k]) for k in common}
+    gains_p = [per_seed[k]["pass_rate"] - ref[k]["pass_rate"] for k in common]
+    gains_o = [per_seed[k]["optimal_rate"] - ref[k]["optimal_rate"] for k in common]
+    if len(common) >= 2:
+        ci_p, ci_o = bootstrap_interval(gains_p, n_boot), bootstrap_interval(gains_o, n_boot)
+        method = f"percentile bootstrap over {len(common)} seeds"
+    else:
+        k = common[0]
+        ci_p = bootstrap_gain_over_attempts(by_seed[k], ref_by_seed[k], "_passed", n_boot)
+        ci_o = bootstrap_gain_over_attempts(by_seed[k], ref_by_seed[k], "_optimal", n_boot)
+        method = "percentile bootstrap over attempts (one seed)"
+    bb = [s["best_score"] for s in ref.values() if s["best_score"] is not None]
+    ref_best = (min(bb) if lower else max(bb)) if bb else None
+    names = sorted(set(entry["symptoms"]) | set(ref_symptoms))
+    return {"pass_rate": sum(gains_p) / len(gains_p), "pass_rate_ci": ci_p, "optimal_rate": sum(gains_o) / len(gains_o), "optimal_rate_ci": ci_o,
+            "best_score_gain": ((ref_best - entry["best_score"]) if lower else (entry["best_score"] - ref_best))
+            if (ref_best is not None and entry["best_score"] is not None) else None,
+            "seeds": len(common), "method": method, ref_key: ref_id,
+            "matched_dollars_spread": abs(entry["dollars"] - sum(r["dollars"] or 0.0 for r in ref_rows)),
+            "symptom_change": {n: ((entry["symptoms"].get(n) or {}).get("rate") or 0.0) - ((ref_symptoms.get(n) or {}).get("rate") or 0.0) for n in names}}
+
+
 def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
     """Certified gain per cell from the ledger: the carrier's cell minus the target's `none` cell, paired by seed index,
     mean over seeds with a percentile bootstrap interval (over attempts when there is a single seed); and, per cell, the
-    symptom rates of the target's kept detectors, with the change against the baseline inside every gain."""
+    symptom rates of the target's kept detectors, with the change against the baseline inside every gain. When the matrix
+    holds a framing row for a target, every other cell of that target carries the same gains against the framing row under
+    `gain_vs_framing` (None on the framing row itself, the reference); without a framing row the key is absent. Everything
+    is recomputed from the rows, so `--analyze` re-reads a matrix run before the key existed."""
     rows = ledger.query(CELL_SQL, (matrix_id,))
     for r in rows:
         cert = json.loads(r["certificate"]) if isinstance(r["certificate"], str) and r["certificate"] else {}
@@ -375,13 +433,17 @@ def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
     for r in rows:
         cells.setdefault(r["cell_id"], []).append(r)
     baselines: dict[str, str] = {}
+    framings: dict[str, str] = {}
     for cid, rs in cells.items():
         if rs[0]["carrier"] == "none":
             baselines[rs[0]["target"]] = cid
+        elif is_framing_row(rs[0]) and rs[0]["target"] not in framings:
+            framings[rs[0]["target"]] = cid
     kept_by_target = {t: kept_detectors(ledger, t) for t in {r["target"] for r in rows}}
     symptoms_by_cell = {cid: cell_symptoms(ledger, rs[0]["target"], sorted({r["group_id"] for r in rs}), kept_by_target[rs[0]["target"]])
                         for cid, rs in cells.items()}
-    out = {"matrix_id": matrix_id, "cells": [], "n_rows": len(rows), "detectors": {t: [d["name"] for d in k] for t, k in kept_by_target.items()}}
+    out = {"matrix_id": matrix_id, "cells": [], "n_rows": len(rows), "detectors": {t: [d["name"] for d in k] for t, k in kept_by_target.items()},
+           "framing_rows": framings}
     for cid, rs in cells.items():
         first = rs[0]
         by_seed = {}
@@ -389,9 +451,11 @@ def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
             by_seed.setdefault(r["seed_index"], []).append(r)
         seeds = sorted(by_seed)
         per_seed = {k: _stats(v) for k, v in by_seed.items()}
+        framing = framings.get(first["target"]) == cid      # the framing row, labelled so even when its rows predate the setting
         entry = {"cell_id": cid, "target": first["target"], "carrier": first["carrier"], "experience_id": first["experience_id"],
                  "experience_kind": first["experience_kind"], "source_targets": json.loads(first["source_targets"]) if first["source_targets"] else [],
-                 "setting": first["setting"], "same_family": bool(first["same_family"]), "open": bool(first["open_target"]), "flag": first["transfer_flag"],
+                 "setting": "framing" if framing else first["setting"], "same_family": bool(first["same_family"]), "open": bool(first["open_target"]),
+                 "flag": first["transfer_flag"] or (FRAMING_FLAG if framing else None),
                  "tool_calls": int(first["tool_calls"] or 0), "seeds": len(seeds), "attempts": len(rs), "dollars": sum(r["dollars"] or 0.0 for r in rs),
                  "pass_rate": sum(s["pass_rate"] for s in per_seed.values()) / len(per_seed), "optimal_rate": sum(s["optimal_rate"] for s in per_seed.values()) / len(per_seed),
                  "best_score": None, "per_seed": per_seed, "symptoms": symptoms_by_cell[cid], "gain": None}
@@ -400,32 +464,13 @@ def analyze(ledger: Ledger, matrix_id: str, n_boot: int = 2000) -> dict:
         entry["best_score"] = (min(scores) if lower else max(scores)) if scores else None
         base_id = baselines.get(first["target"])
         if first["carrier"] != "none" and base_id and base_id in cells:
-            base_by_seed = {}
-            for r in cells[base_id]:
-                base_by_seed.setdefault(r["seed_index"], []).append(r)
-            common = [k for k in seeds if k in base_by_seed]
-            if common:
-                gains_p = [per_seed[k]["pass_rate"] - _stats(base_by_seed[k])["pass_rate"] for k in common]
-                gains_o = [per_seed[k]["optimal_rate"] - _stats(base_by_seed[k])["optimal_rate"] for k in common]
-                if len(common) >= 2:
-                    ci_p, ci_o = bootstrap_interval(gains_p, n_boot), bootstrap_interval(gains_o, n_boot)
-                    method = f"percentile bootstrap over {len(common)} seeds"
-                else:
-                    k = common[0]
-                    ci_p = bootstrap_gain_over_attempts(by_seed[k], base_by_seed[k], "_passed", n_boot)
-                    ci_o = bootstrap_gain_over_attempts(by_seed[k], base_by_seed[k], "_optimal", n_boot)
-                    method = "percentile bootstrap over attempts (one seed)"
-                bb = [s for s in (_stats(base_by_seed[k])["best_score"] for k in common) if s is not None]
-                base_best = (min(bb) if lower else max(bb)) if bb else None
-                base_sym = symptoms_by_cell.get(base_id, {})
-                names = sorted(set(entry["symptoms"]) | set(base_sym))
-                entry["gain"] = {"pass_rate": sum(gains_p) / len(gains_p), "pass_rate_ci": ci_p, "optimal_rate": sum(gains_o) / len(gains_o),
-                                 "optimal_rate_ci": ci_o, "best_score_gain": ((base_best - entry["best_score"]) if lower else (entry["best_score"] - base_best))
-                                 if (base_best is not None and entry["best_score"] is not None) else None,
-                                 "seeds": len(common), "method": method, "baseline_cell": base_id,
-                                 "matched_dollars_spread": abs(entry["dollars"] - sum(r["dollars"] or 0.0 for r in cells[base_id])),
-                                 "symptom_change": {n: ((entry["symptoms"].get(n) or {}).get("rate") or 0.0) - ((base_sym.get(n) or {}).get("rate") or 0.0)
-                                                    for n in names}}
+            entry["gain"] = _paired_gain(entry, per_seed, by_seed, cells[base_id], symptoms_by_cell.get(base_id, {}), ref_key="baseline_cell",
+                                         ref_id=base_id, lower=lower, n_boot=n_boot)
+        fid = framings.get(first["target"])
+        if fid:
+            # the same gains against the framing row of the target; None on the framing row itself, which is the reference
+            entry["gain_vs_framing"] = None if framing else _paired_gain(entry, per_seed, by_seed, cells[fid], symptoms_by_cell.get(fid, {}),
+                                                                         ref_key="framing_cell", ref_id=fid, lower=lower, n_boot=n_boot)
         out["cells"].append(entry)
     return out
 
@@ -438,33 +483,49 @@ def symptom_text(changes: dict | None, k: int = 3) -> str:
     return "; ".join(f"{n} {v:+.2f}" for n, v in top)
 
 
+def _gain_text(g: dict | None, absent: str) -> tuple[str, str, str]:
+    """The three gain columns of a row (pass rate and optimal rate with their intervals, the best score gain), or `absent` thrice."""
+    if not g:
+        return absent, absent, absent
+    ci, cio = g["pass_rate_ci"], g["optimal_rate_ci"]
+    gp = f"{g['pass_rate']:+.3f} [{ci[0]:+.3f}, {ci[1]:+.3f}]" if ci else f"{g['pass_rate']:+.3f}"
+    go = f"{g['optimal_rate']:+.3f} [{cio[0]:+.3f}, {cio[1]:+.3f}]" if cio else f"{g['optimal_rate']:+.3f}"
+    bs = f"{g['best_score_gain']:+g}" if g["best_score_gain"] is not None else "-"
+    return gp, go, bs
+
+
 def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
     cells = [c for c in analysis["cells"] if c["carrier"] != "none"]
+    framed = any("gain_vs_framing" in c for c in analysis["cells"])      # the matrix holds a framing row: three more columns
     lines = [f"# Transfer matrix {analysis['matrix_id']}", ""]
     if record:
         lines += [f"Sources: {', '.join(s['name'] for s in record['sources'])}; carriers {', '.join(record['carriers'])}; targets {', '.join(record['targets'])}; "
                   f"{record['seeds']} seed(s) x {record['attempts']} attempts per cell; matched by {record['match']}"
                   + (f" at ${record['budget_usd']}" if record.get('budget_usd') else "") + ".", ""]
-    lines += ["| experience (row) | carrier | target | setting | open | gain in pass rate [95% CI] | gain in optimal rate [95% CI] | best score gain | symptom change | seeds | $ | flag |",
-              "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    head = ["experience (row)", "carrier", "target", "setting", "open", "gain in pass rate [95% CI]"]
+    head += (["pass rate vs framing [95% CI]", "gain in optimal rate [95% CI]", "optimal rate vs framing [95% CI]", "best score gain", "best score vs framing"]
+             if framed else ["gain in optimal rate [95% CI]", "best score gain"])
+    head += ["symptom change", "seeds", "$", "flag"]
+    lines += ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     for c in sorted(cells, key=lambda c: (c["experience_kind"] or "", ",".join(c["source_targets"]), c["carrier"], c["target"])):
         g = c.get("gain")
-        if g:
-            ci = g["pass_rate_ci"]
-            cio = g["optimal_rate_ci"]
-            gp = f"{g['pass_rate']:+.3f} [{ci[0]:+.3f}, {ci[1]:+.3f}]" if ci else f"{g['pass_rate']:+.3f}"
-            go = f"{g['optimal_rate']:+.3f} [{cio[0]:+.3f}, {cio[1]:+.3f}]" if cio else f"{g['optimal_rate']:+.3f}"
-            bs = f"{g['best_score_gain']:+g}" if g["best_score_gain"] is not None else "-"
-            sy = symptom_text(g.get("symptom_change"))
-        else:
-            gp = go = bs = "no baseline"
-            sy = "-"
+        gp, go, bs = _gain_text(g, "no baseline")
+        sy = symptom_text(g.get("symptom_change")) if g else "-"
         if c["setting"] == "framing":
             row = "framing: (the empty-notebook sentence)"
         else:
             row = f"{c['experience_kind'] or 'control'}: {'+'.join(c['source_targets']) or ('(target-side)' if c['carrier'] in CONTROL_CARRIERS else '(empty)')}"
         carrier = c["carrier"] + (" (+dry run)" if c.get("tool_calls") and c["carrier"] != "second_try" else "")
-        lines.append(f"| {row} | {carrier} | {c['target']} | {c['setting']} | {'yes' if c['open'] else 'no'} | {gp} | {go} | {bs} | {sy} | {c['seeds']} | {c['dollars']:.4f} | {c['flag'] or ''} |")
+        cols = [row, carrier, c["target"], c["setting"], "yes" if c["open"] else "no", gp]
+        if framed:
+            # the same gains against the framing row of the target: "reference" on the framing row itself, "-" where the
+            # target has no framing row
+            fp, fo, fb = ("reference",) * 3 if c["setting"] == "framing" else _gain_text(c.get("gain_vs_framing"), "-")
+            cols += [fp, go, fo, bs, fb]
+        else:
+            cols += [go, bs]
+        cols += [sy, str(c["seeds"]), f"{c['dollars']:.4f}", c["flag"] or ""]
+        lines.append("| " + " | ".join(cols) + " |")
     base = [c for c in analysis["cells"] if c["carrier"] == "none"]
     if base:
         lines += ["", "Baselines (carrier none): " + "; ".join(f"{c['target']}: pass rate {c['pass_rate']:.3f}, optimal rate {c['optimal_rate']:.3f}, best {c['best_score']}" for c in base)]
@@ -475,10 +536,17 @@ def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
     if record and record.get("skipped"):
         lines += ["", "Cells refused by the program (lessons are never measured on the family they came from):"]
         lines += [f"- {s['experience']} / {s['carrier']} on {s['target']}: {s['reason']}" for s in record["skipped"]]
+    framing_note = ""
+    if framed:
+        framed_on = ", ".join(sorted({c["target"] for c in analysis["cells"] if c["setting"] == "framing" and "gain_vs_framing" in c}))
+        framing_note = (f"This matrix holds one on {framed_on}, and the 'vs framing' columns are the same gains against it, paired by seed with the same bootstrap: "
+                        "the framing row is the reference every carrier's gain should be read against, since it measures what the notebook's framing does on its own, "
+                        "before any content, and a gain against the baseline includes that. ")
     lines += ["", "A cell is the certified gain with the experience minus without, paired by seed; the interval is a percentile bootstrap. "
                   "The symptom change is the firing rate of a kept detector with the carrier minus without (negative: the failure it names went away). "
                   "The two target-side controls carry no experience: diagnosis_only names the failure and no remedy, second_try is one dry run and no lesson. A framing row is the unrelated control with no other family in the archive: the plain prompt plus the sentence that the notebook holds no lessons yet, which measures the framing alone. "
-                  "Every number is a certificate or a detector's firing; nothing a carrier adds to a prompt is scored."]
+                  + framing_note
+                  + "Every number is a certificate or a detector's firing; nothing a carrier adds to a prompt is scored."]
     return "\n".join(lines) + "\n"
 
 
@@ -510,7 +578,8 @@ def main(argv=None) -> int:
     ap.add_argument("--token-budget", type=int, default=None)
     ap.add_argument("--fixtures", default=None)
     ap.add_argument("--out", default=None)
-    ap.add_argument("--analyze", default=None, help="matrix id: recompute the analysis from the ledger and print it")
+    ap.add_argument("--analyze", default=None, help="matrix id: recompute the analysis from the ledger and print it (a matrix run before the "
+                                                     "framing-row gains existed gets them too)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args(argv)
     cfg = lab_config()

@@ -263,7 +263,8 @@ def main() -> None:
         "  them optimal), one per ablation notebook arm per recorded provider, and the week-4 sequences for the loop\n"
         "  (builder rungs on the square and the triangle; theorist proposals and breaker replies with a `rounds` list,\n"
         "  one reply per tool round, keyed by the opening prompt; builders derived from proposals) and the matrix cells,\n"
-        "  the diagnosis-only control's prompts included (week 5). Every single-round builder item also carries\n"
+        "  the diagnosis-only control's prompts and the framing row's (the empty unrelated control, week 5) included.\n"
+        "  Every single-round builder item also carries\n"
         "  `rounds: [text, text]`, so a second try (one certifier dry run and a revision) replays as the model keeping its file.\n"
         "  Regenerate them with `python tests/make_fixtures.py` whenever a prompt text, the recorded lessons or the\n"
         "  synthetic responses change; delete stale ones first (git clean on the local directory) so no orphan stays.\n", encoding="utf-8")

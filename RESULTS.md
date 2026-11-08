@@ -627,10 +627,15 @@ Prepared on 2026-11-08 for the next session, from the reading above. The matrix 
 square alone (the degree-4 triangle's pass rate measured nothing at 0.02) and to the five rows that were not flat twice at
 3 x 16: the baseline, the framing control (the unrelated row with no other family in the archive, the reference every gain
 should be read against), the second try, the lessons and the redacted lessons; diagnosis_only and skills are dropped, and
-cell 1 keeps the 2026-11-07 set for a rerun. At 5 x 32 = 160 attempts per cell the standard error of a paired difference
-of pass rates is about 0.05, and the second try's Radon count rests on 160 attempts instead of 48. Cell 8 follows the
-smoke test with a throughput probe, a wave of identical requests at each of 16, 32 and 48 in flight, whose aggregate
-tokens per second is what a group of attempts gets at that `CONCURRENCY`: the 2026-11-07 session moved about 170 tokens
-per second with 16 in flight on a server that accepts 64 sequences, and the long cells read `CONCURRENCY` from cell 1.
-pytest after these changes, 2026-11-08: 436 passed, 9 skipped (the Claude provider's six, the two online tests, and the
-lemma timer's cut-off case, which needs POSIX and runs on Colab).
+cell 1 keeps the 2026-11-07 set for a rerun. The matrix report now carries every carrier's gain against the framing row
+beside its gain against the baseline (`gain_vs_framing` in each cell record and the "vs framing" columns of the table,
+the same pairing by seed and the same bootstrap), so that the matrix above can be re-read on Colab with
+`python -m lab.harness.matrix --analyze mtx_7db6a53d87d24a62` on the Drive ledger without a rerun and the next one
+reads its carriers against the framing row directly. At 5 x 32 = 160 attempts per cell the standard error of a paired
+difference of pass rates is about 0.05, and the second try's Radon count rests on 160 attempts instead of 48. Cell 8
+follows the smoke test with a throughput probe, a wave of identical requests at each of 16, 32 and 48 in flight, whose
+aggregate tokens per second is what a group of attempts gets at that `CONCURRENCY`: the 2026-11-07 session moved about
+170 tokens per second with 16 in flight on a server that accepts 64 sequences, and the long cells read `CONCURRENCY`
+from cell 1.
+pytest after these changes and the framing-row columns, 2026-11-08: 437 passed, 9 skipped (the Claude provider's six, the
+two online tests, and the lemma timer's cut-off case, which needs POSIX and runs on Colab).

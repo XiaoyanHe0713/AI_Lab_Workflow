@@ -479,6 +479,18 @@ def write_matrix_fixtures(verbose: bool = True) -> list[Path]:
                                        items_from_texts(LOOP_TARGETS[tid], f"matrix diagnosis-only control on {tid}")))
             if verbose:
                 print(f"matrix diagnosis_only on {tid}: kept {diag['kept']}, fired {app['context']['detectors_named']}")
+        # the framing row (week 5): the unrelated control with no other family in the archive runs the plain prompt plus the
+        # empty-notebook sentence, whatever the empty set is called, so one sequence per target replays it
+        from lab.harness.matrix import ExperienceSet
+
+        empty = ExperienceSet(id="exp_empty", name="unrelated(empty)", kind="unrelated", source_targets=[], family_keys=[], certificate_families=[])
+        for tid in MATRIX_TARGETS:
+            app = apply_carrier("unrelated", get_target(tid), empty, bank=bank, archive=archive, token_budget=2000)
+            assert app["prompt"].endswith("(The notebook holds no lessons for this family yet.)")
+            written.append(write_items([{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": app["prompt"]}],
+                                       items_from_texts(LOOP_TARGETS[tid], f"matrix framing row (the empty unrelated control) on {tid}")))
+            if verbose:
+                print(f"matrix framing row (the empty unrelated control) on {tid}")
     finally:
         ledger.close()
     return written

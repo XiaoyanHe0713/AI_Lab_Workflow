@@ -302,7 +302,10 @@ reference implementations), `process_only`, `unrelated`. A cell runs N seeds of 
 matched dollars (the baseline's spend per seed caps the carrier's group), and every row carries the matrix id, the cell
 id, the experience, the carrier, the setting and the seed index. The analysis is a query over the ledger: the certified
 gain (pass rate, optimal rate, best score) with the carrier minus the baseline, paired by seed, with a percentile
-bootstrap interval over seeds (over attempts when there is one seed), rendered as one table per matrix.
+bootstrap interval over seeds (over attempts when there is one seed), rendered as one table per matrix. Since the
+2026-11-07 run showed that the framing sentence alone moves the pass rate, every cell of a target with a framing row
+also carries the same three gains against that row (`gain_vs_framing` in the cell record, the "vs framing" columns of
+the table), recomputed from the ledger by `--analyze` so that an earlier matrix can be re-read without a rerun.
 
 The rule, enforced by the program: lessons are never measured on the family they came from. A content carrier is refused
 when the target is one of the set's own instances, and refused when the target's family key (certificate family and

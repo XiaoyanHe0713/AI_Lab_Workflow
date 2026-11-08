@@ -1,7 +1,8 @@
 """Week 5: the diagnosis as a program's object (mining without a harness, the firing table, the query the diagnosis
 names, the diagnosis-only text, mining from the ledger and its command), the lesson writer told which detectors fired
 and the detectors a lesson addresses, the two target-side control rows of the matrix with the symptom-change column,
-and the loop mining its base groups and recording symptom rates per group."""
+the loop mining its base groups and recording symptom rates per group, and, after the first run, every carrier's gain
+against the framing row beside its gain against the baseline."""
 from pathlib import Path
 
 import pytest
@@ -12,12 +13,13 @@ from lab.harness.checker import (base_groups, diagnosis_query, diagnosis_text, f
                                  mining_markdown, symptom_rates)
 from lab.harness.checker import main as checker_main
 from lab.harness.lessons import Lesson, LessonBank, extraction_prompt, lesson_id
-from lab.harness.matrix import analyze, check_transfer, run_matrix
+from lab.harness.matrix import analyze, check_transfer, experience_from_archive, run_matrix, unrelated_control
+from lab.harness.matrix import main as matrix_main
 from lab.ledger import Ledger
 from lab.targets import get_target
 
 from conftest import demo_group  # noqa: E402
-from fixtures_week4 import CONTROL_ATTEMPTS, CONTROL_CARRIERS_TEST, CONTROL_SEEDS, MATRIX_TARGETS, matrix_run_kw, matrix_state  # noqa: E402
+from fixtures_week4 import CONTROL_ATTEMPTS, CONTROL_CARRIERS_TEST, CONTROL_SEEDS, MATRIX_SOURCES, MATRIX_TARGETS, matrix_run_kw, matrix_state  # noqa: E402
 from test_loop import _generation  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -118,6 +120,8 @@ def test_target_side_controls_and_symptom_change(state):
                      ledger=led, bank=bank, archive=archive, harness=None, run_kw=matrix_run_kw(tmp), quiet=True, out_dir=tmp / "matrices", seed0=0)
     assert rec["skipped"] == [] and set(rec["diagnoses"]) == set(MATRIX_TARGETS)
     by = {(c["carrier"], c["target"]): c for c in rec["analysis"]["cells"]}
+    # no unrelated carrier, so no framing row: the gains against it are absent and the report draws no column for them
+    assert rec["analysis"]["framing_rows"] == {} and all("gain_vs_framing" not in c for c in rec["analysis"]["cells"])
     for tid in MATRIX_TARGETS:
         kept = {d["name"] for d in kept_detectors(led, tid)}
         assert kept and rec["diagnoses"][tid]["from"] == "none cell" and set(rec["diagnoses"][tid]["kept"]) == kept
@@ -138,7 +142,7 @@ def test_target_side_controls_and_symptom_change(state):
     md = Path(rec["files"]["markdown"]).read_text(encoding="utf-8")
     assert "| symptom change |" in md and "| control: (target-side) | second_try | quad-square-d5 | control | no |" in md
     assert "| control: (target-side) | diagnosis_only | quad-triangle-d2 | control | no |" in md
-    assert "Symptom rates of the baselines" in md and "target-side controls" in md
+    assert "Symptom rates of the baselines" in md and "target-side controls" in md and "vs framing" not in md
     again = analyze(led, rec["id"])
     assert {c["cell_id"]: c["symptoms"] for c in again["cells"]} == {c["cell_id"]: c["symptoms"] for c in rec["analysis"]["cells"]}
     # a second try is a condition of its own: its groups are not base groups, the default mining takes the largest base
@@ -159,6 +163,79 @@ def test_target_side_controls_and_symptom_change(state):
     empty = ExperienceSet(id="x", name="unrelated(empty)", kind="unrelated", source_targets=[], family_keys=[], certificate_families=[])
     fr = check_transfer(empty, "quad-square-d5", "unrelated")
     assert fr["allowed"] and fr["setting"] == "framing" and "framing control" in fr["flag"]
+
+
+# --- the matrix: every carrier's gain against the framing row beside its gain against the baseline ---------------------------
+FRAMING_CARRIERS = ["none", "unrelated", "second_try", "lessons", "process_only"]     # the matrix cell's narrowed set of 2026-11-08
+
+
+@pytest.fixture(scope="module")
+def framing_state(tmp_path_factory):
+    """The matrix state with the other family's synthetic lessons retired, so that the archive holds one family and the
+    unrelated control runs as the framing row (the plain prompt plus the empty-notebook sentence)."""
+    tmp = tmp_path_factory.mktemp("week5framing")
+    cfg = lab_config(env={"LAB_ROOT": str(tmp)})
+    led = Ledger(tmp / "ledger.sqlite")
+    st = matrix_state(tmp, led, cfg)
+    fam = get_target(MATRIX_TARGETS[0]).transfer.family
+    for l in st["bank"].all():
+        if any(get_target(t).transfer.family != fam for t in l.targets):
+            st["bank"].retire(l.id, "test: the archive holds one family, so the unrelated control is the framing row")
+    st.update({"tmp": tmp, "cfg": cfg, "ledger": led})
+    yield st
+    led.close()
+
+
+def test_gains_against_the_framing_row(framing_state, capsys):
+    led, archive, bank, tmp, cfg = framing_state["ledger"], framing_state["archive"], framing_state["bank"], framing_state["tmp"], framing_state["cfg"]
+    assert all(unrelated_control(led, archive, bank, tid).source_targets == [] for tid in MATRIX_TARGETS)
+    exp = experience_from_archive(led, archive, bank, MATRIX_SOURCES)
+    rec = run_matrix(sources=[exp], carriers=FRAMING_CARRIERS, targets=MATRIX_TARGETS, seeds=CONTROL_SEEDS, attempts=CONTROL_ATTEMPTS, cfg=cfg, ledger=led,
+                     bank=bank, archive=archive, harness=None, run_kw=matrix_run_kw(tmp), quiet=True, out_dir=tmp / "matrices", seed0=0)
+    assert rec["skipped"] == [] and len(rec["cells"]) == len(FRAMING_CARRIERS) * len(MATRIX_TARGETS)
+    an = rec["analysis"]
+    by = {(c["carrier"], c["target"]): c for c in an["cells"]}
+    for tid in MATRIX_TARGETS:
+        fr, base = by[("unrelated", tid)], by[("none", tid)]
+        # the framing row is the reference: it keeps its own gain against the baseline, its gain against itself is None
+        assert fr["setting"] == "framing" and an["framing_rows"][tid] == fr["cell_id"] and "framing control" in fr["flag"]
+        assert fr["gain"]["baseline_cell"] == base["cell_id"] and fr["gain"]["pass_rate"] == pytest.approx(0.0) and fr["gain_vs_framing"] is None
+        # every other cell carries the same three gains against the framing row, paired by seed with the same bootstrap; the
+        # replay gives every carrier the same attempts, so every gain is 0.000 with an interval of [0, 0]
+        for carrier in FRAMING_CARRIERS:
+            if carrier == "unrelated":
+                continue
+            c = by[(carrier, tid)]
+            g = c["gain_vs_framing"]
+            assert g["framing_cell"] == fr["cell_id"] and g["seeds"] == CONTROL_SEEDS and f"{CONTROL_SEEDS} seeds" in g["method"]
+            assert g["pass_rate"] == pytest.approx(0.0) and g["pass_rate_ci"] == (0.0, 0.0)
+            assert g["optimal_rate"] == pytest.approx(0.0) and g["optimal_rate_ci"] == (0.0, 0.0) and g["best_score_gain"] == 0.0
+            assert all(v == pytest.approx(0.0) for v in g["symptom_change"].values()) and g["matched_dollars_spread"] < 0.01
+            if carrier != "none":
+                assert c["gain"]["baseline_cell"] == base["cell_id"] and set(g) == (set(c["gain"]) - {"baseline_cell"}) | {"framing_cell"}
+    # the analysis is a query over the ledger: recomputed, it agrees; the report draws the columns and names the reference
+    again = analyze(led, rec["id"])
+    assert {c["cell_id"]: c.get("gain_vs_framing") for c in again["cells"]} == {c["cell_id"]: c.get("gain_vs_framing") for c in an["cells"]}
+    assert again["framing_rows"] == an["framing_rows"]
+    md = Path(rec["files"]["markdown"]).read_text(encoding="utf-8")
+    assert "| pass rate vs framing [95% CI] | gain in optimal rate [95% CI] | optimal rate vs framing [95% CI] | best score gain | best score vs framing |" in md
+    assert "| framing: (the empty-notebook sentence) | unrelated | quad-square-d5 | framing | no | +0.000 [+0.000, +0.000] | reference |" in md
+    assert "| archive: quad-d7 | lessons | quad-square-d5 | new_family_same_certificate | no | +0.000 [+0.000, +0.000] | +0.000 [+0.000, +0.000] |" in md
+    assert "the reference every carrier's gain should be read against" in md and "holds one on quad-square-d5, quad-triangle-d2" in md
+    # the rows of the 2026-11-07 matrix were written before the setting `framing` existed: they carry `no_sources` with an
+    # empty source list and no flag, and the analysis reads them as the framing row all the same, so `--analyze` re-reads
+    # that matrix with the new columns from the ledger alone
+    fid = an["framing_rows"]["quad-square-d5"]
+    led.conn.execute("UPDATE attempts SET context = json_set(json_remove(context, '$.transfer_flag'), '$.setting', 'no_sources') "
+                     "WHERE json_extract(context, '$.cell_id') = ?", (fid,))
+    old = analyze(led, rec["id"])
+    oby = {(c["carrier"], c["target"]): c for c in old["cells"]}
+    assert old["framing_rows"]["quad-square-d5"] == fid and oby[("unrelated", "quad-square-d5")]["setting"] == "framing"
+    assert "framing control" in oby[("unrelated", "quad-square-d5")]["flag"]
+    assert oby[("lessons", "quad-square-d5")]["gain_vs_framing"] == by[("lessons", "quad-square-d5")]["gain_vs_framing"]
+    assert matrix_main(["--analyze", rec["id"], "--ledger", str(led.path)]) == 0
+    out = capsys.readouterr().out
+    assert "| framing: (the empty-notebook sentence) | unrelated | quad-square-d5 | framing | no |" in out and "| pass rate vs framing [95% CI] |" in out
 
 
 # --- the loop: the base group mined, symptom rates per group, the query the diagnosis names ---------------------------------
