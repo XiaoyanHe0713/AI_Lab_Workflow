@@ -249,17 +249,23 @@ def diagnosis_text(target, table: dict | None) -> str:
 
 
 def base_groups(ledger: Ledger, target: str, *, reportable_only: bool = False) -> list[tuple[str, list[Attempt]]]:
-    """The plain-prompt builder groups of a target (no lessons, no prompt override, not derived from a proposal), oldest
-    first: the groups a diagnosis is mined from."""
+    """The plain-prompt builder groups of a target (no lessons, no prompt override, not derived from a proposal, no
+    certifier dry run: a second try is a condition of its own), oldest first: the groups a diagnosis is mined from."""
     rows = [r for r in ledger.attempts(target=target, role="builder")
             if not (r.context or {}).get("lesson_ids") and not (r.context or {}).get("prompt_override")
-            and not (r.context or {}).get("derived_from_proposal")]
+            and not (r.context or {}).get("derived_from_proposal") and not int((r.context or {}).get("tool_calls") or 0)]
     if reportable_only:
         rows = [r for r in rows if r.mode not in ("offline", None) and r.precision == "bf16"]
     groups: dict[str, list[Attempt]] = {}
     for r in rows:
         groups.setdefault(r.group_id or "", []).append(r)
     return sorted(groups.items(), key=lambda kv: min(x.timestamp for x in kv[1]))
+
+
+def largest_base_group(groups: list[tuple[str, list[Attempt]]]) -> tuple[str, list[Attempt]] | None:
+    """The base group with the most attempts, the latest among equals: the group a diagnosis is mined from by default
+    (the newest group may be a 16-attempt seed block of a matrix cell while the loop's gate group holds 64)."""
+    return max(groups, key=lambda kv: (len(kv[1]), max(x.timestamp for x in kv[1]))) if groups else None
 
 
 # --- dossiers -------------------------------------------------------------------------------------------------
@@ -444,7 +450,8 @@ class Checker(Harness):
 def mine_from_ledger(ledger: Ledger, target_ids: list[str], *, group_ids: list[str] | None = None, all_groups: bool = False,
                      reportable_only: bool = False, checker: "Checker | None" = None, seed: int = 0) -> list[dict]:
     """Mine detectors on the base groups a ledger already holds (week 5: the loop's plain-prompt groups on Drive, after the
-    fact and with no GPU). Per target: the latest base group (or every one with `all_groups`, or the given group ids);
+    fact and with no GPU). Per target: the largest base group, the latest among equals (or every one with `all_groups`, or
+    the given group ids; a group with a certifier dry run is never a base group);
     the checker proposes detectors when one is given, the built-in detectors alone otherwise; every candidate is verified
     on the held-out half; the kept detectors' firing table over the group is reported."""
     from ..targets import get_target
@@ -460,7 +467,7 @@ def mine_from_ledger(ledger: Ledger, target_ids: list[str], *, group_ids: list[s
         else:
             groups = base_groups(ledger, tid, reportable_only=reportable_only)
             if groups and not all_groups:
-                groups = groups[-1:]
+                groups = [largest_base_group(groups)]
         for gid, rows in groups:
             rep = checker.mine(target, rows, seed=seed) if checker is not None else mine_builtin(ledger, target, rows, seed=seed)
             kept = kept_detectors(ledger, tid)

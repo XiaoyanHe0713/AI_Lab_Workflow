@@ -43,7 +43,7 @@ from ..targets import get_target, transfer_setting
 from .archive import Archive
 from .base import harness_provider
 from .carriers import CARRIERS, CONTENT_CARRIERS, CONTROL_CARRIERS, apply_carrier
-from .checker import base_groups, firing_table, kept_detectors, mine_builtin, symptom_rates
+from .checker import base_groups, firing_table, kept_detectors, largest_base_group, mine_builtin, symptom_rates
 from .lessons import LessonBank, LessonHarness
 
 
@@ -137,7 +137,7 @@ def unrelated_control(ledger: Ledger, archive: Archive, bank: LessonBank, target
                 sources.append(lt)
     if not sources:
         return ExperienceSet(id=_set_id("unrelated", [], [], []), name=name or "unrelated(empty)", kind="unrelated", source_targets=[],
-                             family_keys=[], certificate_families=[], note="no other family in the ledger yet: an empty notebook")
+                             family_keys=[], certificate_families=[], note="no other family in the ledger yet: the plain prompt plus the empty-notebook sentence (a framing control)")
     base = experience_from_archive(ledger, archive, bank, sources, name=name or f"unrelated({'+'.join(sources)})")
     base.id = _set_id("unrelated", sources, base.lesson_ids, base.artifact_ids)
     base.kind = "unrelated"
@@ -153,9 +153,13 @@ def check_transfer(experience: ExperienceSet, target_id: str, carrier: str, *, a
         flag = "diagnosis of the target's own baseline, no remedy" if carrier == "diagnosis_only" else "one dry run and a revision, no lesson"
         return {"setting": "control", "same_family": False, "open": t.open, "target": t.to_dict(), "allowed": True, "flag": flag}
     if carrier == "none" or experience is None or not experience.source_targets:
-        setting = {"setting": "baseline" if carrier == "none" else "no_sources", "same_family": False,
+        # the unrelated control with no other family in the archive runs as the plain prompt plus the empty-notebook
+        # sentence: a framing control, reported as such rather than as unrelated experience
+        framing = carrier == "unrelated" and experience is not None and not experience.source_targets
+        setting = {"setting": "baseline" if carrier == "none" else ("framing" if framing else "no_sources"), "same_family": False,
                    "open": get_target(target_id).transfer.open, "target": get_target(target_id).transfer.to_dict()}
-        return {**setting, "allowed": True, "flag": None}
+        flag = "no other family in the archive: the plain prompt plus the empty-notebook sentence (a framing control)" if framing else None
+        return {**setting, "allowed": True, "flag": flag}
     st = transfer_setting(experience.source_targets, target_id)
     if carrier in CONTENT_CARRIERS and experience.kind != "unrelated":
         if st["setting"] == "same_instances":
@@ -202,26 +206,28 @@ def run_cell(*, experience: ExperienceSet | None, carrier: str, target_id: str, 
                       context_extra=ctx, post_check=app["post_check"], tool_calls=tool_calls, **kw)
         groups.append({"seed_index": k, "seed": seed, "group_id": s["group_id"], "attempts": s["attempts"], "passed": s["passed"], "optimal": s["optimal"],
                        "pass_rate": s["pass_rate"], "optimal_rate": s["optimal_rate"], "best_score": s["best_score"], "dollars": s["dollars"],
-                       "stopped_at": s.get("stopped_at"), "gate_checks": s.get("gate_checks")})
+                       "stopped_at": s.get("stopped_at"), "gate_checks": s.get("gate_checks"),
+                       "revised": s.get("revised", 0), "revised_passed": s.get("revised_passed", 0)})
     return {"cell_id": cell_id, "matrix_id": matrix_id, "experience": experience.to_dict() if experience else None, "carrier": carrier,
             "target": target_id, "setting": setting, "lesson_ids": app["context"].get("lesson_ids", []), "skill_ids": app["context"].get("skill_ids", []),
             "redacted": app["context"].get("redacted", False), "tool_calls": tool_calls, "detectors_named": app["context"].get("detectors_named"),
-            "groups": groups, "dollars": sum(g["dollars"] for g in groups),
+            "groups": groups, "dollars": sum(g["dollars"] for g in groups), "revised": sum(g["revised"] for g in groups),
+            "revised_passed": sum(g["revised_passed"] for g in groups),
             "gate": ({"lesson_id": app["gate"]["lesson"].id if app["gate"].get("lesson") else None, "check": app["gate"].get("check")} if app.get("gate") else None)}
 
 
 def diagnosis_for(ledger: Ledger, target_id: str, none_cell: dict | None, *, seed: int = 0) -> tuple[dict, dict]:
     """The firing table the diagnosis-only row is written from: the built-in detectors are mined on the target's `none`
-    cell of this matrix (or, without one, on the latest base group the ledger holds), then every detector the program
+    cell of this matrix (or, without one, on the largest base group the ledger holds), then every detector the program
     has kept for the target, the loop's included, is run over those attempts. Returns the table and a record of it."""
     target = get_target(target_id)
     if none_cell is not None:
         rows = [a for g in none_cell["groups"] for a in ledger.attempts(group_id=g["group_id"])]
         source = {"from": "none cell", "cell_id": none_cell["cell_id"]}
     else:
-        groups = base_groups(ledger, target_id)
-        rows = groups[-1][1] if groups else []
-        source = {"from": "ledger base group", "group_id": groups[-1][0] if groups else None}
+        group = largest_base_group(base_groups(ledger, target_id))
+        rows = group[1] if group else []
+        source = {"from": "ledger base group", "group_id": group[0] if group else None}
     if rows:
         mine_builtin(ledger, target, rows, seed=seed)
     kept = kept_detectors(ledger, target_id)
@@ -453,7 +459,10 @@ def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
         else:
             gp = go = bs = "no baseline"
             sy = "-"
-        row = f"{c['experience_kind'] or 'control'}: {'+'.join(c['source_targets']) or ('(target-side)' if c['carrier'] in CONTROL_CARRIERS else '(empty)')}"
+        if c["setting"] == "framing":
+            row = "framing: (the empty-notebook sentence)"
+        else:
+            row = f"{c['experience_kind'] or 'control'}: {'+'.join(c['source_targets']) or ('(target-side)' if c['carrier'] in CONTROL_CARRIERS else '(empty)')}"
         carrier = c["carrier"] + (" (+dry run)" if c.get("tool_calls") and c["carrier"] != "second_try" else "")
         lines.append(f"| {row} | {carrier} | {c['target']} | {c['setting']} | {'yes' if c['open'] else 'no'} | {gp} | {go} | {bs} | {sy} | {c['seeds']} | {c['dollars']:.4f} | {c['flag'] or ''} |")
     base = [c for c in analysis["cells"] if c["carrier"] == "none"]
@@ -468,7 +477,7 @@ def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
         lines += [f"- {s['experience']} / {s['carrier']} on {s['target']}: {s['reason']}" for s in record["skipped"]]
     lines += ["", "A cell is the certified gain with the experience minus without, paired by seed; the interval is a percentile bootstrap. "
                   "The symptom change is the firing rate of a kept detector with the carrier minus without (negative: the failure it names went away). "
-                  "The two target-side controls carry no experience: diagnosis_only names the failure and no remedy, second_try is one dry run and no lesson. "
+                  "The two target-side controls carry no experience: diagnosis_only names the failure and no remedy, second_try is one dry run and no lesson. A framing row is the unrelated control with no other family in the archive: the plain prompt plus the sentence that the notebook holds no lessons yet, which measures the framing alone. "
                   "Every number is a certificate or a detector's firing; nothing a carrier adds to a prompt is scored."]
     return "\n".join(lines) + "\n"
 

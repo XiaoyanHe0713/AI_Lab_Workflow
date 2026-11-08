@@ -592,3 +592,8 @@ diagnosis-only text lists the three with their counts and no remedy.
 5. Five seeds next time, as the default says, and the second try at 64 attempts on the square to settle the Radon count.
 6. The recorded fixtures of cell 12 wait on Drive for a copy into the repository (`python tests/make_fixtures.py`, pytest,
    commit; grep for keys first).
+
+Items 1 to 5 are fixed in the commit that follows this record: a group with a certifier dry run is not a base group and the
+largest base group is mined by default; cell 2 reads the secret once, says why a read failed, and the later cells reuse the
+copy; the empty unrelated row is reported with the setting `framing`; the second-try summary counts the revisions and the
+revisions that passed; `MATRIX_SEEDS` defaults to 5. Item 6 waits for the copy from Drive.

@@ -141,6 +141,24 @@ def test_target_side_controls_and_symptom_change(state):
     assert "Symptom rates of the baselines" in md and "target-side controls" in md
     again = analyze(led, rec["id"])
     assert {c["cell_id"]: c["symptoms"] for c in again["cells"]} == {c["cell_id"]: c["symptoms"] for c in rec["analysis"]["cells"]}
+    # a second try is a condition of its own: its groups are not base groups, the default mining takes the largest base
+    # group, and the cell counts the revisions after the dry run (none here: the replay keeps the file)
+    from lab.harness.checker import largest_base_group
+    from lab.harness.matrix import ExperienceSet
+    for tid in MATRIX_TARGETS:
+        cells = [c for c in rec["cells"] if c["target"] == tid]
+        second_groups = {g["group_id"] for c in cells if c["carrier"] == "second_try" for g in c["groups"]}
+        none_groups = {g["group_id"] for c in cells if c["carrier"] == "none" for g in c["groups"]}
+        base = base_groups(led, tid)
+        assert second_groups and not (second_groups & {g for g, _ in base}) and none_groups <= {g for g, _ in base}
+        big = largest_base_group(base)
+        assert big is not None and len(big[1]) == max(len(rows) for _, rows in base)
+        assert mine_from_ledger(led, [tid])[0]["group_id"] == big[0]
+        assert all(c["revised"] == 0 and c["revised_passed"] == 0 and all(g["revised"] == 0 for g in c["groups"]) for c in cells if c["carrier"] == "second_try")
+    # the unrelated control with no other family in the archive is reported as the framing control, never refused
+    empty = ExperienceSet(id="x", name="unrelated(empty)", kind="unrelated", source_targets=[], family_keys=[], certificate_families=[])
+    fr = check_transfer(empty, "quad-square-d5", "unrelated")
+    assert fr["allowed"] and fr["setting"] == "framing" and "framing control" in fr["flag"]
 
 
 # --- the loop: the base group mined, symptom rates per group, the query the diagnosis names ---------------------------------

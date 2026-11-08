@@ -238,6 +238,8 @@ def run_episodes(attempt_fn: Callable[[int, int], Outcome], *, role_name: str, r
                     "optimal_rate": (summary["optimal"] / n) if n else float("nan"),
                     "capped": sum(1 for r in rows if r.meta.get("finish_reason") == "length"),
                     "no_code": sum(1 for r in rows if (r.certificate or {}).get("error", "") and "no code block" in r.certificate["error"]),
+                    "revised": sum(1 for r in rows if r.meta.get("revised_after_dry_run")),
+                    "revised_passed": sum(1 for r in rows if r.meta.get("revised_after_dry_run") and r.passed),
                     "request_latency_s": sum(r.meta.get("latency_s", 0.0) for r in rows),
                     "rounds": sum(r.meta.get("rounds", 1) for r in rows),
                     "ledger": str(Path(ledger.path).resolve()),

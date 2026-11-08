@@ -85,7 +85,7 @@ RUN_MATRIX = False                              #@param {type:"boolean"}
 MATRIX_SOURCES = "quad-d7"                      #@param {type:"string"}
 MATRIX_TARGETS = "quad-square-d5 quad-triangle-d4"  #@param {type:"string"}
 MATRIX_CARRIERS = "none second_try diagnosis_only lessons process_only unrelated skills"  #@param {type:"string"}
-MATRIX_SEEDS = 3                                #@param {type:"integer"}
+MATRIX_SEEDS = 5                                #@param {type:"integer"}
 MATRIX_ATTEMPTS = 16                            #@param {type:"integer"}
 MATRIX_TOOL_CALLS = 0                           #@param {type:"integer"}
 RUN_MINE = False                                #@param {type:"boolean"}
@@ -107,7 +107,7 @@ MINE_ALL_GROUPS = False                         #@param {type:"boolean"}
 #   Week 5: the carriers second_try (one certifier dry run, no lesson) and diagnosis_only (the program's diagnosis of the
 #   target's own none cell, no remedy) are the two target-side control rows; MATRIX_TOOL_CALLS gives every content carrier that
 #   many dry runs; every cell reports its symptom rates (how often each kept detector fires) and the change against the baseline.
-# RUN_MINE (week 5, no GPU): mine detectors on the latest plain-prompt group of each MINE_TARGETS target already in the ledger
+# RUN_MINE (week 5, no GPU): mine detectors on the largest plain-prompt group (dry-run groups excluded) of each MINE_TARGETS target
 #   (the loop's base groups): GPT proposes them when the secret is set, the built-in detectors alone otherwise; every candidate
 #   is verified on the held-out half; the kept detectors' firing tables, the librarian queries they name and the diagnosis-only
 #   texts are printed and written under detectors/ on Drive. MINE_ALL_GROUPS mines every base group, not only the latest.
@@ -133,11 +133,26 @@ drive.mount("/content/drive")
 for d in ("", "models", "adapters", "logs", "config", "cache"):
     os.makedirs(os.path.join(LAB_ROOT, d), exist_ok=True)
 
-def secret(name):
-    try:
-        return userdata.get(name)
-    except Exception:
-        return None
+_SECRETS = {}
+def secret(name, tries=3):
+    # A Colab secret (notebook access on), read once per runtime and kept in memory: a read can fail once the browser
+    # tab has detached after a long cell, so a failure prints its kind (never the value), retries, and later cells
+    # reuse the copy this cell read.
+    if name in _SECRETS:
+        return _SECRETS[name]
+    for i in range(tries):
+        try:
+            value = userdata.get(name)
+            break
+        except getattr(userdata, "SecretNotFoundError", ()):   # no such secret: nothing to retry
+            return None
+        except Exception as err:
+            print(f"secret {name}: {type(err).__name__} on read {i + 1} of {tries}")
+            time.sleep(3)
+    else:
+        return os.environ.get(name)
+    _SECRETS[name] = value
+    return value
 
 def git(*args, token=None):
     \"\"\"Run git with the token supplied through GIT_ASKPASS, never on the command line, never in an error.\"\"\"
@@ -153,6 +168,8 @@ def git(*args, token=None):
         raise RuntimeError(f"git {' '.join(args)} failed (exit {r.returncode}):\\n{r.stderr[-2000:]}")
     return r.stdout
 
+OPENAI_KEY_PRESENT = bool(secret("OPENAI_API_KEY"))   # read now, while the browser is attached; cells 11, 13 and 17 reuse the copy
+print("OPENAI_API_KEY secret:", "present" if OPENAI_KEY_PRESENT else "absent (the frontier harnesses run without GPT)")
 token = secret("GITHUB_TOKEN")  # a fine-grained token with read access to Contents on this repository
 REPO = "/content/AI_Lab_Workflow"
 if not os.path.exists(REPO):
@@ -567,6 +584,7 @@ code("""
 # (second_try: one dry run and no lesson; diagnosis_only: the program's diagnosis of the target's own baseline and no remedy);
 # columns: MATRIX_TARGETS in their settings. Every cell reports its symptom rates and the change against the baseline.
 # Needs the loop (cell 13) to have run with GPT so the bank holds lessons; the report lands under matrices/ on Drive.
+# Run cell 17 first when GPT should propose the detectors the diagnosis row uses (this cell mines the built-in ones itself).
 from lab.harness.matrix import main as matrix_main
 
 if RUN_MATRIX:

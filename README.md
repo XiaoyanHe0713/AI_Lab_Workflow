@@ -45,7 +45,7 @@ harness writes enters a reward.
 | `lab/harness/librarian.py`, `reading_list/*.yaml` | The librarian: the reading list with dates, retrieval under a per-target date cutoff (lexical ranking by a program, selection and summary by the provider), every citation logged, and the pass over `provenance: provisional` scoreboard entries. |
 | `lab/harness/archive.py` | The archive: a content-addressed store of certified methods with witnesses and dossiers, linked to the attempt, reading-list snapshot, lessons, citations and cost; `trace()` is one SQL query. |
 | `lab/harness/lessons.py` | The lesson bank: lessons at three levels (approach, implementation, process), each a rule with conditions and an evidence tag (observed, derived, proposed); consolidation under a token budget by add, replace and retire; the gate that selects one lesson and writes a concrete, validated check applied at use time. Week 5: a lesson names the detectors it addresses (checked against the kept names; a `detectors` column an older ledger gains on open), and the extraction prompt lists the detectors with the attempts they fired on only when detectors are given, so the recorded fixtures replay. |
-| `lab/harness/checker.py` | The checker: the frozen baseline record from ledger groups; hypotheses turned into deterministic detectors kept only when right on more than nine of ten held-out cases; method dossiers with claim, conditions and evidence, schema-validated. Week 5: mining without a harness (the built-in detectors alone through the same held-out gate), the firing table of a group, the librarian query and the diagnosis-only text a diagnosis names, and `python -m lab.harness.checker --mine --targets ...`, which mines the base groups a ledger already holds and writes the report under `detectors/`. |
+| `lab/harness/checker.py` | The checker: the frozen baseline record from ledger groups; hypotheses turned into deterministic detectors kept only when right on more than nine of ten held-out cases; method dossiers with claim, conditions and evidence, schema-validated. Week 5: mining without a harness (the built-in detectors alone through the same held-out gate), the firing table of a group, the librarian query and the diagnosis-only text a diagnosis names, and `python -m lab.harness.checker --mine --targets ...`, which mines the largest base group of each target a ledger already holds (every one with `--all-groups`; a group with a certifier dry run is not a base group) and writes the report under `detectors/`. |
 | `lab/harness/ablation.py` | `python -m lab.harness.ablation`: three arms on one verification family at matched dollars (no notebook, notebook, notebook with gate), every attempt in the ledger, a report per run. |
 | `scoreboard/*.yaml` | Quadrature node counts, first-order rates, SSP coefficients and stability extents, DFT operation counts, convergence-order verification targets, with sources. |
 | `tests/` | pytest suites: at least 20 known-answer cases per certifier, judge limits, ledger, cost, budget, roles, demo, concurrency, gate, harness base, the harness suites per frontier provider (offline from recorded fixtures), and the week-4 suites: the lemma check, the transfer blocks, the three roles (fixtures and stub endpoints), the loop end to end, the matrix. `tests/make_fixtures.py` writes the synthetic local sequences (`tests/fixtures_week4.py` holds the week-4 ones). Live tests carry the `online` marker. |
@@ -112,8 +112,9 @@ baseline with no remedy) and the symptom-change column in every gain:
 python -m lab.harness.matrix --sources quad-d7 --targets quad-square-d5 quad-triangle-d2 --carriers none second_try diagnosis_only lessons process_only unrelated skills --seeds 2 --attempts 8 --mode offline --no-harness --gpu A100 --concurrency 4 --max-tokens 4096
 ```
 
-Detectors mined after the fact on the base groups a ledger already holds (no GPU; the built-in detectors alone without
-`--provider openai`), with their firing tables, the librarian queries they name and the diagnosis-only texts:
+Detectors mined after the fact on the largest base group of each target a ledger already holds (`--all-groups` for every
+one; no GPU; the built-in detectors alone without `--provider openai`), with their firing tables, the librarian queries
+they name and the diagnosis-only texts:
 
 ```bash
 python -m lab.harness.checker --mine --targets quad-d7 quad-square-d5 quad-triangle-d2 quad-triangle-d3 quad-triangle-d4
@@ -139,8 +140,9 @@ on `LOOP_TARGETS` (the quadrature curriculum: interval d7, square d5, triangle d
 every other certifier family and writes the frozen baseline record; cell 15 (`RUN_SEARCH_BASELINE`) runs 256 attempts of the
 frozen base on `quad-square-d5`; cell 16 (`RUN_MATRIX`) runs matrix cells from the loop's archive, with `MATRIX_CARRIERS`
 holding the two control rows of week 5 and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 17
-(`RUN_MINE`, no GPU) mines detectors on the base groups already in the ledger (GPT proposes them with the secret, the built-in
-detectors stand alone without it) and prints their firing tables, the librarian queries they name and the diagnosis-only texts.
+(`RUN_MINE`, no GPU) mines detectors on the largest base group of each target in the ledger (GPT proposes them with the
+secret, which cell 2 reads once while the browser is attached; the built-in detectors stand alone without it) and prints
+their firing tables, the librarian queries they name and the diagnosis-only texts.
 
 ## Providers, modes, fixtures and the frontier budget
 
@@ -286,7 +288,8 @@ An experience set is what the lab recorded on its source targets: the archived m
 those targets' groups, the attempts behind them. Rows of the matrix are experience sets plus the two controls:
 process-only (the set's process-level lessons with digits and the family's content terms redacted, which keeps the
 craft and removes the knowledge) and unrelated (every archived method and lesson from targets under a different
-certificate). Columns are targets in their settings. Carriers: `none` (the baseline, run once per target and seed),
+certificate; with no other family in the archive yet it runs as the framing control, the plain prompt plus the sentence
+that the notebook holds no lessons, and is reported so). Columns are targets in their settings. Carriers: `none` (the baseline, run once per target and seed),
 `lessons` (the notebook), `lessons_gate` (the gate's one lesson and check, a frontier call), `skills` (archived methods as
 reference implementations), `process_only`, `unrelated`. A cell runs N seeds of a group each, at matched attempts or
 matched dollars (the baseline's spend per seed caps the carrier's group), and every row carries the matrix id, the cell
@@ -312,8 +315,9 @@ gain cannot be read.
 * Mining on every base group. After the builder's plain-prompt group on a rung, the checker proposes detectors from half the
   group when a frontier provider runs, and the built-in detectors stand alone otherwise; every candidate is kept only if, on
   the other half it never saw, it fires at least twice and every firing is a failure (the week-3 rule). The command
-  `python -m lab.harness.checker --mine --targets ...` does the same on the base groups a ledger already holds, after the
-  fact and with no GPU, and writes the firing tables under `detectors/` next to the ledger.
+  `python -m lab.harness.checker --mine --targets ...` does the same on the largest base group of each target a ledger
+  already holds (every one with `--all-groups`; a group with a certifier dry run is a condition of its own, not a base
+  group), after the fact and with no GPU, and writes the firing tables under `detectors/` next to the ledger.
 * The failure named before the theorist. The firing table of the base group becomes the librarian's query (the target's
   title, then the hypotheses of the detectors that fired, most frequent first), so the theorist's reading-list excerpts are
   about what went wrong. The query is in the theorist's context and in the rung record.

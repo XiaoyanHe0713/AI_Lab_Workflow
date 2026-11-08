@@ -150,7 +150,9 @@ def summary_optimal(rows: list[Attempt]) -> int:
 def print_summary(summary: dict, best: Attempt | None) -> None:
     print("\nscores:", [f"{s:g}" for s in summary["scores"]] or "none passed")
     print(f"passed {summary['passed']}/{summary['attempts']} valid; {summary['optimal']} matched the best known value "
-          f"({summary['best_known']}); {summary['capped']} attempts ended at the token cap, {summary['no_code']} without a code block")
+          f"({summary['best_known']}); {summary['capped']} attempts ended at the token cap, {summary['no_code']} without a code block"
+          + (f"; {summary.get('revised', 0)} revised the file after the dry run, {summary.get('revised_passed', 0)} of those passed"
+             if summary.get("tool_calls") else ""))
     pk, ok = summary["pass_at_k"], summary["optimal_at_k"]
     print("pass@k (valid):   " + "  ".join(f"{k}={v:.3f}" for k, v in pk.items()))
     print("pass@k (optimal): " + "  ".join(f"{k}={v:.3f}" for k, v in ok.items()))
