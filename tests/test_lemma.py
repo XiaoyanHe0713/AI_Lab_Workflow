@@ -1,10 +1,12 @@
 """Known-answer cases for the lemma check (the theorist's immediate reward): true identities pass, false claims fail,
 constants and symbol-free checks are trivial, forbidden constructs are invalid, duplicates count once, a crashing
 check is a failed check, and the sandbox allows SymPy for this run only."""
+import signal
+
 import pytest
 
-from lab.certifiers.lemma import (SANDBOX_ALLOW_ATTRS, SANDBOX_ALLOW_MODULES, LemmaCheckCertifier, lemma_program, validate_check,
-                                  validate_lemmas)
+from lab.certifiers.lemma import (BUDGET_MARGIN_S, SANDBOX_ALLOW_ATTRS, SANDBOX_ALLOW_MODULES, LemmaCheckCertifier, check_budget_s,
+                                  lemma_program, validate_check, validate_lemmas)
 from lab.judge import Judge, static_check
 
 TRUE_CHECKS = [
@@ -144,3 +146,45 @@ def test_lemma_program_is_straight_line_code():
     src = lemma_program(lemmas)
     assert "def _c0():" in src and "CHECKS = [(0, _c0)]" in src and "exec(" not in src and "eval(" not in src
     assert static_check(src, allow_modules=SANDBOX_ALLOW_MODULES, allow_attrs=SANDBOX_ALLOW_ATTRS) == []
+
+
+# --- the per-check time budget (the week-4 defect: one slow lemma stalled the whole file) ------------------------------
+def _certify(judge, lemmas, budget_s):
+    src = lemma_program(lemmas, budget_s=budget_s)
+    assert "_BUDGET_S = " in src and "def check():" in src and "setitimer" in src
+    sb = judge.run_sandbox(src, "check", allow_modules=SANDBOX_ALLOW_MODULES, allow_attrs=SANDBOX_ALLOW_ATTRS)
+    assert sb.ok, sb.error
+    return LemmaCheckCertifier().certify(sb.result, target="t", seed=0, lemmas=lemmas)
+
+
+def test_budget_spent_skips_the_rest_and_a_skip_is_neither_passed_nor_failed(judge):
+    lemmas = validate_lemmas([{"statement": "the integral of x squared over the interval", "check": TRUE_CHECKS[0]},
+                              {"statement": "the integral of x cubed is zero", "check": TRUE_CHECKS[1]}])
+    cert = _certify(judge, lemmas, budget_s=0.0)
+    assert [l["status"] for l in cert.details["lemmas"]] == ["skipped", "skipped"]
+    assert cert.details["skipped"] == 2 and cert.details["failed"] == 0 and cert.details["timed_out"] == 0
+    assert not cert.passed and cert.score == 0.0 and "spent by the earlier checks" in cert.details["lemmas"][0]["error"]
+    assert cert.version == "1.1.0"
+    cert = _certify(judge, lemmas, budget_s=30.0)  # with time, both run and every verdict carries its seconds and budget
+    assert [l["status"] for l in cert.details["lemmas"]] == ["passed", "passed"] and cert.passed
+    assert all(l["elapsed_s"] >= 0.0 and l["budget_s"] > 0 for l in cert.details["lemmas"])
+    assert cert.details["lemmas"][0]["budget_s"] == pytest.approx(15.0, abs=0.5)  # half of the budget for the first of two
+
+
+@pytest.mark.skipif(not hasattr(signal, "setitimer"), reason="the per-check timer needs setitimer (POSIX); here the budget only skips")
+def test_a_slow_check_is_cut_off_and_the_rest_still_run(judge):
+    slow = "sum(1 for i in range(10**9)) + simplify(x - x)"
+    assert validate_check(slow)[0]
+    lemmas = validate_lemmas([{"statement": "a check that does not finish in time", "check": slow},
+                              {"statement": "the integral of x squared over the interval", "check": TRUE_CHECKS[0]}])
+    cert = _certify(judge, lemmas, budget_s=4.0)
+    st = [l["status"] for l in cert.details["lemmas"]]
+    assert st == ["timeout", "passed"], cert.details["lemmas"]
+    assert cert.details["timed_out"] == 1 and cert.details["failed"] == 1 and cert.passed and cert.score == pytest.approx(0.5)
+    first = cert.details["lemmas"][0]
+    assert "time budget" in first["error"] and first["budget_s"] == pytest.approx(2.0, abs=0.5) and first["elapsed_s"] < 3.5
+
+
+def test_check_budget_is_the_cap_less_the_margin():
+    assert check_budget_s(120.0) == pytest.approx(120.0 - BUDGET_MARGIN_S)
+    assert check_budget_s(None) == pytest.approx(100.0) and check_budget_s(10.0) == 5.0

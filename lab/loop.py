@@ -141,7 +141,7 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
                    timeout_s: float | None = None, concurrency: int = 1, judge_concurrency: int = 4, fixtures_root=None,
                    cache_dir=None, seed: int = 0, token_budget: int | None = None, out_dir: str | Path | None = None,
                    generation_id: str | None = None, quiet: bool = True, reading_list: ReadingList | None = None,
-                   mine_detectors: bool = True) -> dict:
+                   mine_detectors: bool = True, revision_max_tokens: int | None = None) -> dict:
     if carrier not in CARRIERS:
         raise ValueError(f"carrier must be one of {CARRIERS}")
     gen_id = generation_id or new_id("gen")
@@ -152,6 +152,9 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
     gens_dir.mkdir(parents=True, exist_ok=True)
     token_budget = int(token_budget or cfg.get("harness", {}).get("lesson_token_budget", 2000))
     lesson_attempts = attempts if lesson_attempts is None else int(lesson_attempts)
+    # the theorist's revision rounds answer under their own, smaller cap (half the role's unless given): the 2026-11-06 run
+    # let two revisions run to 16,384 tokens under the role's cap of 8,192 a round
+    revision_cap = int(revision_max_tokens) if revision_max_tokens else (max(256, int(max_tokens) // 2) if max_tokens else None)
     provider = make_provider(provider_name, cfg, mode=mode, fixtures_root=fixtures_root, ledger=ledger)
     common = dict(cfg=cfg, provider_name=provider_name, provider=provider, gpu=gpu, precision=precision, units_per_hour=units_per_hour,
                   max_tokens=max_tokens, thinking_budget=thinking_budget, timeout_s=timeout_s, cache_dir=cache_dir, fixtures_root=fixtures_root)
@@ -170,7 +173,7 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
     record: dict = {"id": gen_id, "targets": list(targets), "families": families, "carrier": carrier, "attempts": attempts,
                     "lesson_attempts": lesson_attempts, "theorist_attempts": theorist_attempts, "proposal_attempts": proposal_attempts,
                     "breaker_attempts": breaker_attempts, "breaker_candidates": breaker_candidates,
-                    "tool_calls": {"builder": tool_calls, "theorist": theorist_tool_calls, "breaker": breaker_tool_calls},
+                    "tool_calls": {"builder": tool_calls, "theorist": theorist_tool_calls, "breaker": breaker_tool_calls}, "revision_max_tokens": revision_cap,
                     "provider": provider_name, "mode": provider.mode, "model": builder["model"], "model_version": builder["model_version"],
                     "precision": builder["precision"], "gpu": builder["gpu"], "adapters": "none (frozen base)",
                     "harness": ({"provider": harness.provider.name, "mode": harness.provider.mode, "model": harness.provider.model}
@@ -256,7 +259,7 @@ def run_generation(*, targets: list[str], attempts: int, cfg: dict, ledger: Ledg
             runner = TheoristRunner(theorist["role"], target, theorist["judge"], prompt=prompt, tool_calls=theorist_tool_calls, judge_gate=gate,
                                     context={"lesson_ids": lesson_ids, "citation_ids": citation_ids, "reading_list_snapshot": snapshot,
                                              "retrieval_query": query},
-                                    timeout_s=timeout_s)
+                                    timeout_s=timeout_s, revision_max_tokens=revision_cap)
             s_th = run(theorist, runner.attempt, role_name="theorist", target=target, n=theorist_attempts, stage="theorist",
                        label="theorist proposals", tool_calls_n=theorist_tool_calls)
             th_rows = ledger.attempts(group_id=s_th["group_id"])
@@ -484,6 +487,7 @@ def main(argv=None) -> int:
     ap.add_argument("--precision", default=None)
     ap.add_argument("--units-per-hour", type=float, default=None)
     ap.add_argument("--max-tokens", type=int, default=8192)
+    ap.add_argument("--revision-max-tokens", type=int, default=None, help="answer tokens of a theorist revision round (default: half of --max-tokens)")
     ap.add_argument("--thinking", type=int, default=0)
     ap.add_argument("--concurrency", type=int, default=16)
     ap.add_argument("--judge-concurrency", type=int, default=4)
@@ -513,7 +517,8 @@ def main(argv=None) -> int:
                          breaker_tool_calls=args.breaker_tool_calls, gpu=args.gpu, precision=args.precision, units_per_hour=args.units_per_hour,
                          max_tokens=args.max_tokens, thinking_budget=args.thinking, timeout_s=args.timeout, concurrency=args.concurrency,
                          judge_concurrency=args.judge_concurrency, fixtures_root=args.fixtures, seed=args.seed, token_budget=args.token_budget,
-                         out_dir=args.out, generation_id=args.generation, quiet=args.json, mine_detectors=not args.no_mine)
+                         out_dir=args.out, generation_id=args.generation, quiet=args.json, mine_detectors=not args.no_mine,
+                         revision_max_tokens=args.revision_max_tokens)
     ledger.close()
     if args.json:
         print(json.dumps(rec, indent=1, default=str))

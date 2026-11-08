@@ -8,7 +8,7 @@ import pytest
 from lab.config import lab_config
 from lab.demo import run_group
 from lab.ledger import Ledger
-from lab.smoke import smoke
+from lab.smoke import smoke, throughput
 from lab.targets import get_target, list_targets
 
 from make_fixtures import EXPECT, RESPONSES  # noqa: E402  (tests/ is on sys.path under pytest)
@@ -78,6 +78,21 @@ def test_smoke_writes_serving_and_attempt_rows(tmp_path):
         att = led.attempts(target="smoke-test")
         assert len(att) == 1 and att[0].role == "smoke" and att[0].precision == "bf16"
         assert att[0].provider == "local" and att[0].mode == "online" and att[0].api_dollars == 0.0
+
+
+def test_throughput_probe_writes_the_wave_as_one_serving_row(tmp_path):
+    cfg = lab_config(env={"LAB_ROOT": str(tmp_path)})
+    ledger = tmp_path / "ledger.sqlite"
+    row = throughput(gpu="H100", precision="bf16", ledger_path=str(ledger), cfg=cfg, provider=_StubProvider(), concurrency=8,
+                     units_per_hour=22.5)
+    assert row["ok"] == 1 and row["concurrency"] == 8 and row["requests_ok"] == 8 and row["completion_tokens"] == 8 * 30
+    assert row["tokens_per_second"] == pytest.approx(240.0 / row["latency_s"]) and row["meta"]["probe"] == "throughput"
+    assert row["meta"]["per_request_tokens_per_second_mean"] == pytest.approx(40.0) and row["meta"]["errors"] == []
+    with Ledger(ledger) as led:
+        srv = led.serving()
+        assert len(srv) == 1 and srv[0]["meta"]["concurrency"] == 8 and srv[0]["completion_tokens"] == 240
+        att = led.attempts(target="throughput-probe")
+        assert len(att) == 1 and att[0].role == "smoke" and att[0].context["concurrency"] == 8 and att[0].gpu_seconds == row["latency_s"]
 
 
 def test_targets_resolve():

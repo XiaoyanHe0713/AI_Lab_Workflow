@@ -129,17 +129,22 @@ python -m lab.demo --list
 On Colab (Pro+, background execution): open `colab/serve.ipynb`, set the GPU runtime, add the secrets
 `HF_TOKEN`, `GITHUB_TOKEN` (private repository) and, for the ablation, `OPENAI_API_KEY`, fill cell 1 and run all
 cells. Cells 4 to 9 pin the frozen base, build or reuse the 4-bit copy, start vLLM with the zero adapter, run the
-smoke test and the demo with `CONCURRENCY` parallel requests. Cells 10 and 11 (off by default: `RUN_GATE`,
+smoke test, the throughput probe (a wave of identical requests at each of `PROBE_CONCURRENCIES`; the wave's aggregate
+tokens per second says what `CONCURRENCY` to set for the long cells) and the demo with `CONCURRENCY` parallel requests.
+Cells 10 and 11 (off by default: `RUN_GATE`,
 `RUN_ABLATION`) run the gate on `GATE_TARGETS` with the thinking ladder and `GATE_MAX_TOKENS` answer tokens, and the ablation harness online; both write
 to the ledger on Drive, the memos to `gates/` and the reports to `ablations/` next to it. Cell 12 (`RECORD_FIXTURES`,
 no GPU needed) records the harness tests' GPT fixtures with the same secret (the loop's lesson-extraction fixtures included),
 replays them once, and exports them with the librarian's reviews to `exports/recorded-fixtures/` on Drive for a commit from
 your own machine (Colab pulls read-only). Week 4 (all off by default): cell 13 (`RUN_LOOP`) runs one generation of the loop
 on `LOOP_TARGETS` (the quadrature curriculum: interval d7, square d5, triangle d2, d3, d4) with 64 attempts per gate group at
-`GATE_MAX_TOKENS` answer tokens and GPT for lessons and dossiers; cell 14 (`RUN_BASELINES`) runs the gate on one target of
-every other certifier family and writes the frozen baseline record; cell 15 (`RUN_SEARCH_BASELINE`) runs 256 attempts of the
-frozen base on `quad-square-d5`; cell 17 (`RUN_MATRIX`) runs matrix cells from the loop's archive, with `MATRIX_CARRIERS`
-holding the two control rows of week 5 and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 16
+`GATE_MAX_TOKENS` answer tokens (a theorist revision round under `LOOP_REVISION_MAX_TOKENS`) and GPT for lessons and
+dossiers; cell 14 (`RUN_BASELINES`) runs the gate on one target of every other certifier family and writes the frozen
+baseline record; cell 15 (`RUN_SEARCH_BASELINE`) runs 256 attempts of the frozen base on `quad-square-d5` from seed
+`SEARCH_BASELINE_SEED`, past the loop's gate group; cell 17 (`RUN_MATRIX`) runs matrix cells from the loop's archive, since
+2026-11-08 with the defaults narrowed for the next session (the square alone; the baseline, the framing control, the second
+try, the lessons and the redacted lessons at `MATRIX_SEEDS` x `MATRIX_ATTEMPTS` = 5 x 32; cell 1 says why and keeps the
+2026-11-07 set) and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 16
 (`RUN_MINE`) mines detectors on the largest base group of each target in the ledger (GPT proposes them with the secret,
 which cell 2 reads once while the browser is attached; the built-in detectors stand alone without it) and prints their
 firing tables, the librarian queries they name and the diagnosis-only texts. It needs no GPU, so a CPU runtime serves; in a

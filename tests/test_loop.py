@@ -61,6 +61,7 @@ def test_generation_end_to_end_on_fixtures(tmp_path):
             assert b["attempts"] == 5 and b["confirmed_breaks"] == BREAKER_EXPECT["confirmed"] and b["reward_mean"] == 0.0
             assert b["outside_class"] >= 1 and b["no_witness"] >= 1 and b["dossier_id"] is None
     assert rec["exploit_alarms"] == []
+    assert rec["revision_max_tokens"] is None  # no role cap was given here, so the revision rounds run uncapped too
     # the archive snapshot and the ledger pointer
     assert rec["archive_snapshot"]["count"] == 6 and len(rec["archive_snapshot"]["sha256"]) == 16
     assert rec["ledger_pointer"]["rows"] == led.count() and rec["ledger_pointer"]["last_attempt_id"]

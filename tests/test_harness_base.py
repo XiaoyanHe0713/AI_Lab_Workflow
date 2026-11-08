@@ -56,6 +56,9 @@ class Toy(Harness):
     ('prefix {"a": {"b": 2}} suffix', {"a": {"b": 2}}),
     ('[1, 2, 3]', [1, 2, 3]),
     ('```\n{"x": "y"}\n```', {"x": "y"}),
+    # the week-4 defect: prose after the object with a brace in it, or a brace in the prose before it: the first balanced object
+    ('{"lemmas": [1]}\n\nNote: the set {x, y} is empty.', {"lemmas": [1]}),
+    ('the orbit {a, b} then {"structure": "seven nodes"} and {more}', {"structure": "seven nodes"}),
 ])
 def test_parse_json(text, expected):
     assert parse_json(text) == expected

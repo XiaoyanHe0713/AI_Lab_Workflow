@@ -28,24 +28,45 @@ _FENCE = re.compile(r"```(?:json)?[ \t]*\r?\n(.*?)```", re.S)
 
 
 def parse_json(text: str) -> Any:
-    """The JSON object or array in a reply: a fenced block, the whole text, or the outermost braces."""
+    """The JSON object or array in a reply: a fenced block, the whole text, the outermost braces, the first balanced
+    object in the text (a reply with prose after its JSON, or a brace in the prose before it), and only then an array
+    the same way: a reply holding an object is that object, whatever arrays it contains."""
     if text is None:
         raise ValueError("empty reply")
     m = _FENCE.search(text)
     candidates = [m.group(1)] if m else []
     candidates.append(text)
-    start, end = text.find("{"), text.rfind("}")
-    if start != -1 and end > start:
-        candidates.append(text[start:end + 1])
-    start, end = text.find("["), text.rfind("]")
-    if start != -1 and end > start:
-        candidates.append(text[start:end + 1])
     last = None
-    for c in candidates:
-        try:
-            return json.loads(c.strip())
-        except ValueError as e:
-            last = e
+
+    def attempt(cands):
+        nonlocal last
+        for c in cands:
+            try:
+                return True, json.loads(c.strip())
+            except ValueError as e:
+                last = e
+        return False, None
+
+    def scan(opener):
+        decoder = json.JSONDecoder()
+        for pos, ch in enumerate(text):
+            if ch == opener:
+                try:
+                    return True, decoder.raw_decode(text, pos)[0]
+                except ValueError:
+                    continue
+        return False, None
+
+    for opener, closer in (("{", "}"), ("[", "]")):
+        start, end = text.find(opener), text.rfind(closer)
+        slices = [text[start:end + 1]] if start != -1 and end > start else []
+        ok, value = attempt(candidates + slices)
+        if ok:
+            return value
+        candidates = []
+        ok, value = scan(opener)
+        if ok:
+            return value
     raise ValueError(f"no JSON in the reply: {last}")
 
 

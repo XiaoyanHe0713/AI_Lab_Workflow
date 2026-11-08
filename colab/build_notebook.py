@@ -57,6 +57,7 @@ MAKE_ZERO_ADAPTER = True                        #@param {type:"boolean"}
 VERIFY_LOCAL_HASH = False                       #@param {type:"boolean"}
 OPEN_TUNNEL = False                             #@param {type:"boolean"}
 CONCURRENCY = 16                                #@param {type:"integer"}
+PROBE_CONCURRENCIES = "16 32 48"                #@param {type:"string"}
 RUN_GATE = False                                #@param {type:"boolean"}
 GATE_TARGETS = "quad-square-d5 quad-triangle-d4"  #@param {type:"string"}
 GATE_ATTEMPTS = 64                              #@param {type:"integer"}
@@ -75,18 +76,20 @@ LOOP_BREAKER_ATTEMPTS = 8                       #@param {type:"integer"}
 LOOP_BREAKER_CANDIDATES = 4                     #@param {type:"integer"}
 LOOP_TOOL_CALLS = 0                             #@param {type:"integer"}
 LOOP_CARRIER = "lessons"                        #@param ["lessons", "none"]
+LOOP_REVISION_MAX_TOKENS = 4096                 #@param {type:"integer"}
 RUN_BASELINES = False                           #@param {type:"boolean"}
 BASELINE_TARGETS = "pep-gd-strongly-convex-distance order-ode-p4 opcount-dft-n16 ssp-s3-p3 stab-real-s4-p4"  #@param {type:"string"}
 BASELINE_ATTEMPTS = 64                          #@param {type:"integer"}
 RUN_SEARCH_BASELINE = False                     #@param {type:"boolean"}
 SEARCH_BASELINE_TARGET = "quad-square-d5"       #@param {type:"string"}
 SEARCH_BASELINE_ATTEMPTS = 256                  #@param {type:"integer"}
+SEARCH_BASELINE_SEED = 64                       #@param {type:"integer"}
 RUN_MATRIX = False                              #@param {type:"boolean"}
 MATRIX_SOURCES = "quad-d7"                      #@param {type:"string"}
-MATRIX_TARGETS = "quad-square-d5 quad-triangle-d4"  #@param {type:"string"}
-MATRIX_CARRIERS = "none second_try diagnosis_only lessons process_only unrelated skills"  #@param {type:"string"}
+MATRIX_TARGETS = "quad-square-d5"               #@param {type:"string"}
+MATRIX_CARRIERS = "none unrelated second_try lessons process_only"  #@param {type:"string"}
 MATRIX_SEEDS = 5                                #@param {type:"integer"}
-MATRIX_ATTEMPTS = 16                            #@param {type:"integer"}
+MATRIX_ATTEMPTS = 32                            #@param {type:"integer"}
 MATRIX_TOOL_CALLS = 0                           #@param {type:"integer"}
 RUN_MINE = False                                #@param {type:"boolean"}
 MINE_TARGETS = "quad-d7 quad-square-d5 quad-triangle-d2 quad-triangle-d3 quad-triangle-d4"  #@param {type:"string"}
@@ -98,15 +101,27 @@ MINE_ALL_GROUPS = False                         #@param {type:"boolean"}
 #   the breaker attacks LOOP_BREAKER_CANDIDATES survivors with LOOP_BREAKER_ATTEMPTS each; survivors enter the archive; GPT
 #   (secret OPENAI_API_KEY) extracts lessons and writes dossiers; without the secret the loop runs search-only (--no-harness).
 #   LOOP_TOOL_CALLS = 1 gives the builder one certifier dry run and a revision per attempt (the gate memo then says so).
+#   LOOP_REVISION_MAX_TOKENS caps a theorist revision round on its own (the 2026-11-06 run let two revisions run to 16,384
+#   tokens under the role's cap of 8,192 a round); the lemma file's checks share a time budget below the sandbox cap, so one
+#   slow check is cut off (a timeout, a failed check) and the rest still run.
 # RUN_BASELINES (week 4): the gate on one target per remaining certifier family (BASELINE_TARGETS, 64 attempts each), then
 #   the frozen baseline record over every family in the ledger (python -m lab.harness.checker --baseline --reportable-only).
 # RUN_SEARCH_BASELINE (week 4): SEARCH_BASELINE_ATTEMPTS attempts of the frozen base on SEARCH_BASELINE_TARGET as one gate
-#   group: does the 7-point rule ever appear without training?
+#   group from seed SEARCH_BASELINE_SEED: does the 7-point rule ever appear without training? The loop's gate group uses seeds
+#   0 to LOOP_ATTEMPTS - 1, so a baseline meant to be independent of it starts past them (the 2026-11-06 baseline at seed 0
+#   shared its first 64 samples with the gate group).
 # RUN_MATRIX (week 4): transfer-matrix cells from the archive of MATRIX_SOURCES to MATRIX_TARGETS with MATRIX_CARRIERS at
 #   MATRIX_SEEDS seeds x MATRIX_ATTEMPTS attempts (lessons are never measured on the family they came from; the program refuses).
 #   Week 5: the carriers second_try (one certifier dry run, no lesson) and diagnosis_only (the program's diagnosis of the
 #   target's own none cell, no remedy) are the two target-side control rows; MATRIX_TOOL_CALLS gives every content carrier that
 #   many dry runs; every cell reports its symptom rates (how often each kept detector fires) and the change against the baseline.
+#   The defaults since 2026-11-08 are the matrix narrowed for the next session after the 2026-11-07 run: the square alone (the
+#   degree-4 triangle's pass rate measured nothing at 0.02), the five rows that were not flat twice at 3 x 16 (the baseline,
+#   the unrelated row, which with no other family in the archive is the framing control and the reference every gain should
+#   be read against, the second try, the lessons, the redacted lessons; diagnosis_only and skills dropped), and 5 x 32 = 160
+#   attempts per cell, where the standard error of a paired difference of pass rates is about 0.05 and the second try's Radon
+#   count rests on 160 attempts. The 2026-11-07 run's full set: MATRIX_TARGETS "quad-square-d5 quad-triangle-d4",
+#   MATRIX_CARRIERS "none second_try diagnosis_only lessons process_only unrelated skills" at 3 x 16.
 # RUN_MINE (week 5; cell 16, ahead of the matrix; any runtime, a GPU session included): mine detectors on the largest
 #   plain-prompt group (dry-run groups excluded) of each MINE_TARGETS target (the loop's base groups): GPT proposes them when the
 #   secret is set, the built-in detectors alone otherwise; every candidate is verified on the held-out half; the kept detectors'
@@ -117,7 +132,10 @@ MINE_ALL_GROUPS = False                         #@param {type:"boolean"}
 # QUANT_METHOD: "awq" builds a W4A16 copy once with llm-compressor (A100, about an hour) and keeps it on Drive;
 #               "bnb" quantizes in flight with bitsandbytes NF4 at load time (nothing to build, slower serving).
 # UNITS_PER_HOUR: the rate shown in Colab's Resources panel for this GPU; 0 means use config/prices.yaml.
-# CONCURRENCY: attempts of a group sent as parallel requests (the server runs up to --max-num-seqs sequences).
+# CONCURRENCY: attempts of a group sent as parallel requests (the server runs up to --max-num-seqs sequences, 64 by default).
+# PROBE_CONCURRENCIES: cell 8 sends a wave of identical requests at each of these and prints the wave's aggregate tokens per
+#   second (the 2026-11-07 session moved about 170 tokens per second at 16 in flight on a 96 GB card). Set CONCURRENCY to the
+#   largest value whose wave still gained, rerun cell 1, then the long cells: they read CONCURRENCY from this cell.
 # GATE_MAX_TOKENS: answer tokens per attempt in the gate (the first G4 run hit the 4096 cap on most triangle attempts).
 # GATE_THINKING: thinking budgets; a positive budget caps the reasoning and then asks for the answer (two requests).
 # RUN_GATE / RUN_ABLATION (week 3): the training gate on GATE_TARGETS and the ablation harness; the ablation needs
@@ -421,9 +439,9 @@ print(f"endpoint ready after {READY_S} s: {os.environ['LAB_ENDPOINT']} (model {m
 """)
 
 code("""
-#@title 8. Smoke test: one completion at this precision, tokens per second and units per hour into the ledger
+#@title 8. Smoke test: one completion at this precision, tokens per second and units per hour into the ledger; then the throughput probe at PROBE_CONCURRENCIES
 import json
-from lab.smoke import smoke
+from lab.smoke import smoke, throughput
 
 if RUN_SMOKE:
     rows = [smoke(gpu=GPU, precision=PRECISION, server=SERVER_LABEL, units_per_hour=UNITS_PER_HOUR)]
@@ -434,6 +452,15 @@ if RUN_SMOKE:
                                              "tokens_per_second", "units_per_hour", "dollars_per_hour", "ok")}, default=str))
         if not r["ok"]:
             print("  error:", r["meta"]["error"])
+    # the throughput probe: a wave of identical requests at each concurrency; tokens_per_second is the wave's aggregate rate,
+    # the rate a group of attempts gets at that CONCURRENCY (the single-stream rate above is not)
+    for n in [int(v) for v in PROBE_CONCURRENCIES.split()]:
+        w = throughput(gpu=GPU, precision=PRECISION, server=SERVER_LABEL, concurrency=n, units_per_hour=UNITS_PER_HOUR)
+        print(json.dumps({k: w[k] for k in ("concurrency", "requests_ok", "completion_tokens", "latency_s", "tokens_per_second",
+                                             "dollars", "ok")}, default=str))
+        if w["meta"]["errors"]:
+            print("  errors:", w["meta"]["errors"])
+    print("set CONCURRENCY in cell 1 to the largest value whose wave still gained, rerun cell 1, then the long cells")
 """)
 
 code("""
@@ -532,7 +559,8 @@ if RUN_LOOP:
     argv = ["--targets", *LOOP_TARGETS.split(), "--attempts", str(LOOP_ATTEMPTS), "--theorist-attempts", str(LOOP_THEORIST_ATTEMPTS),
             "--proposal-attempts", str(LOOP_PROPOSAL_ATTEMPTS), "--breaker-attempts", str(LOOP_BREAKER_ATTEMPTS),
             "--breaker-candidates", str(LOOP_BREAKER_CANDIDATES), "--tool-calls", str(LOOP_TOOL_CALLS), "--carrier", LOOP_CARRIER,
-            "--max-tokens", str(GATE_MAX_TOKENS), "--thinking", "0", "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION]
+            "--max-tokens", str(GATE_MAX_TOKENS), "--revision-max-tokens", str(LOOP_REVISION_MAX_TOKENS), "--thinking", "0",
+            "--concurrency", str(CONCURRENCY), "--gpu", GPU, "--precision", PRECISION]
     if UNITS_PER_HOUR:
         argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
     key = secret("OPENAI_API_KEY")
@@ -569,7 +597,8 @@ from lab.gate import main as gate_main
 
 if RUN_SEARCH_BASELINE:
     argv = ["--targets", SEARCH_BASELINE_TARGET, "--attempts", str(SEARCH_BASELINE_ATTEMPTS), "--thinking", "0", "--gpu", GPU,
-            "--precision", PRECISION, "--concurrency", str(CONCURRENCY), "--max-tokens", str(GATE_MAX_TOKENS)]
+            "--precision", PRECISION, "--concurrency", str(CONCURRENCY), "--max-tokens", str(GATE_MAX_TOKENS),
+            "--seed", str(SEARCH_BASELINE_SEED)]  # past the loop's gate group (seeds 0 to LOOP_ATTEMPTS - 1): an independent sample
     if UNITS_PER_HOUR:
         argv += ["--units-per-hour", str(UNITS_PER_HOUR)]
     gate_main(argv)
@@ -611,7 +640,8 @@ code("""
 # columns: MATRIX_TARGETS in their settings. Every cell reports its symptom rates and the change against the baseline.
 # Needs the loop (cell 13) to have run with GPT so the bank holds lessons; the report lands under matrices/ on Drive.
 # Cell 16 (RUN_MINE) runs first so that the detectors GPT proposed and the program kept enter the diagnosis row; this cell
-# mines the built-in ones itself.
+# mines the built-in ones itself. The defaults since 2026-11-08 narrow the matrix to the square and five rows at 5 x 32 (cell 1
+# says why); the unrelated row with no other family in the archive is the framing control, the reference every gain is read against.
 from lab.harness.matrix import main as matrix_main
 
 if RUN_MATRIX:

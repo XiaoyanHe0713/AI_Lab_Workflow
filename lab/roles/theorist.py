@@ -6,7 +6,8 @@ every document a citation row) and the scoreboard entry, which is in the prompt.
 lemma-check certificate: pass when at least one valid check passes, the score the fraction of lemmas that pass.
 The delayed credit, the best certificate among builds derived from the proposal minus the frozen baseline, is
 computed by the loop at the end of a generation (lab/loop.py). With `tool_calls` >= 1 the check results go back to
-the model for a revision; the final proposal is the one scored.
+the model for a revision under its own, smaller token cap (`revision_max_tokens`); the final proposal is the one scored.
+The lemma file gets a time budget below the sandbox cap, shared among its checks, so one slow check cannot stall the rest.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ import json
 import time
 from typing import Any
 
-from ..certifiers.lemma import (SANDBOX_ALLOW_ATTRS, SANDBOX_ALLOW_MODULES, LemmaCheckCertifier, lemma_program,
+from ..certifiers.lemma import (SANDBOX_ALLOW_ATTRS, SANDBOX_ALLOW_MODULES, LemmaCheckCertifier, check_budget_s, lemma_program,
                                 validate_lemmas)
 from ..episode import JudgeGate, Outcome, judge_sandbox_cpu
 from ..harness.base import parse_json
@@ -102,7 +103,8 @@ class TheoristRunner:
     """One theorist attempt: the prompt, the proposal, the lemma checks in the sandbox, `tool_calls` revision rounds."""
 
     def __init__(self, role: Role, target: Target, judge: Judge, *, prompt: str | None = None, tool_calls: int = 0,
-                 judge_gate: JudgeGate | None = None, context: dict | None = None, max_lemmas: int = 5, timeout_s: float | None = None):
+                 judge_gate: JudgeGate | None = None, context: dict | None = None, max_lemmas: int = 5, timeout_s: float | None = None,
+                 revision_max_tokens: int | None = None):
         self.role = role
         self.target = target
         self.judge = judge
@@ -112,6 +114,8 @@ class TheoristRunner:
         self.context = dict(context or {})
         self.certifier = LemmaCheckCertifier()
         self.timeout_s = timeout_s
+        self.budget_s = check_budget_s(timeout_s or getattr(judge, "timeout_s", None))
+        self.revision_max_tokens = int(revision_max_tokens) if revision_max_tokens else None
 
     def check(self, proposal: dict, seed: int) -> tuple[Any, Any, float]:
         """Run the valid lemma checks in the sandbox with SymPy allowed; returns (certificate, sandbox, cpu)."""
@@ -119,7 +123,7 @@ class TheoristRunner:
         if not any(l["status"] == "valid" for l in lemmas):
             cert = self.certifier.certify([], target=self.target.id, seed=seed, lemmas=lemmas)
             return cert, None, 0.0
-        src = lemma_program(lemmas)
+        src = lemma_program(lemmas, budget_s=self.budget_s)
         with self.gate:
             cpu0 = time.process_time()
             sb = self.judge.run_sandbox(src, "check", timeout_s=self.timeout_s, allow_modules=SANDBOX_ALLOW_MODULES,
@@ -137,11 +141,12 @@ class TheoristRunner:
         proposal, perr = parse_proposal(res.completion.text)
         cert, sb, judge_cpu = self.check(proposal, seed)
         tool_log.append({"tool": "lemma_check", "round": 1, "proposed": cert.details.get("proposed"), "passed": cert.details.get("passed"),
-                         "failed": cert.details.get("failed"), "rejected": cert.details.get("rejected"), "runtime_s": cert.runtime_s})
+                         "failed": cert.details.get("failed"), "rejected": cert.details.get("rejected"), "timed_out": cert.details.get("timed_out"),
+                         "skipped": cert.details.get("skipped"), "runtime_s": cert.runtime_s})
         for r in range(self.tool_calls):
             feedback = REVISION_PROMPT.format(results=results_text(cert.details.get("lemmas", [])))
             messages = messages + [{"role": "assistant", "content": strip_thinking(res.completion.text)}, {"role": "user", "content": feedback}]
-            res = self.role.attempt_messages(messages, seed=seed)
+            res = self.role.attempt_messages(messages, seed=seed, max_tokens=self.revision_max_tokens)
             completions.append(res.completion)
             tool_log += res.tool_log
             outputs.append(res.completion.text)
@@ -149,14 +154,15 @@ class TheoristRunner:
             cert, sb, cpu = self.check(proposal, seed)
             judge_cpu += cpu
             tool_log.append({"tool": "lemma_check", "round": r + 2, "proposed": cert.details.get("proposed"), "passed": cert.details.get("passed"),
-                             "failed": cert.details.get("failed"), "rejected": cert.details.get("rejected"), "runtime_s": cert.runtime_s})
+                             "failed": cert.details.get("failed"), "rejected": cert.details.get("rejected"), "timed_out": cert.details.get("timed_out"),
+                             "skipped": cert.details.get("skipped"), "runtime_s": cert.runtime_s})
         if perr:   # the reply held no proposal: that is the reason, not the empty lemma list it implies
             cert.error = perr
         final = {"lemmas": cert.details.get("lemmas", []), "structure": proposal["structure"], "hypotheses": proposal["hypotheses"],
                  "passed": cert.details.get("passed", 0), "proposed": cert.details.get("proposed", 0)}
         return Outcome(seed=seed, index=index, certificate=cert, output=res.completion.text, tool_log=tool_log, completions=completions,
                        prompt_hash=res.prompt_hash, code=None, sandbox=sb, judge_cpu=judge_cpu, context=dict(self.context),
-                       meta={"proposal": final, "lemma_program": lemma_program(final["lemmas"]) if final["lemmas"] else None},
+                       meta={"proposal": final, "lemma_program": lemma_program(final["lemmas"], budget_s=self.budget_s) if final["lemmas"] else None},
                        round_outputs=outputs)
 
 

@@ -391,20 +391,22 @@ class Role:
     def attempt(self, user_prompt: str, *, seed: int | None = None) -> RoleResult:
         return self.attempt_messages(self.build_messages(user_prompt), seed=seed)
 
-    def attempt_messages(self, messages: list[dict], *, seed: int | None = None) -> RoleResult:
+    def attempt_messages(self, messages: list[dict], *, seed: int | None = None, max_tokens: int | None = None) -> RoleResult:
         """One model call on a conversation (the opening prompt, or the opening plus earlier rounds and tool
-        results); the thinking budget applies to this call."""
+        results); the thinking budget applies to this call. `max_tokens` caps this call alone (a revision round's
+        own, smaller cap); the role's cap otherwise."""
+        cap = int(max_tokens) if max_tokens else self.max_tokens
         extra = dict(self.extra_body)
         if self.provider.kind == "local":
             # Qwen3-family chat template: thinking off at budget 0 (vLLM/SGLang chat_template_kwargs)
             extra.setdefault("chat_template_kwargs", {})
             extra["chat_template_kwargs"].setdefault("enable_thinking", self.thinking_budget > 0)
         if self.provider.kind == "local" and self.thinking_budget > 0 and self.provider.mode != "offline":
-            completion, tool_log = self._attempt_with_thinking_budget(messages, extra, seed)
+            completion, tool_log = self._attempt_with_thinking_budget(messages, extra, seed, cap)
         else:
-            completion = self.provider.complete(messages, temperature=self.temperature, max_tokens=self.max_tokens,
+            completion = self.provider.complete(messages, temperature=self.temperature, max_tokens=cap,
                                                 seed=seed, model=self.served_model, extra_body=extra or None)
-            tool_log = [self._log(completion, seed, "chat.completions")]
+            tool_log = [self._log(completion, seed, "chat.completions", max_tokens=cap)]
         turn = sum(1 for m in messages if m.get("role") == "assistant") + 1
         for entry in tool_log:
             entry["round"] = turn
@@ -416,7 +418,7 @@ class Role:
                 "latency_s": completion.latency_s, "prompt_tokens": completion.prompt_tokens,
                 "completion_tokens": completion.completion_tokens, **more}
 
-    def _attempt_with_thinking_budget(self, messages: list[dict], extra: dict, seed) -> tuple[Completion, list]:
+    def _attempt_with_thinking_budget(self, messages: list[dict], extra: dict, seed, max_tokens: int | None = None) -> tuple[Completion, list]:
         """A real thinking budget on an OpenAI-compatible server: one request generates the reasoning with max_tokens
         equal to the budget and stops at the closing tag; if the budget runs out the reasoning is closed with Qwen's
         early-stop sentence; a second request continues the assistant message after </think> and writes the answer
@@ -436,7 +438,7 @@ class Role:
                 "closed_by": "budget" if budget_hit else "model"}
         try:
             answer = self.provider.complete(messages + [{"role": "assistant", "content": prefix}], temperature=self.temperature,
-                                            max_tokens=self.max_tokens, seed=seed, model=self.served_model,
+                                            max_tokens=max_tokens or self.max_tokens, seed=seed, model=self.served_model,
                                             extra_body={**extra, "continue_final_message": True, "add_generation_prompt": False})
         except Exception as e:  # the server could not continue the message: the attempt keeps its thinking, no answer
             logs.append({"tool": "chat.completions:answer", "error": f"{type(e).__name__}: {e}"})

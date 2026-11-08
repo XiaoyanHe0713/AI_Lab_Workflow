@@ -81,7 +81,9 @@ def test_theorist_proposals_from_fixtures_with_a_revision_round(tmp_path):
     assert "Scoreboard entry: best known value 7.0" in prompt and "[" in prompt and "integrate(x**2, (x, -1, 1))" in prompt
     for tool_calls, expected in ((0, THEORIST_EXPECT["passed_round1"]), (1, THEORIST_EXPECT["passed_round2"])):
         runner = TheoristRunner(s["role"], target, s["judge"], prompt=prompt, tool_calls=tool_calls, timeout_s=60,
-                                context={"citation_ids": ret["citation_ids"], "reading_list_snapshot": ret["snapshot"]})
+                                context={"citation_ids": ret["citation_ids"], "reading_list_snapshot": ret["snapshot"]},
+                                revision_max_tokens=1234)
+        assert runner.budget_s == 40.0  # the sandbox cap of 60 s less the margin: the lemma file's own budget
         summ = _run(s, runner, led, target, 4, "theorist", tool_calls=tool_calls)
         assert summ["passed"] == expected and summ["role"] == "theorist" and summ["tool_calls"] == tool_calls
         rows = led.attempts(group_id=summ["group_id"])
@@ -96,6 +98,9 @@ def test_theorist_proposals_from_fixtures_with_a_revision_round(tmp_path):
             assert tools == ["chat.completions", "lemma_check", "judge"] and good.meta["rounds"] == 1
         else:
             assert tools == ["chat.completions", "lemma_check", "chat.completions", "lemma_check", "judge"] and good.meta["rounds"] == 2
+            # the revision answers under its own cap; the opening round under the role's (the fixture key ignores the cap)
+            assert good.tool_log[0]["max_tokens"] == s["role"].max_tokens and good.tool_log[2]["max_tokens"] == 1234
+            assert good.tool_log[1]["timed_out"] == 0 and good.tool_log[1]["skipped"] == 0
             assert good.meta["round_outputs"] and len(good.meta["round_outputs"]) == 2
         false = by_seed[1]
         if tool_calls == 0:
