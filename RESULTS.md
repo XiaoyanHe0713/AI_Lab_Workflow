@@ -443,8 +443,8 @@ no GPU time, and then the matrix with the control rows on the next session.
 ## Tests
 
 `pytest`: 439 tests; 430 pass and 9 are skipped (the two live-API smoke tests without keys, the six harness and loop tests
-parametrized over Claude until its fixtures are recorded, and the loop's lesson-extraction test over GPT until the notebook's
-recording cell has run on this branch). New known-answer cases (`tests/test_week5.py`): mining without a harness on the demo group,
+parametrized over Claude until its fixtures are recorded, and the loop's lesson-extraction test over GPT until the fixtures that
+cell 12 recorded on 2026-11-07 are copied from Drive into the repository). New known-answer cases (`tests/test_week5.py`): mining without a harness on the demo group,
 the firing table, the query and the diagnosis-only text a diagnosis names, mining from the ledger and its command; the
 extraction prompt with and without detectors and the detectors a lesson addresses through the bank; the two control rows
 and the symptom-change column on the synthetic matrix; the loop mining its base group and recording symptom rates. The
@@ -475,10 +475,120 @@ on the half the proposer never saw and every firing is a failure):
   added, the 2 breaker sequences for a fourth `quad-d7` candidate were re-keyed because the generator now mirrors the loop's
   8 attempts per rung, and 1 orphan from the week-3 re-keying was removed.
 
-## What the first real run should show
+## The first run on Colab (cells 12, 16 and 17; 2026-11-07, G4, bf16)
 
-Cell 17 on the cell-13 ledger: which detectors are kept per rung, and on the triangle rungs whether the weight-sum detector
-(the area dropped) or the no-code detector (the token cap) carries the failures; the lesson writer on the next generation
-then names the failure each lesson addresses. The matrix with `second_try` and `diagnosis_only` beside `lessons`: if the
-diagnosis-only row matches the lessons row the model held the knowledge and lacked the diagnosis, if it matches the baseline
-knowledge is the barrier, and the second-try row is the floor both are read against.
+Branch `build/week-5-diagnosis-controls` at 1b9f9c0 (week 5 with the week-4 run record merged in); an RTX PRO 6000
+Blackwell reported as tier G4; vLLM ready after 1110 s with the zero adapter; smoke 19.6 tokens/s base, 18.1 through the
+adapter. Session: 4.55 h, 53.5 units, $5.35 at the table rate (unconfirmed). The notebook ran with `RECORD_FIXTURES`,
+`RUN_MATRIX` and `RUN_MINE` on and `RUN_DEMO` off. Cell 12 recorded six harness and loop tests against GPT (3 min 9 s),
+replayed them offline and exported them to `exports/recorded-fixtures/` on Drive, where they wait for a copy into the
+repository. Cell 17 ran after cell 16 and without GPT: its secret lookup returned nothing after the 4.5-hour matrix cell,
+although cell 12 had read the key in the same runtime, so the built-in detectors stood alone.
+
+### The matrix with the two control rows (cell 16)
+
+`python -m lab.harness.matrix --sources quad-d7 --targets quad-square-d5 quad-triangle-d4 --carriers none second_try
+diagnosis_only lessons process_only unrelated skills --seeds 3 --attempts 16 --max-tokens 8192 --thinking 0 --concurrency 16
+--no-harness --tool-calls 0`, matrix `mtx_7db6a53d87d24a62`: 14 cells, 42 groups of 16 attempts, $4.21 of GPU time for
+the twelve carrier cells at the table rate. The experience is the loop's quad-d7 archive and lessons. The unrelated
+control found no other family in the archive, so its experience set was empty and its prompt is the plain prompt plus one
+sentence, "(The notebook holds no lessons for this family yet.)": that row measures the sentence. The diagnosis-only row's
+text came from the built-in detectors mined on each target's `none` cell (48 attempts): on the square "too low degree" at
+0.10 and "weights do not sum to the volume" at 0.17; on the triangle "no code block" 0.33, "sandbox crash" 0.17, "too low
+degree" 0.23 and "weight sum" 0.25. The second-try row had one certifier dry run and a revision per attempt and no lesson.
+
+quad-square-d5 (best known 7 nodes). Failures of 48 attempts by the judge's reason; the symptom change is the kept
+detector's firing rate with the carrier minus without:
+
+| cell | valid / 48 | gain in pass rate [95% CI] | Radon's rule | best | not exact | crash | no code block | tokens per attempt | symptom change |
+|---|---|---|---|---|---|---|---|---|---|
+| none (baseline) | 34 (0.708) | | 0 | 8 | 13 | 0 | 1 | 2,743 | |
+| second_try | 40 (0.833) | +0.125 [+0.000, +0.250] | 3 | 7 | 6 | 1 | 1 | 5,719 | weight sum -0.12, too low degree -0.02 |
+| diagnosis_only | 34 (0.708) | +0.000 [-0.062, +0.125] | 0 | 8 | 13 | 1 | 0 | 3,171 | too low degree -0.06, weight sum +0.06 |
+| lessons | 35 (0.729) | +0.021 [-0.250, +0.250] | 0 | 9 | 1 | 9 | 3 | 3,035 | weight sum -0.17, too low degree -0.08 |
+| skills | 40 (0.833) | +0.125 [-0.188, +0.375] | 0 | 8 | 7 | 0 | 1 | 4,567 | too low degree -0.06, weight sum -0.06 |
+| process_only | 27 (0.562) | -0.146 [-0.250, +0.000] | 0 | 9 | 0 | 19 | 2 | 1,918 | weight sum -0.17, too low degree -0.10 |
+| unrelated (the empty notebook sentence) | 39 (0.812) | +0.104 [+0.000, +0.188] | 1 | 7 | 7 | 1 | 1 | 2,795 | too low degree -0.06, weight sum -0.06 |
+
+quad-triangle-d4 (best known 6 nodes):
+
+| cell | valid / 48 | gain in pass rate [95% CI] | best | not exact | crash | no code block | at the cap | tokens per attempt | symptom change |
+|---|---|---|---|---|---|---|---|---|---|
+| none (baseline) | 1 (0.021) | | 15 | 23 | 8 | 16 | 22 | 6,639 | |
+| second_try | 2 (0.042) | +0.021 [+0.000, +0.062] | 15 | 34 | 6 | 6 | 6 | 10,149 | no code block -0.21, too low degree +0.13, weight sum +0.10 |
+| diagnosis_only | 1 (0.021) | +0.000 [+0.000, +0.000] | 9 | 18 | 11 | 18 | 23 | 7,040 | weight sum -0.08, no code block +0.04, crash -0.02 |
+| lessons | 1 (0.021) | +0.000 [-0.062, +0.062] | 9 | 8 | 13 | 26 | 28 | 6,978 | no code block +0.21, weight sum -0.17, too low degree -0.15 |
+| skills | 0 | -0.021 [-0.062, +0.000] | - | 21 | 10 | 17 | 22 | 7,572 | too low degree -0.06, crash -0.04, no code block +0.02 |
+| process_only | 0 | -0.021 [-0.062, +0.000] | - | 4 | 26 | 18 | 19 | 6,114 | crash +0.38, weight sum -0.23, too low degree -0.17 |
+| unrelated (the empty notebook sentence) | 0 | -0.021 [-0.062, +0.000] | - | 9 | 9 | 30 | 33 | 7,431 | no code block +0.29, weight sum -0.19, too low degree -0.10 |
+
+What the run says:
+
+1. The noise floor first. At 3 seeds x 16 the standard error of a paired difference of pass rates on the square is about
+   0.09, and the percentile bootstrap over three seed blocks gives intervals such as [+0.000, +0.000]. The empty-notebook
+   row is the prompt-perturbation floor: one sentence added to the plain prompt gave +0.104 on the square and raised the
+   triangle's no-code rate from 0.33 to 0.625 (three standard errors, 33 of 48 attempts at the token cap). Every pass-rate
+   gain on the square, from -0.146 to +0.125, lies within what that sentence did; at three seeds no carrier is
+   distinguishable from the floor by its pass rate.
+2. The second try is the only row that moved the optimal count. Radon's 7-point rule appeared three times in 48 (seeds 12,
+   1009 and 1013; two of the three are the rule with a^2 = 14/15, b^2 = 1/3, c^2 = 3/5 and weights 8/7, 20/63, 5/9), where
+   the plain prompt gave it 0 times in 48 here and 0 in 64 and 0 in 256 on 2026-11-06 at the same settings; the
+   empty-notebook row gave it once (seed 1006); the diagnosis, the lessons, the skills and the redacted lessons never. All
+   four Radon rules of the session lie in the 288 attempts whose prompt differed from the plain one, against 0 in the 368
+   plain attempts (p about 0.04 if attempts are exchangeable), and three of the four in the second-try cell (p about 0.015
+   among the six variant cells): suggestive, not established. The mechanism is visible in the failures: the plain prompt's
+   7-node attempts fail the certifier (seed 1 in both cells: score 7, not exact on x*y, and the revision did not save that
+   one), the dry run returns exactly that verdict for the revision, and the weight-sum symptom fell from 0.17 to 0.05.
+3. The diagnosis alone did nothing: 34 of 48 on the square, the baseline's 34 of 48, with no Radon rule; 1 of 48 on the
+   triangle with symptom changes within 0.08. By the reading set down before the run, the square's barrier is not a
+   missing diagnosis: told that its weights do not sum to 4 and that its rules fall short of the degree, the model wrote
+   the same share of wrong rules. The lessons that name those failures removed them (weight sum 0.17 to 0.00, too low
+   degree 0.10 to 0.02) and the pass rate did not move (0.729): the failures migrated to self-test crashes (9 of 48:
+   assertion and value errors, a forbidden import) and missing code blocks (3). The symptom-change column shows what the
+   pass rate hides: the lesson did what it said, and the attempt then failed for a new reason.
+4. The redacted lessons hurt: process-only -0.146 on the square with 19 crashes in 48 (self-tests with their numbers
+   redacted become assertions that fail), and sandbox crashes +0.38 on the triangle. The lessons' format without their
+   content costs about 0.15 of pass rate, which the content pays back to parity with the baseline (0.729 against 0.562).
+   The week-4 finding that the interval's lessons hurt the square (0.81 to 0.39) came with the gate's one lesson and its
+   check; the lessons block without the check is level with the baseline here, and the harm sits in the format.
+5. On the triangle the pass rate measures nothing (0.02); the symptoms do. The second try turned non-answers into wrong
+   rules (no code block 0.33 to 0.125, at the cap 22 to 6, not exact 23 to 34, too low degree +0.13, weight sum +0.10) at
+   10,149 tokens per attempt against 6,639: the certifier's verdict fixes the format, not the mathematics the target
+   needs. Any prompt with the notebook framing lengthened the outputs (no code block 0.54 with the lessons, 0.625 with the
+   empty sentence; 28 and 33 of 48 at the cap), which is the week-4 observation on the lesson groups again, now attributed
+   to the framing rather than to the lessons' content. The two valid 9-node rules (diagnosis-only seed block 1, lessons
+   seed block 2) against the baseline's 15-node rule are single attempts and say nothing about rank.
+6. Mining without GPT (cell 17): three detectors kept on quad-triangle-d3's 64-attempt gate group (no code block 25, too low
+   degree 14, weight sum 10, of 51 failures), none on the interval (9 failures; no built-in fires twice on the held-out
+   half with every firing a failure) and none on the degree-2 triangle (no failures). For the square and the degree-4
+   triangle the command took the latest base group, which was the matrix's last second-try block (16 attempts, one tool
+   call), not the loop's 64-attempt gate group: the first defect below. The report is `detectors/mining-20261107T213824Z.md`
+   on Drive.
+
+### Mining on the ledger (cell 17, built-in detectors only)
+
+| target | group mined | attempts | failed | kept (fires on the group) | rejected |
+|---|---|---|---|---|---|
+| quad-d7 | the loop's gate group | 64 | 9 | none | 5 |
+| quad-square-d5 | the matrix's second-try block, seed 2 | 16 | 3 | none | 5 |
+| quad-triangle-d2 | the loop's gate group | 64 | 0 | none | 5 |
+| quad-triangle-d3 | the loop's gate group | 64 | 51 | no_code_block (25), too_low_degree (14), weights_do_not_sum_to_volume (10) | 2 |
+| quad-triangle-d4 | the matrix's second-try block, seed 2 | 16 | 16 | too_low_degree (7), weights_do_not_sum_to_volume (4), no_code_block (3) | 2 |
+
+The librarian query the diagnosis names on the degree-3 triangle is the target's title followed by "the output has no code
+block", "the rule is exact only to a lower degree than required" and "the weights do not sum to the domain's volume"; the
+diagnosis-only text lists the three with their counts and no remedy.
+
+### Defects and follow-ups the run exposed
+
+1. `base_groups` counts the second-try groups (one tool call) as base groups, and "latest" takes the newest: exclude groups
+   with tool calls and mine the largest base group by default (`MINE_ALL_GROUPS = True` mines every group meanwhile).
+2. Read the OpenAI secret once in cell 2 into the environment and let the later cells fall back to it: the lookup in cell 17
+   returned nothing after the long matrix cell and the mining ran without GPT's proposals.
+3. The unrelated control with no other family in the archive runs as the empty-notebook sentence: name the row so (a framing
+   control) and keep it, since it measured the framing; a real unrelated row needs a loop run on another family.
+4. The second-try summary should say how many attempts revised their file after the dry run and how many revisions passed;
+   the ledger holds `revised_after_dry_run`, the printed summary does not.
+5. Five seeds next time, as the default says, and the second try at 64 attempts on the square to settle the Radon count.
+6. The recorded fixtures of cell 12 wait on Drive for a copy into the repository (`python tests/make_fixtures.py`, pytest,
+   commit; grep for keys first).

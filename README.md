@@ -375,8 +375,12 @@ cell, the thinking ladder with a real budget, the builder's dry run against the 
 yet; its harness tests skip until recorded). Scoreboard entries marked `provenance: provisional` must be checked by a person
 against the sources, with the librarian's reviews under `scoreboard/reviews/` as a starting point, before any novelty claim.
 
-Week 5 (2026-11-06) is exercised offline under pytest: the built-in detectors mined on the synthetic demo group (one kept,
-`sandbox_crash`), the extraction prompt with and without detectors, the two control rows and the symptom-change column on
-the synthetic matrix (every gain and every symptom change zero by construction, since the controls replay the same files),
-and the loop mining its base groups. Nothing of week 5 has run against the served model. Its first use is cell 17 on the
-ledger that cell 13 wrote, which costs no GPU time, and then the matrix with the control rows on the next session.
+Week 5 (2026-11-06) is exercised offline under pytest (the built-in detectors mined on the synthetic demo group, the
+extraction prompt with and without detectors, the two control rows and the symptom-change column on the synthetic matrix,
+the loop mining its base groups) and ran once against the served model on 2026-11-07 (cells 16 and 17, see `RESULTS.md`):
+the matrix with the two control rows on `quad-square-d5` and `quad-triangle-d4` at 3 seeds x 16 attempts, where the second
+try was the only row that moved the optimal count on the square (Radon's rule 3 times in 48), the diagnosis alone was level
+with the baseline, the lessons removed the symptoms they name without moving the pass rate, and the empty-notebook sentence
+alone raised the triangle's no-code rate by 0.29; and the built-in detectors mined on the loop's base groups (three kept on
+the degree-3 triangle, none on the interval). Not yet run: mining with GPT-proposed detectors (the secret lookup returned
+nothing after the long matrix cell), the matrix at five seeds, and the second try at 64 attempts on the square.
