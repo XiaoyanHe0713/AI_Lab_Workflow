@@ -8,4 +8,4 @@ the harnesses (librarian, archive and lesson bank, checker) with the ablation ha
 a model writes is ever a score.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.5.0"

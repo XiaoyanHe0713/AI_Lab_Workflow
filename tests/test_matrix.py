@@ -82,7 +82,13 @@ def test_carrier_prompts(state):
         apply_carrier("nope", target, exp, bank=bank)
     tiny, ids = lessons_block([(l, l.text) for l in (bank.get(i) for i in exp.lesson_ids)], token_budget=30)
     assert len(ids) <= 1
-    assert CARRIERS == ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated", "diagnosis_only", "second_try")
+    assert CARRIERS == ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated", "diagnosis_only", "second_try", "diagnosis_second_try")
+    # the two diagnosis controls share one prompt (here with no firing table: no detector fired); the week-6 one adds the dry run
+    diag = apply_carrier("diagnosis_only", target, None, bank=bank, diagnosis_table=None)
+    both = apply_carrier("diagnosis_second_try", target, None, bank=bank, diagnosis_table=None)
+    assert both["prompt"] == diag["prompt"] and both["prompt"].startswith(target.prompt) and "no detector fired" in both["prompt"]
+    assert (diag["tool_calls"], both["tool_calls"]) == (0, 1) and both["context"]["control"] == "diagnosis_second_try"
+    assert both["prompt_override"] and both["post_check"] is None and both["context"]["detectors_named"] == [] and both["context"]["experience_id"] is None
 
 
 def test_redaction_removes_content_and_keeps_craft():

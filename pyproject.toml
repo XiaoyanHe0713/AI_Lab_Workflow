@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lab"
-version = "0.4.0"
-description = "Discovery at 27B: an automated numerical lab. Weeks 1-4: serving, ledger, cost meter, certifiers, judge, demo, gate, harnesses, the three roles, the loop, the transfer matrix."
+version = "0.5.0"
+description = "Discovery at 27B: an automated numerical lab. Weeks 1-6: serving, ledger, cost meter, certifiers, judge, demo, gate, harnesses, the three roles, the loop, the transfer matrix with its control rows."
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",

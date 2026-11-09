@@ -639,3 +639,59 @@ aggregate tokens per second is what a group of attempts gets at that `CONCURRENC
 from cell 1.
 pytest after these changes and the framing-row columns, 2026-11-08: 437 passed, 9 skipped (the Claude provider's six, the
 two online tests, and the lemma timer's cut-off case, which needs POSIX and runs on Colab).
+
+# Results: week 6
+
+Date: 2026-11-09, the same CPU-only Windows laptop. Nothing in this section ran on a GPU: week 6 adds one row to the
+transfer matrix, the diagnosis with a second try, so that the next Colab session measures the 2 x 2 of the week-5 controls,
+and the row is exercised offline under pytest from the synthetic fixtures. No number below is a measurement of the model;
+the row is prepared and not yet run.
+
+## Tests
+
+`pytest`: 446 tests; 437 pass and 9 are skipped (the Claude provider's six, which wait for its recorded fixtures,
+the two online tests, which wait for a key, and the lemma timer's cut-off case, which needs POSIX and runs on Colab). No
+test function was added: the control-rows test of `tests/test_week5.py` runs the three control rows beside the baseline
+(2 seed blocks x 8 attempts on the square and the degree-2 triangle) and asserts the new row's cell, rows, report and
+mining; the carrier test of `tests/test_matrix.py` asserts the carrier tuple and that the two diagnosis controls share one
+prompt, the week-6 one with a dry run.
+
+## What the offline checks show
+
+* The row is a cell of its own (its id carries the dry run), reported with the setting `control` and the flag "the
+  diagnosis and one dry run, no lesson", with one tool call on every ledger row, the prompt override, no lesson id and the
+  same detectors named as the diagnosis-only row's: the diagnosis is mined once per target and feeds both diagnosis rows
+  (the test counts the mining). Its gain in pass rate, its gain in optimal rate and every symptom change are 0.000 by
+  construction, since the replay gives it the same files as the baseline; every attempt has two rounds with a dry run
+  between them and keeps its file (`revised_after_dry_run` false on every row), and its groups are not base groups, so
+  the default mining still takes the largest plain-prompt group.
+* No fixture changed: the prompt is the diagnosis-only prompt byte for byte, and every synthetic builder item already
+  carries two rounds, so the diagnosis-only sequences replay the second round; the generator was run and rewrote nothing.
+  The report draws the row as `control: (target-side) | diagnosis_second_try` without the "(+dry run)" suffix a content
+  carrier with dry runs gets, since the name says it, and its footer names the 2 x 2.
+
+## Prepared on 2026-11-09, not yet run: the 2 x 2 of the week-5 controls
+
+Why the row. The 2026-11-07 run (week 5 above) read the two controls one at a time. The diagnosis alone did nothing: 34 of
+48 valid on the square, the baseline's 34, and no Radon rule. The second try was the only row that moved the optimal
+count: Radon's 7-point rule 3 times in 48, against 0 in the 368 plain attempts at these settings. Each row answers half
+of a question: the diagnosis names the failure before the model writes, the dry run shows the model the certifier's
+verdict on what it wrote, and what the run could not say is whether naming the failure helps once the model has seen the
+verdict. That is the condition under which MUSE delivers a lesson, and the condition the second wave of week 6 (a lesson
+delivered at the second try through a runtime gate with a review note) would build on, so it is measured first.
+
+The four cells, on the same seeds: no help (`none`), the diagnosis alone (`diagnosis_only`), one dry run alone
+(`second_try`), both (`diagnosis_second_try`). The reading set down before the run: if the combined row is level with the
+second try, the verdict already carries what the diagnosis says, and a lesson delivered at the second try must add
+something the verdict does not; if it is above the second try, naming the failure helps once the model has seen it, and
+the gate at the second try is worth building; if it is below, the diagnosis gets in the way of the revision. The optimal
+count (Radon's rule) and the symptom change are read beside the pass rate, since the 2026-11-07 run moved on those first.
+
+What runs. The matrix cell's defaults are the square, `none unrelated second_try diagnosis_only diagnosis_second_try
+lessons process_only` at 5 x 32: the five rows of 2026-11-08 plus the two diagnosis rows. A row is 160 attempts, about a
+fifth of the 2026-11-08 estimate for the five-row run (about 7.5 h and $8 at the 2026-11-07 session's rate), so about 1.5 h
+and $1.60 per row; the dry-run rows make two requests per attempt and run longer than a plain row; the seven rows are about
+10.5 h and $11. The mining cell comes first so that both diagnosis rows use every detector the program kept, GPT's included
+when the secret is read. Deliberately not built until that reading: the lesson delivered at the second try through a
+runtime gate with a review note (after MUSE), the relevance-ordered lessons with their source attempts, the bank audit,
+and the training track.

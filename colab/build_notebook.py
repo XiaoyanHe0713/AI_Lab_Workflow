@@ -18,7 +18,7 @@ def code(text: str) -> None:
 
 
 md("""
-<a href="https://colab.research.google.com/github/XiaoyanHe0713/AI_Lab_Workflow/blob/build%2Fweek-4-loop/colab/serve.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/XiaoyanHe0713/AI_Lab_Workflow/blob/build%2Fweek-6-diagnosis-second-try/colab/serve.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 """)
 
 md("""
@@ -46,7 +46,7 @@ SESSION_T0 = time.time()
 
 LAB_ROOT = "/content/drive/MyDrive/ai_lab"      #@param {type:"string"}
 REPO_URL = "https://github.com/XiaoyanHe0713/AI_Lab_Workflow.git"  #@param {type:"string"}
-REPO_BRANCH = "build/week-5-diagnosis-controls"  #@param {type:"string"}
+REPO_BRANCH = "build/week-6-diagnosis-second-try"  #@param {type:"string"}
 SERVER = "vllm"                                 #@param ["vllm", "sglang"]
 QUANT_METHOD = "awq"                            #@param ["awq", "bnb"]
 UNITS_PER_HOUR = 0                              #@param {type:"number"}
@@ -87,7 +87,7 @@ SEARCH_BASELINE_SEED = 64                       #@param {type:"integer"}
 RUN_MATRIX = False                              #@param {type:"boolean"}
 MATRIX_SOURCES = "quad-d7"                      #@param {type:"string"}
 MATRIX_TARGETS = "quad-square-d5"               #@param {type:"string"}
-MATRIX_CARRIERS = "none unrelated second_try lessons process_only"  #@param {type:"string"}
+MATRIX_CARRIERS = "none unrelated second_try diagnosis_only diagnosis_second_try lessons process_only"  #@param {type:"string"}
 MATRIX_SEEDS = 5                                #@param {type:"integer"}
 MATRIX_ATTEMPTS = 32                            #@param {type:"integer"}
 MATRIX_TOOL_CALLS = 0                           #@param {type:"integer"}
@@ -122,6 +122,15 @@ MINE_ALL_GROUPS = False                         #@param {type:"boolean"}
 #   attempts per cell, where the standard error of a paired difference of pass rates is about 0.05 and the second try's Radon
 #   count rests on 160 attempts. The 2026-11-07 run's full set: MATRIX_TARGETS "quad-square-d5 quad-triangle-d4",
 #   MATRIX_CARRIERS "none second_try diagnosis_only lessons process_only unrelated skills" at 3 x 16.
+#   Week 6: diagnosis_second_try is the third target-side control, the diagnosis-only prompt with one certifier dry run and a
+#   revision and no lesson, so that the baseline, diagnosis_only, second_try and diagnosis_second_try are a 2 x 2 (no help,
+#   the diagnosis alone, one dry run alone, both). The 2026-11-07 run read the diagnosis alone as doing nothing and the second
+#   try as the only row that moved the optimal count; the open question is whether naming the failure helps once the model
+#   has seen the certifier's verdict, and the 2 x 2 answers it in one session. The default set since 2026-11-09 is therefore
+#   the five rows of 2026-11-08 plus diagnosis_only and diagnosis_second_try, seven rows. A row at 5 x 32 is 160 attempts,
+#   about a fifth of the 2026-11-08 estimate for the five-row run (about 7.5 h and $8 at the 2026-11-07 session's rate), so
+#   about 1.5 h and $1.60 per row, and a row with a dry run makes two requests per attempt, so it runs longer than a plain
+#   one: the seven rows are about 10.5 h and $11.
 # RUN_MINE (week 5; cell 16, ahead of the matrix; any runtime, a GPU session included): mine detectors on the largest
 #   plain-prompt group (dry-run groups excluded) of each MINE_TARGETS target (the loop's base groups): GPT proposes them when the
 #   secret is set, the built-in detectors alone otherwise; every candidate is verified on the held-out half; the kept detectors'
@@ -635,13 +644,16 @@ else:
 code("""
 #@title 17. Week 4: transfer-matrix cells from the archive (lessons never measured on the family they came from)
 # Rows: the experience set of MATRIX_SOURCES (its archived methods and the lessons the loop extracted) plus the two controls
-# (process-only lessons with content redacted; unrelated-domain experience) and, from week 5, the two target-side control rows
-# (second_try: one dry run and no lesson; diagnosis_only: the program's diagnosis of the target's own baseline and no remedy);
-# columns: MATRIX_TARGETS in their settings. Every cell reports its symptom rates and the change against the baseline.
+# (process-only lessons with content redacted; unrelated-domain experience) and the target-side control rows (week 5:
+# second_try, one dry run and no lesson; diagnosis_only, the program's diagnosis of the target's own baseline and no remedy;
+# week 6: diagnosis_second_try, the diagnosis and one dry run, which completes the 2 x 2 of the two controls; the diagnosis is
+# mined once per target for both diagnosis rows); columns: MATRIX_TARGETS in their settings. Every cell reports its symptom
+# rates and the change against the baseline.
 # Needs the loop (cell 13) to have run with GPT so the bank holds lessons; the report lands under matrices/ on Drive.
 # Cell 16 (RUN_MINE) runs first so that the detectors GPT proposed and the program kept enter the diagnosis row; this cell
-# mines the built-in ones itself. The defaults since 2026-11-08 narrow the matrix to the square and five rows at 5 x 32 (cell 1
-# says why); the unrelated row with no other family in the archive is the framing control, the reference every gain is read against.
+# mines the built-in ones itself. The defaults since 2026-11-09 are the square and seven rows at 5 x 32: the five rows of 2026-11-08
+# plus the two diagnosis rows, so that one session measures the 2 x 2 (cell 1 says why and what a row costs); the unrelated row
+# with no other family in the archive is the framing control, the reference every gain is read against.
 from lab.harness.matrix import main as matrix_main
 
 if RUN_MATRIX:

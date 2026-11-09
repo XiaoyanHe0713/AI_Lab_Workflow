@@ -402,7 +402,7 @@ def seed_bank(bank) -> list[str]:
 MATRIX_SOURCES = ["quad-d7"]
 MATRIX_TARGETS = ["quad-square-d5", "quad-triangle-d2"]
 MATRIX_CARRIERS = ["none", "lessons", "process_only", "unrelated", "skills"]
-CONTROL_CARRIERS_TEST = ["none", "second_try", "diagnosis_only"]   # week 5: the two target-side control rows
+CONTROL_CARRIERS_TEST = ["none", "second_try", "diagnosis_only", "diagnosis_second_try"]   # weeks 5 and 6: the three target-side control rows (a 2 x 2)
 CONTROL_SEEDS, CONTROL_ATTEMPTS = 2, 8                              # seed blocks x attempts of the offline control test
 
 
@@ -466,7 +466,9 @@ def write_matrix_fixtures(verbose: bool = True) -> list[Path]:
                           f"{len(app['context'].get('skill_ids', []))} skills")
         # the diagnosis-only control (week 5): its prompt is the program's diagnosis of the target's own `none` cell, so that
         # cell is run here exactly as the offline control test runs it (CONTROL_SEEDS seed blocks of CONTROL_ATTEMPTS) and the
-        # built-in detectors are mined on it; the second-try control replays the plain prompt's sequence (round 2 keeps the file)
+        # built-in detectors are mined on it; the second-try control replays the plain prompt's sequence (round 2 keeps the file),
+        # and the diagnosis-plus-second-try control (week 6) replays this same diagnosis-only sequence, whose items carry two
+        # rounds, so it needs no sequence of its own
         from lab.harness.matrix import diagnosis_for, run_cell
 
         for tid in MATRIX_TARGETS:

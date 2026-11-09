@@ -26,6 +26,13 @@ diagnosis of the target's own `none` cell, the kept detectors that fired with th
 separates knowing the fix from seeing the problem). The built-in detectors are mined on the `none` cell when the
 diagnosis-only row runs. Every cell also reports its symptom rates, how often each kept detector of the target fires,
 and every gain the symptom change against the baseline: the evidence that a carrier removed the failure it addresses.
+
+Week 6 adds the third control row, `diagnosis_second_try`: the diagnosis-only prompt with one certifier dry run and a
+revision, no lesson. With the baseline, `diagnosis_only` and `second_try` it completes a 2 x 2 (no help, the diagnosis
+alone, one dry run alone, both); the diagnosis is mined once per target and feeds both diagnosis rows. The question it
+puts to a session is whether naming the failure helps once the model has seen the certifier's verdict: the 2026-11-07
+run read the diagnosis alone as doing nothing and the second try as the only row that moved the optimal count
+(RESULTS.md, week 5).
 """
 from __future__ import annotations
 
@@ -46,7 +53,7 @@ from ..roles import KINDS, MODES
 from ..targets import get_target, transfer_setting
 from .archive import Archive
 from .base import harness_provider
-from .carriers import CARRIERS, CONTENT_CARRIERS, CONTROL_CARRIERS, apply_carrier
+from .carriers import CARRIERS, CONTENT_CARRIERS, CONTROL_CARRIERS, DIAGNOSIS_CARRIERS, apply_carrier
 from .checker import base_groups, firing_table, kept_detectors, largest_base_group, mine_builtin, symptom_rates
 from .lessons import LessonBank, LessonHarness
 
@@ -56,6 +63,9 @@ class TransferLeak(ValueError):
 
 
 FRAMING_FLAG = "no other family in the archive: the plain prompt plus the empty-notebook sentence (a framing control)"
+CONTROL_FLAGS = {"diagnosis_only": "diagnosis of the target's own baseline, no remedy",          # what each target-side control row is
+                 "second_try": "one dry run and a revision, no lesson",
+                 "diagnosis_second_try": "the diagnosis and one dry run, no lesson"}
 
 
 @dataclass
@@ -153,12 +163,11 @@ def unrelated_control(ledger: Ledger, archive: Archive, bank: LessonBank, target
 
 
 def check_transfer(experience: ExperienceSet, target_id: str, carrier: str, *, allow_same_family: bool = False) -> dict:
-    """The setting of a cell, and the rule that lessons are never measured on the family they came from. The two
-    target-side controls carry no experience, so the rule has nothing to refuse: they are reported as controls with a flag."""
+    """The setting of a cell, and the rule that lessons are never measured on the family they came from. The target-side
+    controls carry no experience, so the rule has nothing to refuse: they are reported as controls with a flag."""
     if carrier in CONTROL_CARRIERS:
         t = get_target(target_id).transfer
-        flag = "diagnosis of the target's own baseline, no remedy" if carrier == "diagnosis_only" else "one dry run and a revision, no lesson"
-        return {"setting": "control", "same_family": False, "open": t.open, "target": t.to_dict(), "allowed": True, "flag": flag}
+        return {"setting": "control", "same_family": False, "open": t.open, "target": t.to_dict(), "allowed": True, "flag": CONTROL_FLAGS[carrier]}
     if carrier == "none" or experience is None or not experience.source_targets:
         # the unrelated control with no other family in the archive runs as the plain prompt plus the empty-notebook
         # sentence: a framing control, reported as such rather than as unrelated experience
@@ -186,8 +195,8 @@ def run_cell(*, experience: ExperienceSet | None, carrier: str, target_id: str, 
     """One cell: `seeds` groups of `attempts` with the carrier applied from the experience set, each group a seed block
     (seed0 + k * seed_stride), stopped at the matched budget when one is given. Every attempt row carries the matrix id,
     the cell id, the experience, the carrier, the setting and the seed index. `tool_calls` gives the builder that many
-    certifier dry runs (the second-try control fixes it at one; a content carrier with dry runs is a cell of its own);
-    `diagnosis_table` is the firing table the diagnosis-only control is written from."""
+    certifier dry runs (the two second-try controls fix it at one; a content carrier with dry runs is a cell of its own);
+    `diagnosis_table` is the firing table the two diagnosis controls are written from."""
     target = get_target(target_id)
     setting = check_transfer(experience, target_id, carrier, allow_same_family=allow_same_family)
     token_budget = int(token_budget or cfg.get("harness", {}).get("lesson_token_budget", 2000))
@@ -248,8 +257,8 @@ def run_matrix(*, sources: list[ExperienceSet], carriers: list[str], targets: li
                bank: LessonBank, archive: Archive, harness: LessonHarness | None = None, match: str = "attempts", budget_usd: float | None = None,
                allow_same_family: bool = False, token_budget: int | None = None, run_kw: dict | None = None, quiet: bool = True,
                out_dir: str | Path | None = None, matrix_id: str | None = None, controls: bool = True, seed0: int = 0, tool_calls: int = 0) -> dict:
-    """Rows: the experience sets (and, with controls, the process-only and unrelated controls, and the two target-side
-    controls of week 5); columns: the targets in their settings; the `none` carrier once per target. `tool_calls` gives
+    """Rows: the experience sets (and, with controls, the process-only and unrelated controls, and the target-side
+    controls of weeks 5 and 6); columns: the targets in their settings; the `none` carrier once per target. `tool_calls` gives
     every content carrier that many certifier dry runs (a lessons-plus-second-try cell). Cells that would leak are
     skipped and listed."""
     matrix_id = matrix_id or new_id("mtx")
@@ -278,18 +287,21 @@ def run_matrix(*, sources: list[ExperienceSet], carriers: list[str], targets: li
             record["baselines"][tid] = none_cell["cell_id"]
             if match == "dollars" and budget_usd is None:
                 base_dollars = {g["seed_index"]: g["dollars"] for g in none_cell["groups"]}
-        # the target-side controls (week 5): no experience, never refused
+        # the target-side controls (weeks 5 and 6): no experience, never refused
         if "second_try" in carriers:
             record["cells"].append(run_cell(experience=None, carrier="second_try", target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg, ledger=ledger,
                                             bank=bank, archive=archive, harness=harness, matrix_id=matrix_id, budget_usd=budget_usd,
                                             baseline_dollars=base_dollars, token_budget=token_budget, run_kw=run_kw, quiet=quiet, seed0=seed0))
-        if "diagnosis_only" in carriers:
+        diagnosis_rows = [c for c in DIAGNOSIS_CARRIERS if c in carriers]
+        if diagnosis_rows:
+            # one diagnosis per target, mined once, feeds both diagnosis rows (the diagnosis alone, and with the dry run)
             table, diag = diagnosis_for(ledger, tid, none_cell, seed=seed0)
             record["diagnoses"][tid] = diag
-            record["cells"].append(run_cell(experience=None, carrier="diagnosis_only", target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg,
-                                            ledger=ledger, bank=bank, archive=archive, harness=harness, matrix_id=matrix_id, budget_usd=budget_usd,
-                                            baseline_dollars=base_dollars, token_budget=token_budget, run_kw=run_kw, quiet=quiet, seed0=seed0,
-                                            diagnosis_table=table))
+            for c in diagnosis_rows:
+                record["cells"].append(run_cell(experience=None, carrier=c, target_id=tid, seeds=seeds, attempts=attempts, cfg=cfg,
+                                                ledger=ledger, bank=bank, archive=archive, harness=harness, matrix_id=matrix_id, budget_usd=budget_usd,
+                                                baseline_dollars=base_dollars, token_budget=token_budget, run_kw=run_kw, quiet=quiet, seed0=seed0,
+                                                diagnosis_table=table))
         trows = list(rows)
         if controls and "unrelated" in carriers:
             trows.append((unrelated_control(ledger, archive, bank, tid), "unrelated"))
@@ -515,7 +527,8 @@ def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
             row = "framing: (the empty-notebook sentence)"
         else:
             row = f"{c['experience_kind'] or 'control'}: {'+'.join(c['source_targets']) or ('(target-side)' if c['carrier'] in CONTROL_CARRIERS else '(empty)')}"
-        carrier = c["carrier"] + (" (+dry run)" if c.get("tool_calls") and c["carrier"] != "second_try" else "")
+        # a carrier with dry runs says so, unless its name already does (the two second-try controls)
+        carrier = c["carrier"] + (" (+dry run)" if c.get("tool_calls") and c["carrier"] not in ("second_try", "diagnosis_second_try") else "")
         cols = [row, carrier, c["target"], c["setting"], "yes" if c["open"] else "no", gp]
         if framed:
             # the same gains against the framing row of the target: "reference" on the framing row itself, "-" where the
@@ -544,7 +557,9 @@ def matrix_markdown(analysis: dict, record: dict | None = None) -> str:
                         "before any content, and a gain against the baseline includes that. ")
     lines += ["", "A cell is the certified gain with the experience minus without, paired by seed; the interval is a percentile bootstrap. "
                   "The symptom change is the firing rate of a kept detector with the carrier minus without (negative: the failure it names went away). "
-                  "The two target-side controls carry no experience: diagnosis_only names the failure and no remedy, second_try is one dry run and no lesson. A framing row is the unrelated control with no other family in the archive: the plain prompt plus the sentence that the notebook holds no lessons yet, which measures the framing alone. "
+                  "The target-side controls carry no experience: diagnosis_only names the failure and no remedy, second_try is one dry run and no lesson, "
+                  "diagnosis_second_try is both (with the baseline, the 2 x 2 of no help, the diagnosis alone, one dry run alone, both). "
+                  "A framing row is the unrelated control with no other family in the archive: the plain prompt plus the sentence that the notebook holds no lessons yet, which measures the framing alone. "
                   + framing_note
                   + "Every number is a certificate or a detector's firing; nothing a carrier adds to a prompt is scored."]
     return "\n".join(lines) + "\n"
@@ -561,7 +576,7 @@ def main(argv=None) -> int:
     ap.add_argument("--match", default="attempts", choices=["attempts", "dollars"])
     ap.add_argument("--budget-usd", type=float, default=None)
     ap.add_argument("--allow-same-family", action="store_true", help="run same-family cells anyway (they are marked and unreported)")
-    ap.add_argument("--tool-calls", type=int, default=0, help="certifier dry runs for every content carrier (a lessons-plus-second-try cell); the second_try control always has one")
+    ap.add_argument("--tool-calls", type=int, default=0, help="certifier dry runs for every content carrier (a lessons-plus-second-try cell); the two second-try controls always have one")
     ap.add_argument("--provider", default="local", choices=list(KINDS))
     ap.add_argument("--mode", default=None, choices=list(MODES))
     ap.add_argument("--harness-provider", default=None)

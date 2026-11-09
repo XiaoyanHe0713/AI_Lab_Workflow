@@ -9,7 +9,10 @@ and `lessons_gate` on one target; the matrix (lab/harness/matrix.py) runs any ca
 Two target-side controls (week 5) carry no experience at all: `diagnosis_only` puts the program's diagnosis of the
 target's own baseline attempts in the prompt (the detectors that fired, with counts, and no remedy), which separates
 knowing the fix from seeing the problem; `second_try` gives the builder one certifier dry run and a revision with no
-lesson, the floor every lesson gain is read against (ADSD's self-improvement control).
+lesson, the floor every lesson gain is read against (ADSD's self-improvement control). A third (week 6),
+`diagnosis_second_try`, is both at once: the diagnosis-only prompt with one certifier dry run and a revision, so that
+the baseline and the three controls form a 2 x 2 (no help, the diagnosis alone, one dry run alone, both) and a matrix
+session can ask whether naming the failure helps once the model has seen the certifier's verdict.
 Nothing a carrier adds to a prompt enters a reward: the certificate is the only score.
 """
 from __future__ import annotations
@@ -19,9 +22,10 @@ from typing import Any
 
 from .lessons import Lesson, LessonBank, LessonHarness, apply_check, estimate_tokens
 
-CARRIERS = ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated", "diagnosis_only", "second_try")
+CARRIERS = ("none", "lessons", "lessons_gate", "skills", "process_only", "unrelated", "diagnosis_only", "second_try", "diagnosis_second_try")
 CONTENT_CARRIERS = ("lessons", "lessons_gate", "skills", "process_only", "unrelated")
-CONTROL_CARRIERS = ("diagnosis_only", "second_try")      # target-side: no experience set, never refused by the transfer rule
+CONTROL_CARRIERS = ("diagnosis_only", "second_try", "diagnosis_second_try")   # target-side: no experience set, never refused by the transfer rule
+DIAGNOSIS_CARRIERS = ("diagnosis_only", "diagnosis_second_try")               # written from the firing table of the target's own baseline
 
 _DIGITS = re.compile(r"\d+(?:\.\d+)?")
 
@@ -76,7 +80,8 @@ def gate_prompt(target, gate: dict) -> str:
 
 
 def diagnosis_only_prompt(target, text: str) -> str:
-    """The diagnosis-only control: the target's prompt plus the program's diagnosis of its baseline attempts, no remedy."""
+    """The two diagnosis controls (diagnosis_only, and diagnosis_second_try with its dry run): the target's prompt plus the
+    program's diagnosis of its baseline attempts, no remedy."""
     return target.prompt + "\n\n" + text
 
 
@@ -121,10 +126,11 @@ def apply_carrier(carrier: str, target, experience, *, bank: LessonBank, archive
                   token_budget: int = 2000, diagnosis_table: dict | None = None) -> dict:
     """The prompt, the context fields, the post-check and the ids a carrier puts to work on a target.
 
-    `experience` is an ExperienceSet (lab/harness/matrix.py) or None for `none` and the two target-side controls;
-    `diagnosis_table` is the firing table of the target's own baseline attempts (lab/harness/checker.py) that the
-    diagnosis-only control is written from. Returns a dict with `prompt`, `context` (carrier, lesson_ids, skill_ids,
-    redacted, experience id), `post_check`, `gate`, and `tool_calls` (1 for the second-try control, 0 otherwise)."""
+    `experience` is an ExperienceSet (lab/harness/matrix.py) or None for `none` and the target-side controls;
+    `diagnosis_table` is the firing table of the target's own baseline attempts (lab/harness/checker.py) that the two
+    diagnosis controls are written from. Returns a dict with `prompt`, `context` (carrier, lesson_ids, skill_ids,
+    redacted, experience id; `control` and `detectors_named` on a control), `post_check`, `gate`, and `tool_calls`
+    (1 for the two second-try controls, 0 otherwise)."""
     if carrier not in CARRIERS:
         raise ValueError(f"carrier must be one of {CARRIERS}")
     ctx: dict[str, Any] = {"carrier": carrier, "lesson_ids": [], "skill_ids": [], "redacted": False,
@@ -132,13 +138,15 @@ def apply_carrier(carrier: str, target, experience, *, bank: LessonBank, archive
     if carrier == "second_try":
         ctx["control"] = "second_try"
         return {"prompt": target.prompt, "context": ctx, "post_check": None, "gate": None, "prompt_override": False, "tool_calls": 1}
-    if carrier == "diagnosis_only":
+    if carrier in DIAGNOSIS_CARRIERS:
         from .checker import diagnosis_text   # the checker imports the lesson module: import here, not at the top
 
+        # one prompt for both diagnosis controls; diagnosis_second_try adds the dry run (week 6: the diagnosis and the
+        # certifier's verdict together, the fourth cell of the 2 x 2 with the baseline, diagnosis_only and second_try)
         fired = [d["name"] for d in (diagnosis_table or {}).get("detectors", []) if d.get("fires", 0) > 0]
-        ctx.update({"control": "diagnosis_only", "detectors_named": fired, "diagnosis_attempts": int((diagnosis_table or {}).get("n", 0) or 0)})
+        ctx.update({"control": carrier, "detectors_named": fired, "diagnosis_attempts": int((diagnosis_table or {}).get("n", 0) or 0)})
         return {"prompt": diagnosis_only_prompt(target, diagnosis_text(target, diagnosis_table)), "context": ctx, "post_check": None, "gate": None,
-                "prompt_override": True, "tool_calls": 0}
+                "prompt_override": True, "tool_calls": 1 if carrier == "diagnosis_second_try" else 0}
     if carrier == "none" or experience is None:
         return {"prompt": target.prompt, "context": ctx, "post_check": None, "gate": None, "prompt_override": carrier != "none", "tool_calls": 0}
     lessons = [l for l in (bank.get(lid) for lid in experience.lesson_ids) if l is not None and not l.retired]

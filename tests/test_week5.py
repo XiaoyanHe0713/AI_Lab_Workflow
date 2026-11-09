@@ -2,7 +2,8 @@
 names, the diagnosis-only text, mining from the ledger and its command), the lesson writer told which detectors fired
 and the detectors a lesson addresses, the two target-side control rows of the matrix with the symptom-change column,
 the loop mining its base groups and recording symptom rates per group, and, after the first run, every carrier's gain
-against the framing row beside its gain against the baseline."""
+against the framing row beside its gain against the baseline. Week 6: the third control row, the diagnosis with a second
+try, which completes the 2 x 2 of the two controls."""
 from pathlib import Path
 
 import pytest
@@ -99,7 +100,7 @@ def test_extraction_prompt_names_the_failure_only_when_detectors_are_given(tmp_p
     led.close()
 
 
-# --- the matrix: the two target-side control rows and the symptom-change column ---------------------------------------------
+# --- the matrix: the target-side control rows (weeks 5 and 6: the 2 x 2) and the symptom-change column --------------------------
 @pytest.fixture(scope="module")
 def state(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("week5matrix")
@@ -111,26 +112,44 @@ def state(tmp_path_factory):
     led.close()
 
 
-def test_target_side_controls_and_symptom_change(state):
+def test_target_side_controls_and_symptom_change(state, monkeypatch):
     led, archive, bank, tmp, cfg = state["ledger"], state["archive"], state["bank"], state["tmp"], state["cfg"]
+    assert CONTROL_CARRIERS == ("diagnosis_only", "second_try", "diagnosis_second_try")
     for c in CONTROL_CARRIERS:
         st = check_transfer(None, "quad-square-d5", c)
         assert st["allowed"] and st["setting"] == "control" and st["flag"]
+    assert check_transfer(None, "quad-square-d5", "diagnosis_second_try")["flag"] == "the diagnosis and one dry run, no lesson"
+    # the diagnosis is mined once per target and feeds both diagnosis rows
+    import lab.harness.matrix as matrix_module
+    real_diagnosis_for, mined = matrix_module.diagnosis_for, {}
+
+    def counting_diagnosis_for(ledger_, tid, none_cell, **kw):
+        mined[tid] = mined.get(tid, 0) + 1
+        return real_diagnosis_for(ledger_, tid, none_cell, **kw)
+
+    monkeypatch.setattr(matrix_module, "diagnosis_for", counting_diagnosis_for)
     rec = run_matrix(sources=[], carriers=CONTROL_CARRIERS_TEST, targets=MATRIX_TARGETS, seeds=CONTROL_SEEDS, attempts=CONTROL_ATTEMPTS, cfg=cfg,
                      ledger=led, bank=bank, archive=archive, harness=None, run_kw=matrix_run_kw(tmp), quiet=True, out_dir=tmp / "matrices", seed0=0)
-    assert rec["skipped"] == [] and set(rec["diagnoses"]) == set(MATRIX_TARGETS)
+    assert rec["skipped"] == [] and set(rec["diagnoses"]) == set(MATRIX_TARGETS) and mined == {tid: 1 for tid in MATRIX_TARGETS}
+    assert len(rec["cells"]) == len(CONTROL_CARRIERS_TEST) * len(MATRIX_TARGETS)
     by = {(c["carrier"], c["target"]): c for c in rec["analysis"]["cells"]}
     # no unrelated carrier, so no framing row: the gains against it are absent and the report draws no column for them
     assert rec["analysis"]["framing_rows"] == {} and all("gain_vs_framing" not in c for c in rec["analysis"]["cells"])
     for tid in MATRIX_TARGETS:
         kept = {d["name"] for d in kept_detectors(led, tid)}
         assert kept and rec["diagnoses"][tid]["from"] == "none cell" and set(rec["diagnoses"][tid]["kept"]) == kept
-        base, second, diag = by[("none", tid)], by[("second_try", tid)], by[("diagnosis_only", tid)]
+        base, second, diag, both = by[("none", tid)], by[("second_try", tid)], by[("diagnosis_only", tid)], by[("diagnosis_second_try", tid)]
         assert set(base["symptoms"]) == kept
         assert all(0 <= s["rate"] <= 1 and s["n"] == CONTROL_SEEDS * CONTROL_ATTEMPTS for s in base["symptoms"].values())
         assert second["tool_calls"] == 1 and second["setting"] == "control" and second["gain"]["pass_rate"] == pytest.approx(0.0)
         assert diag["tool_calls"] == 0 and diag["setting"] == "control" and diag["gain"]["pass_rate"] == pytest.approx(0.0)
         assert set(diag["gain"]["symptom_change"]) == kept and all(v == pytest.approx(0.0) for v in diag["gain"]["symptom_change"].values())
+        # week 6: the diagnosis with a second try is a cell of its own (the dry run is in its id), a control with its own
+        # flag and one dry run, and its gain and symptom change are 0.000 too, since the replay gives it the same files again
+        assert both["tool_calls"] == 1 and both["setting"] == "control" and both["flag"] == "the diagnosis and one dry run, no lesson"
+        assert len({base["cell_id"], second["cell_id"], diag["cell_id"], both["cell_id"]}) == 4 and both["gain"]["baseline_cell"] == base["cell_id"]
+        assert both["gain"]["pass_rate"] == pytest.approx(0.0) and both["gain"]["optimal_rate"] == pytest.approx(0.0) and both["gain"]["best_score_gain"] == 0.0
+        assert set(both["gain"]["symptom_change"]) == kept and all(v == pytest.approx(0.0) for v in both["gain"]["symptom_change"].values())
         # the rows: a second try made two requests per attempt and kept the file (the replay returns it again); the
         # diagnosis-only prompt names the detectors that fired and carries no lesson
         srows = [r for r in led.attempts() if r.context.get("cell_id") == second["cell_id"]]
@@ -139,26 +158,39 @@ def test_target_side_controls_and_symptom_change(state):
         assert drows and all(r.context["carrier"] == "diagnosis_only" and r.context["prompt_override"] and r.context["lesson_ids"] == [] for r in drows)
         fired = [d["name"] for d in rec["diagnoses"][tid]["firing"] if d["fires"] > 0]
         assert fired and all(set(r.context["detectors_named"]) == set(fired) for r in drows)
+        assert all(r.context["control"] == "diagnosis_only" and r.context["tool_calls"] == 0 and r.meta["rounds"] == 1 and "dry_runs" not in r.meta for r in drows)
+        # the rows of the diagnosis with a second try: the diagnosis-only prompt (the same detectors named, no lesson), two
+        # rounds with a dry run between them, and the file kept (the replay returns it again)
+        brows = [r for r in led.attempts() if r.context.get("cell_id") == both["cell_id"]]
+        assert len(brows) == CONTROL_SEEDS * CONTROL_ATTEMPTS
+        assert all(r.context["carrier"] == "diagnosis_second_try" and r.context["control"] == "diagnosis_second_try" and r.context["tool_calls"] == 1
+                   and r.context["prompt_override"] and r.context["lesson_ids"] == [] and set(r.context["detectors_named"]) == set(fired) for r in brows)
+        assert all(r.meta.get("dry_runs") and r.meta["revised_after_dry_run"] is False and r.meta["rounds"] == 2 for r in brows)
+        raw = {c["carrier"]: c for c in rec["cells"] if c["target"] == tid}
+        assert raw["diagnosis_second_try"]["detectors_named"] == raw["diagnosis_only"]["detectors_named"] == fired
     md = Path(rec["files"]["markdown"]).read_text(encoding="utf-8")
     assert "| symptom change |" in md and "| control: (target-side) | second_try | quad-square-d5 | control | no |" in md
     assert "| control: (target-side) | diagnosis_only | quad-triangle-d2 | control | no |" in md
+    assert "| control: (target-side) | diagnosis_second_try | quad-square-d5 | control | no |" in md and "(+dry run)" not in md
+    assert "| the diagnosis and one dry run, no lesson |" in md and "diagnosis_second_try is both" in md
     assert "Symptom rates of the baselines" in md and "target-side controls" in md and "vs framing" not in md
     again = analyze(led, rec["id"])
     assert {c["cell_id"]: c["symptoms"] for c in again["cells"]} == {c["cell_id"]: c["symptoms"] for c in rec["analysis"]["cells"]}
-    # a second try is a condition of its own: its groups are not base groups, the default mining takes the largest base
-    # group, and the cell counts the revisions after the dry run (none here: the replay keeps the file)
+    # a second try, with or without the diagnosis, is a condition of its own: its groups are not base groups, the default
+    # mining takes the largest base group, and the cell counts the revisions after the dry run (none here: the replay keeps the file)
     from lab.harness.checker import largest_base_group
     from lab.harness.matrix import ExperienceSet
     for tid in MATRIX_TARGETS:
         cells = [c for c in rec["cells"] if c["target"] == tid]
-        second_groups = {g["group_id"] for c in cells if c["carrier"] == "second_try" for g in c["groups"]}
+        dry_groups = {g["group_id"] for c in cells if c["carrier"] in ("second_try", "diagnosis_second_try") for g in c["groups"]}
         none_groups = {g["group_id"] for c in cells if c["carrier"] == "none" for g in c["groups"]}
         base = base_groups(led, tid)
-        assert second_groups and not (second_groups & {g for g, _ in base}) and none_groups <= {g for g, _ in base}
+        assert len(dry_groups) == 2 * CONTROL_SEEDS and not (dry_groups & {g for g, _ in base}) and none_groups <= {g for g, _ in base}
         big = largest_base_group(base)
         assert big is not None and len(big[1]) == max(len(rows) for _, rows in base)
         assert mine_from_ledger(led, [tid])[0]["group_id"] == big[0]
-        assert all(c["revised"] == 0 and c["revised_passed"] == 0 and all(g["revised"] == 0 for g in c["groups"]) for c in cells if c["carrier"] == "second_try")
+        assert all(c["revised"] == 0 and c["revised_passed"] == 0 and all(g["revised"] == 0 for g in c["groups"])
+                   for c in cells if c["carrier"] in ("second_try", "diagnosis_second_try"))
     # the unrelated control with no other family in the archive is reported as the framing control, never refused
     empty = ExperienceSet(id="x", name="unrelated(empty)", kind="unrelated", source_targets=[], family_keys=[], certificate_families=[])
     fr = check_transfer(empty, "quad-square-d5", "unrelated")

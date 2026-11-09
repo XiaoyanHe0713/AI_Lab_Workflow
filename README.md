@@ -1,7 +1,7 @@
-# Discovery at 27B: the lab, weeks 1 to 5
+# Discovery at 27B: the lab, weeks 1 to 6
 
 A fully automated numerical lab on one open model, `Qwen/Qwen3.6-27B`, with three roles that will later be
-LoRA adapters and program harnesses around them. This repository holds weeks 1 to 5 of the build plan:
+LoRA adapters and program harnesses around them. This repository holds weeks 1 to 6 of the build plan:
 the model served from Colab, the repository skeleton (ledger, cost meter, role interface), the certifier
 library (seven certifiers), the judge sandbox, the scoreboard files, the demo loop with concurrent attempts,
 the training gate, the three harnesses (librarian, archive and lesson bank, checker) with the ablation
@@ -10,7 +10,9 @@ and the episode runner, the loop that runs them end to end on one family, and th
 (experience sets, the two controls, cells at matched dollars with bootstrap intervals), and from week 5 the
 diagnosis as a program's object: detectors mined on every base group, the question they name for the
 librarian, lessons that name the failure they address, the symptom rate of every detector per group, and two
-target-side control rows in the matrix (a second try with no lesson; the diagnosis with no remedy).
+target-side control rows in the matrix (a second try with no lesson; the diagnosis with no remedy), and from week 6
+the third control row that combines the two (the diagnosis with a second try), so that one matrix session measures
+the 2 x 2 of no help, the diagnosis alone, one dry run alone, and both.
 
 Rules that never bend: every score comes from a program (a certificate), never from a model's opinion;
 verification of known results comes before any open problem; every attempt is logged with its cost; a
@@ -32,7 +34,7 @@ harness writes enters a reward.
 | `lab/episode.py` | Week 4: the episode runner: a role's attempt with its fixed number of tool rounds, priced by its share of the wave's wall time, one ledger row with role, adapter version, prompt hash, context (lesson ids, skill ids, reading-list snapshot, citations, proposal or candidate), output, tool log, certificate, the diagnosis on failure (the certifier's reason plus the kept detectors that fire), cost and seed. `demo.run_group` is the builder's group on it. |
 | `lab/certifiers/lemma.py` | Week 4: `lemma_check`, the theorist's reward: one SymPy expression per lemma over a whitelisted namespace, trivial and symbol-free checks refused, duplicates counted once, run in the sandbox with SymPy allowed for that run only; pass when at least one check passes, the score the fraction that pass. |
 | `lab/loop.py` | Week 4: `python -m lab.loop --targets ...`: one generation on one family (the curriculum rungs in order): the gate's lessons, the theorist's proposals, the builder's gate group (plain prompt, the gate memo), lesson group and proposal group, the judge, the breaker on the distinct certified survivors (a confirmed break voids the candidate and raises an exploit alarm), the archive with dossiers and witness records, lesson extraction and consolidation, the delayed credit of every proposal, and the generation record with the archive snapshot and the ledger pointer. Week 5: the base group runs first and is mined for detectors (the checker's proposals when it runs, the built-in detectors alone otherwise); the theorist's retrieval asks the question the diagnosis names; the lesson writer is told which detectors fired on which attempts; the symptom rate of every kept detector is recorded per group; `--no-mine` switches it off. |
-| `lab/harness/carriers.py`, `lab/harness/matrix.py` | Week 4: the context carriers (`none`, `lessons`, `lessons_gate`, `skills`, `process_only` with content redacted, `unrelated`) and the source-target matrix: experience sets from the archive per source family, the two controls, the cell runner (N seeds, matched attempts or dollars), the ledger query and the analysis with a percentile bootstrap interval per cell; the program refuses to measure lessons on the family they came from. The ablation harness is its single-cell version. Week 5: two target-side control rows, `second_try` (one certifier dry run and a revision, no lesson) and `diagnosis_only` (the program's diagnosis of the target's own `none` cell, no remedy), a `--tool-calls` option for lessons-plus-second-try cells, and a symptom-change column in every gain (the firing rate of each kept detector with the carrier minus without). |
+| `lab/harness/carriers.py`, `lab/harness/matrix.py` | Week 4: the context carriers (`none`, `lessons`, `lessons_gate`, `skills`, `process_only` with content redacted, `unrelated`) and the source-target matrix: experience sets from the archive per source family, the two controls, the cell runner (N seeds, matched attempts or dollars), the ledger query and the analysis with a percentile bootstrap interval per cell; the program refuses to measure lessons on the family they came from. The ablation harness is its single-cell version. Week 5: two target-side control rows, `second_try` (one certifier dry run and a revision, no lesson) and `diagnosis_only` (the program's diagnosis of the target's own `none` cell, no remedy), a `--tool-calls` option for lessons-plus-second-try cells, and a symptom-change column in every gain (the firing rate of each kept detector with the carrier minus without). Week 6: a third target-side control row, `diagnosis_second_try` (the diagnosis-only prompt with one certifier dry run and a revision, no lesson), the fourth cell of the 2 x 2 with the baseline and the two week-5 controls; the diagnosis is mined once per target for both diagnosis rows. |
 | `lab/certifiers/quadrature.py`, `pep.py`, `witness.py` | Weeks 1 to 2: exactness, worst-case rates by performance estimation, the witness check. |
 | `lab/certifiers/order.py` | Week 3: convergence order from a seeded refinement study (manufactured solutions for an ODE, a 1-D Poisson problem and a composite integral), slope with a t-interval and pairwise orders. |
 | `lab/certifiers/opcount.py`, `counted.py` | Week 3: operation count by instrumented arithmetic (an expression DAG of counted scalars; only operations that reach an output count) with the outputs checked against the exact transform, and cost models checked against instrumented runs. |
@@ -105,11 +107,12 @@ the same-family cells are refused by the program):
 python -m lab.harness.matrix --sources quad-d7 --targets quad-square-d5 quad-triangle-d2 --carriers none lessons process_only unrelated skills --seeds 2 --attempts 8 --mode offline --no-harness --gpu A100 --concurrency 4 --max-tokens 4096
 ```
 
-The same with the two target-side control rows of week 5 (a second try with no lesson; the diagnosis of the target's own
-baseline with no remedy) and the symptom-change column in every gain:
+The same with the three target-side control rows (week 5: a second try with no lesson, and the diagnosis of the target's own
+baseline with no remedy; week 6: both at once, which with the baseline makes the 2 x 2) and the symptom-change column in
+every gain:
 
 ```bash
-python -m lab.harness.matrix --sources quad-d7 --targets quad-square-d5 quad-triangle-d2 --carriers none second_try diagnosis_only lessons process_only unrelated skills --seeds 2 --attempts 8 --mode offline --no-harness --gpu A100 --concurrency 4 --max-tokens 4096
+python -m lab.harness.matrix --sources quad-d7 --targets quad-square-d5 quad-triangle-d2 --carriers none second_try diagnosis_only diagnosis_second_try lessons process_only unrelated skills --seeds 2 --attempts 8 --mode offline --no-harness --gpu A100 --concurrency 4 --max-tokens 4096
 ```
 
 Detectors mined after the fact on the largest base group of each target a ledger already holds (`--all-groups` for every
@@ -142,9 +145,10 @@ on `LOOP_TARGETS` (the quadrature curriculum: interval d7, square d5, triangle d
 dossiers; cell 14 (`RUN_BASELINES`) runs the gate on one target of every other certifier family and writes the frozen
 baseline record; cell 15 (`RUN_SEARCH_BASELINE`) runs 256 attempts of the frozen base on `quad-square-d5` from seed
 `SEARCH_BASELINE_SEED`, past the loop's gate group; cell 17 (`RUN_MATRIX`) runs matrix cells from the loop's archive, since
-2026-11-08 with the defaults narrowed for the next session (the square alone; the baseline, the framing control, the second
-try, the lessons and the redacted lessons at `MATRIX_SEEDS` x `MATRIX_ATTEMPTS` = 5 x 32; cell 1 says why and keeps the
-2026-11-07 set) and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 16
+2026-11-09 with the defaults set for the next session (the square alone; the baseline, the framing control, the second
+try, the diagnosis, the diagnosis with a second try, the lessons and the redacted lessons at `MATRIX_SEEDS` x
+`MATRIX_ATTEMPTS` = 5 x 32, so that one session measures the 2 x 2 of the week-5 controls; cell 1 says why, what a row
+costs, and keeps the 2026-11-07 set) and `MATRIX_TOOL_CALLS` giving the content carriers a dry run. Week 5: cell 16
 (`RUN_MINE`) mines detectors on the largest base group of each target in the ledger (GPT proposes them with the secret,
 which cell 2 reads once while the browser is attached; the built-in detectors stand alone without it) and prints their
 firing tables, the librarian queries they name and the diagnosis-only texts. It needs no GPU, so a CPU runtime serves; in a
@@ -352,6 +356,29 @@ Nothing here enters a reward: detectors are programs, their firing is a measurem
 prompt content. What to read first from a run: the mining report on the loop's ledger (which detectors were kept per rung
 and how often they fire), then the diagnosis-only row beside the lessons row on the next matrix session.
 
+## The diagnosis and the second try together (week 6)
+
+The first run of the two control rows (2026-11-07, `RESULTS.md`, week 5) read them one at a time. The diagnosis alone did
+nothing: 34 of 48 valid on the square, the baseline's count, and no Radon rule. The second try was the only row that moved
+the optimal count: Radon's 7-point rule 3 times in 48, against 0 in the 368 plain attempts at these settings. Each row
+answers half of a question. The diagnosis names the failure before the model writes; the dry run shows the model the
+certifier's verdict on what it wrote. What that run could not say is whether naming the failure helps once the model has
+seen the verdict, which is the condition under which MUSE delivers a lesson and the condition the second wave of week 6 (a
+lesson delivered at the second try through a runtime gate) would build on.
+
+Week 6 therefore adds the third target-side control row, `diagnosis_second_try`: the diagnosis-only prompt with one
+certifier dry run and a revision, no lesson. With the baseline, `diagnosis_only` and `second_try` it completes a 2 x 2
+(no help, the diagnosis alone, one dry run alone, both), and one matrix session measures the four cells on the same seeds.
+The diagnosis is mined once per target and feeds both diagnosis rows; the row is a control like the other two (setting
+`control`, the flag "the diagnosis and one dry run, no lesson", never refused by the transfer rule), its cell id carries
+the dry run, and it reports the same gains, the gains against the framing row and the symptom change as every other cell.
+The reading set down before the run: if the combined row is level with the second try, the verdict already carries what
+the diagnosis says, and a lesson delivered at the second try must add something the verdict does not; if it is above the
+second try, naming the failure helps once the model has seen it, and the gate at the second try is worth building; if it
+is below, the diagnosis gets in the way of the revision. The notebook's matrix cell defaults to the seven rows that measure
+this (`none unrelated second_try diagnosis_only diagnosis_second_try lessons process_only` on the square at 5 x 32; cell 1
+says what a row costs). The relevance-ordered lessons, the bank audit and the training track wait for that reading.
+
 ## The ledger
 
 One row per attempt: `id, role, model, model_version, precision, target, prompt_hash, context, output, tool_log,
@@ -400,3 +427,8 @@ with the baseline, the lessons removed the symptoms they name without moving the
 alone raised the triangle's no-code rate by 0.29; and the built-in detectors mined on the loop's base groups (three kept on
 the degree-3 triangle, none on the interval). Not yet run: mining with GPT-proposed detectors (the secret lookup returned
 nothing after the long matrix cell), the matrix at five seeds, and the second try at 64 attempts on the square.
+
+Week 6 (2026-11-09) adds the third control row and is exercised offline under pytest only: the row replays the
+diagnosis-only sequences with their second round, so its gain and its symptom change are 0.000 by construction and the
+check is that the machinery adds nothing of its own. Not yet run: the 2 x 2 of the week-5 controls on the square at
+5 x 32, which the matrix cell now runs by default.
